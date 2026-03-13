@@ -39,7 +39,7 @@ export default function Home() {
             throw new Error(error.message);
         }
 
-        redirect("/");
+        redirect("/kasir");
     };
 
     return (

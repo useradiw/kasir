@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import Form from "next/form";
+import { headers } from "next/headers";
 
 const daftarSchema = z.object({
     email: z.email({ message: "Email tidak valid." }),
@@ -29,12 +30,15 @@ export default function Daftar() {
         }
 
         const supabase = await createClient();
+        const headersList = await headers();
+        const origin = headersList.get("origin") ?? headersList.get("host") ?? "http://localhost:3000";
+        const siteUrl = origin.startsWith("http") ? origin : `http://${origin}`;
 
         const { error } = await supabase.auth.signUp({
             email: parsed.data.email,
             password: parsed.data.password,
             options: {
-                emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
+                emailRedirectTo: `${siteUrl}/auth/confirm?next=/kasir`,
             },
         });
 
@@ -42,7 +46,7 @@ export default function Daftar() {
             throw new Error(error.message);
         }
 
-        redirect("/");
+        redirect("/auth/cek-email");
     };
 
     return (
