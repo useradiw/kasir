@@ -3,21 +3,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Form from "next/form";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import Form from "next/form";
 
-const masukSchema = z.object({
+const daftarSchema = z.object({
     email: z.email({ message: "Email tidak valid." }),
-    password: z.string().min(1, { message: "Password tidak boleh kosong." }),
+    password: z.string().min(8, { message: "Password minimal 8 karakter." }),
 });
 
-export default function Home() {
+export default function Daftar() {
     const handleClick = async (formData: FormData) => {
         "use server";
 
-        const parsed = masukSchema.safeParse({
+        const parsed = daftarSchema.safeParse({
             email: formData.get("email"),
             password: formData.get("password"),
         });
@@ -30,9 +30,12 @@ export default function Home() {
 
         const supabase = await createClient();
 
-        const { error } = await supabase.auth.signInWithPassword({
+        const { error } = await supabase.auth.signUp({
             email: parsed.data.email,
             password: parsed.data.password,
+            options: {
+                emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/confirm`,
+            },
         });
 
         if (error) {
@@ -48,7 +51,7 @@ export default function Home() {
                 <CardHeader className="border-b">
                     <CardTitle className="font-bold text-xl">Kasir - Sate Kambing Katamso</CardTitle>
                     <CardDescription>
-                        Masuk dengan email dan password.
+                        Daftar dengan email dan password.
                     </CardDescription>
                 </CardHeader>
                 <Form action={handleClick}>
@@ -74,7 +77,7 @@ export default function Home() {
                     </CardContent>
                     <CardFooter className="flex-col gap-2">
                         <Button type="submit" className="w-full cursor-pointer">
-                            Masuk
+                            Daftar
                         </Button>
                     </CardFooter>
                 </Form>
