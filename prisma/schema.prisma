@@ -1,0 +1,221 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  name      String
+  sortOrder Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  menuItems MenuItem[]
+
+  @@map("categories")
+}
+
+model MenuItem {
+  id           String        @id @default(uuid())
+  name         String
+  categoryId   String
+  price        Int
+  isHidden     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  category     Category      @relation(fields: [categoryId], references: [id])
+  variants     MenuVariant[]
+  packageItems PackageItem[]
+  orderItems   OrderItem[]
+
+  @@map("menu_items")
+}
+
+model MenuVariant {
+  id            String        @id @default(uuid())
+  menuItemId    String
+  label         String
+  priceModifier Int           @default(0)
+  menuItem      MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  orderItems    OrderItem[]
+  packageItems  PackageItem[]
+
+  @@map("menu_variants")
+}
+
+model Package {
+  id           String        @id @default(uuid())
+  name         String
+  bundlePrice  Int
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  packageItems PackageItem[]
+  orderItems   OrderItem[]
+
+  @@map("packages")
+}
+
+model PackageItem {
+  packageId    String
+  menuItemId   String
+  variantId    String?
+  nameSnapshot String
+  package      Package      @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  menuItem     MenuItem     @relation(fields: [menuItemId], references: [id])
+  variant      MenuVariant? @relation(fields: [variantId], references: [id])
+
+  @@id([packageId, menuItemId])
+  @@map("package_items")
+}
+
+// --- ORDERING & SESSIONS ---
+
+model TableSession {
+  id            String        @id @default(uuid())
+  name          String
+  service       ServiceEnum?
+  customerAlias String?
+  ownerId       String
+  orderedAt     DateTime?
+  servedAt      DateTime?
+  paidAt        DateTime?
+  createdAt     DateTime      @default(now())
+  orderItems    OrderItem[]
+  transactions  Transaction[]
+
+  @@map("table_sessions")
+}
+
+model OrderItem {
+  id             String          @id @default(uuid())
+  tableSessionId String
+  menuItemId     String?
+  packageId      String?
+  variantId      String?
+  qty            Int             @default(1)
+  note           String?
+  status         OrderItemStatus @default(PENDING)
+  nameSnapshot   String
+  price          Int
+  createdAt      DateTime        @default(now())
+  tableSession   TableSession    @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
+  menuItem       MenuItem?       @relation(fields: [menuItemId], references: [id])
+  package        Package?        @relation(fields: [packageId], references: [id])
+  variant        MenuVariant?    @relation(fields: [variantId], references: [id])
+
+  @@map("order_items")
+}
+
+// --- FINANCE & TRANSACTIONS ---
+
+model Transaction {
+  id             String            @id @default(uuid())
+  tableSessionId String
+  processedById  String?
+  subtotal       Int
+  taxAmount      Int               @default(0)
+  serviceCharge  Int               @default(0)
+  totalAmount    Int
+  cashAmount     Int               @default(0)
+  qrisAmount     Int               @default(0)
+  paymentMethod  PaymentMethod
+  status         TransactionStatus @default(PAID)
+  paidAt         DateTime          @default(now())
+  createdAt      DateTime          @default(now())
+  tableSession   TableSession      @relation(fields: [tableSessionId], references: [id])
+  processedBy    Staff?            @relation(fields: [processedById], references: [id])
+
+  @@map("transactions")
+}
+
+model Expense {
+  id         String   @id @default(uuid())
+  amount     Int
+  note       String?
+  recordedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@map("expenses")
+}
+
+model CashRegister {
+  id          String   @id @default(uuid())
+  date        DateTime @unique
+  openingCash Int      @default(0)
+  closingCash Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("cash_registers")
+}
+
+// --- STAFF & ATTENDANCE ---
+
+model Staff {
+  id                String             @id @default(uuid())
+  name              String
+  role              RoleEnum
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  attendanceRecords AttendanceRecord[]
+  transactions      Transaction[]
+
+  @@map("staff")
+}
+
+model AttendanceRecord {
+  id       String           @id @default(uuid())
+  staffId  String
+  date     DateTime
+  status   AttendanceStatus
+  markedAt DateTime         @default(now())
+  staff    Staff            @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([staffId, date])
+  @@map("attendance_records")
+}
+
+// --- ENUMS ---
+
+enum ServiceEnum {
+  GoFood
+  ShopeeFood
+  GrabFood
+  Take_Away
+  Unknown
+}
+
+enum OrderItemStatus {
+  PENDING
+  PREPARING
+  SERVED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  DYNAMIC_QRIS
+  STATIC_QRIS
+}
+
+enum TransactionStatus {
+  PAID
+  VOIDED
+}
+
+enum RoleEnum {
+  OWNER
+  MANAGER
+  CASHIER
+  STAFF
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+}
