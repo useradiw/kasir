@@ -1,0 +1,131 @@
+import Dexie, { type EntityTable, type Table } from "dexie";
+
+// ─── Product schema (synced from server, read-only locally) ───────────────────
+
+export interface Category {
+  id: string;
+  name: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  categoryId: string;
+  price: number;
+  isHidden: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MenuVariant {
+  id: string;
+  menuItemId: string;
+  label: string;
+  priceModifier: number;
+}
+
+export interface Package {
+  id: string;
+  name: string;
+  bundlePrice: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PackageItem {
+  packageId: string;
+  menuItemId: string;
+  variantId: string | null;
+  nameSnapshot: string;
+}
+
+// ─── Transaction schema (local-first, synced to server on payment) ────────────
+
+export type ServiceEnum =
+  | "GoFood"
+  | "ShopeeFood"
+  | "GrabFood"
+  | "Take_Away"
+  | "Unknown";
+
+export type OrderItemStatus = "PENDING" | "PREPARING" | "SERVED" | "CANCELLED";
+
+export type PaymentMethod = "CASH" | "DYNAMIC_QRIS" | "STATIC_QRIS";
+
+export type TransactionStatus = "PAID" | "VOIDED";
+
+export interface TableSession {
+  id: string;
+  name: string;
+  service: ServiceEnum | null;
+  customerAlias: string | null;
+  ownerId: string;
+  orderedAt: string | null;
+  servedAt: string | null;
+  paidAt: string | null;
+  createdAt: string;
+  synced: 0 | 1; // 0 = not synced, 1 = synced (IndexedDB only indexes numbers cleanly)
+}
+
+export interface OrderItem {
+  id: string;
+  tableSessionId: string;
+  menuItemId: string | null;
+  packageId: string | null;
+  variantId: string | null;
+  qty: number;
+  note: string | null;
+  status: OrderItemStatus;
+  nameSnapshot: string;
+  price: number;
+  createdAt: string;
+}
+
+export interface Transaction {
+  id: string;
+  tableSessionId: string;
+  processedById: string | null;
+  subtotal: number;
+  taxAmount: number;
+  serviceCharge: number;
+  totalAmount: number;
+  cashAmount: number;
+  qrisAmount: number;
+  paymentMethod: PaymentMethod;
+  status: TransactionStatus;
+  paidAt: string;
+  createdAt: string;
+  synced: 0 | 1;
+}
+
+// ─── Dexie database ───────────────────────────────────────────────────────────
+
+export class KasirDB extends Dexie {
+  categories!: EntityTable<Category, "id">;
+  menu_items!: EntityTable<MenuItem, "id">;
+  menu_variants!: EntityTable<MenuVariant, "id">;
+  packages!: EntityTable<Package, "id">;
+  package_items!: Table<PackageItem, [string, string]>;
+  table_sessions!: EntityTable<TableSession, "id">;
+  order_items!: EntityTable<OrderItem, "id">;
+  transactions!: EntityTable<Transaction, "id">;
+
+  constructor() {
+    super("kasir-db");
+    this.version(1).stores({
+      categories: "id, sortOrder",
+      menu_items: "id, categoryId",
+      menu_variants: "id, menuItemId",
+      packages: "id",
+      package_items: "[packageId+menuItemId], packageId",
+      table_sessions: "id, paidAt, synced",
+      order_items: "id, tableSessionId",
+      transactions: "id, tableSessionId, synced",
+    });
+  }
+}
+
+export const db = new KasirDB();
