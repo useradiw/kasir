@@ -1,0 +1,25 @@
+import { Container } from "@/components/shared/container";
+import { getExpensesData } from "@/app/actions/admin/queries";
+import ExpensesClient from "./expenses-client";
+
+export default async function ExpensesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ from?: string; to?: string }>;
+}) {
+  const params = await searchParams;
+  const from = params.from ?? "";
+  const to = params.to ?? "";
+
+  const data = await getExpensesData({ from, to });
+
+  return (
+    <Container id="admin-expenses" sectionStyle="" className="!max-w-4xl py-6">
+      <ExpensesClient
+        expenses={data.expenses}
+        totalAmount={data.totalAmount}
+        filters={{ from, to }}
+      />
+    </Container>
+  );
+}

@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client"
+  provider = "prisma-client-js"
   output   = "../generated/prisma"
 }
 
@@ -160,6 +160,7 @@ model Staff {
   name              String
   role              RoleEnum
   isActive          Boolean            @default(true)
+  supabaseUserId    String?            @unique
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   attendanceRecords AttendanceRecord[]
