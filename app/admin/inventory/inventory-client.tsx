@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminSelect, ErrorBanner, StatusBadge, TableEmptyRow } from "@/components/admin/ui";
+import { AdminSelect, ErrorBanner, StatusBadge } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { formatRupiah } from "@/lib/format";
 import {
@@ -92,40 +92,39 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                 <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
               </form>
             )}
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-foreground/10 text-left text-muted-foreground">
-                <th className="pb-2 font-medium">Nama</th><th className="pb-2 font-medium">Sort</th><th className="pb-2 font-medium">Aksi</th>
-              </tr></thead>
-              <tbody>
+
+            {categories.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Belum ada kategori.</p>
+            ) : (
+              <div className="divide-y divide-foreground/5">
                 {categories.map((c) => (
-                  <>
-                    <tr key={c.id} className="border-b border-foreground/5">
-                      <td className="py-2">{c.name}</td>
-                      <td className="py-2 text-muted-foreground">{c.sortOrder}</td>
-                      <td className="py-2 flex gap-1">
+                  <div key={c.id}>
+                    <div className="flex items-center justify-between py-2.5 gap-2">
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium">{c.name}</span>
+                        <span className="ml-2 text-xs text-muted-foreground">#{c.sortOrder}</span>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
                         <Button size="xs" variant="outline" onClick={() => setEditId(editId === c.id ? null : c.id)}>Edit</Button>
                         <Button size="xs" variant="destructive" disabled={isPending}
                           onClick={() => { if (confirm(`Hapus kategori "${c.name}"?`)) run(() => deleteCategory(c.id)); }}>Hapus</Button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                     {editId === c.id && (
-                      <tr key={`e-${c.id}`} className="bg-muted/30">
-                        <td colSpan={3} className="px-2 py-3">
-                          <form action={(fd) => run(async () => { await updateCategory(c.id, fd); setEditId(null); })}
-                            className="flex flex-wrap gap-3 items-end">
-                            <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={c.name} required /></div>
-                            <div className="grid gap-1"><Label>Sort</Label><Input name="sortOrder" type="number" defaultValue={c.sortOrder} className="w-24" /></div>
-                            <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                            <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-                          </form>
-                        </td>
-                      </tr>
+                      <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
+                        <form action={(fd) => run(async () => { await updateCategory(c.id, fd); setEditId(null); })}
+                          className="flex flex-wrap gap-3 items-end">
+                          <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={c.name} required /></div>
+                          <div className="grid gap-1"><Label>Sort</Label><Input name="sortOrder" type="number" defaultValue={c.sortOrder} className="w-24" /></div>
+                          <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
+                        </form>
+                      </div>
                     )}
-                  </>
+                  </div>
                 ))}
-                {categories.length === 0 && <TableEmptyRow colSpan={3} message="Belum ada kategori." />}
-              </tbody>
-            </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -154,19 +153,19 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                 <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
               </form>
             )}
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-foreground/10 text-left text-muted-foreground">
-                <th className="pb-2 font-medium">Nama</th><th className="pb-2 font-medium">Kategori</th>
-                <th className="pb-2 font-medium">Harga</th><th className="pb-2 font-medium">Tampil</th><th className="pb-2 font-medium">Aksi</th>
-              </tr></thead>
-              <tbody>
+
+            {menuItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Belum ada menu item.</p>
+            ) : (
+              <div className="divide-y divide-foreground/5">
                 {menuItems.map((m) => (
-                  <>
-                    <tr key={m.id} className="border-b border-foreground/5">
-                      <td className="py-2 font-medium">{m.name}</td>
-                      <td className="py-2 text-muted-foreground text-xs">{m.categoryName}</td>
-                      <td className="py-2">{formatRupiah(m.price)}</td>
-                      <td className="py-2">
+                  <div key={m.id}>
+                    <div className="flex items-start justify-between py-2.5 gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{m.name}</p>
+                        <p className="text-xs text-muted-foreground">{m.categoryName} · {formatRupiah(m.price)}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                         <StatusBadge
                           active={!m.isHidden}
                           activeLabel="Tampil"
@@ -174,44 +173,39 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                           onClick={() => run(() => toggleMenuItemVisibility(m.id, m.isHidden))}
                           disabled={isPending}
                         />
-                      </td>
-                      <td className="py-2 flex gap-1">
                         <Button size="xs" variant="outline" onClick={() => setEditId(editId === m.id ? null : m.id)}>Edit</Button>
                         <Button size="xs" variant="destructive" disabled={isPending}
                           onClick={() => { if (confirm(`Hapus "${m.name}"?`)) run(() => deleteMenuItem(m.id)); }}>Hapus</Button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                     {editId === m.id && (
-                      <tr key={`e-${m.id}`} className="bg-muted/30">
-                        <td colSpan={5} className="px-2 py-3">
-                          <form action={(fd) => run(async () => { await updateMenuItem(m.id, fd); setEditId(null); })}
-                            className="flex flex-wrap gap-3 items-end">
-                            <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={m.name} required /></div>
-                            <div className="grid gap-1">
-                              <Label>Kategori</Label>
-                              <AdminSelect name="categoryId" defaultValue={m.categoryId}>
-                                {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                              </AdminSelect>
-                            </div>
-                            <div className="grid gap-1"><Label>Harga</Label><Input name="price" type="number" defaultValue={m.price} min={0} className="w-32" /></div>
-                            <div className="grid gap-1">
-                              <Label>Tampilkan?</Label>
-                              <AdminSelect name="isHidden" defaultValue={m.isHidden ? "true" : "false"}>
-                                <option value="false">Ya</option>
-                                <option value="true">Tidak</option>
-                              </AdminSelect>
-                            </div>
-                            <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                            <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-                          </form>
-                        </td>
-                      </tr>
+                      <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
+                        <form action={(fd) => run(async () => { await updateMenuItem(m.id, fd); setEditId(null); })}
+                          className="flex flex-wrap gap-3 items-end">
+                          <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={m.name} required /></div>
+                          <div className="grid gap-1">
+                            <Label>Kategori</Label>
+                            <AdminSelect name="categoryId" defaultValue={m.categoryId}>
+                              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            </AdminSelect>
+                          </div>
+                          <div className="grid gap-1"><Label>Harga</Label><Input name="price" type="number" defaultValue={m.price} min={0} className="w-32" /></div>
+                          <div className="grid gap-1">
+                            <Label>Tampilkan?</Label>
+                            <AdminSelect name="isHidden" defaultValue={m.isHidden ? "true" : "false"}>
+                              <option value="false">Ya</option>
+                              <option value="true">Tidak</option>
+                            </AdminSelect>
+                          </div>
+                          <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
+                        </form>
+                      </div>
                     )}
-                  </>
+                  </div>
                 ))}
-                {menuItems.length === 0 && <TableEmptyRow colSpan={5} message="Belum ada menu item." />}
-              </tbody>
-            </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -239,43 +233,42 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                 <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
               </form>
             )}
-            <table className="w-full text-sm">
-              <thead><tr className="border-b border-foreground/10 text-left text-muted-foreground">
-                <th className="pb-2 font-medium">Menu Item</th><th className="pb-2 font-medium">Label</th>
-                <th className="pb-2 font-medium">+Harga</th><th className="pb-2 font-medium">Aksi</th>
-              </tr></thead>
-              <tbody>
+
+            {variants.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">Belum ada varian.</p>
+            ) : (
+              <div className="divide-y divide-foreground/5">
                 {variants.map((v) => (
-                  <>
-                    <tr key={v.id} className="border-b border-foreground/5">
-                      <td className="py-2 text-muted-foreground text-xs">{v.menuItemName}</td>
-                      <td className="py-2 font-medium">{v.label}</td>
-                      <td className="py-2">{v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)}</td>
-                      <td className="py-2 flex gap-1">
+                  <div key={v.id}>
+                    <div className="flex items-start justify-between py-2.5 gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium">{v.label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {v.menuItemName} · {v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)}
+                        </p>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
                         <Button size="xs" variant="outline" onClick={() => setEditId(editId === v.id ? null : v.id)}>Edit</Button>
                         <Button size="xs" variant="destructive" disabled={isPending}
                           onClick={() => { if (confirm(`Hapus varian "${v.label}"?`)) run(() => deleteVariant(v.id)); }}>Hapus</Button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                     {editId === v.id && (
-                      <tr key={`e-${v.id}`} className="bg-muted/30">
-                        <td colSpan={4} className="px-2 py-3">
-                          <form action={(fd) => run(async () => { await updateVariant(v.id, fd); setEditId(null); })}
-                            className="flex flex-wrap gap-3 items-end">
-                            <input type="hidden" name="menuItemId" value={v.menuItemId} />
-                            <div className="grid gap-1"><Label>Label</Label><Input name="label" defaultValue={v.label} required /></div>
-                            <div className="grid gap-1"><Label>+Harga</Label><Input name="priceModifier" type="number" defaultValue={v.priceModifier} className="w-36" /></div>
-                            <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                            <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-                          </form>
-                        </td>
-                      </tr>
+                      <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
+                        <form action={(fd) => run(async () => { await updateVariant(v.id, fd); setEditId(null); })}
+                          className="flex flex-wrap gap-3 items-end">
+                          <input type="hidden" name="menuItemId" value={v.menuItemId} />
+                          <div className="grid gap-1"><Label>Label</Label><Input name="label" defaultValue={v.label} required /></div>
+                          <div className="grid gap-1"><Label>+Harga</Label><Input name="priceModifier" type="number" defaultValue={v.priceModifier} className="w-36" /></div>
+                          <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
+                        </form>
+                      </div>
                     )}
-                  </>
+                  </div>
                 ))}
-                {variants.length === 0 && <TableEmptyRow colSpan={4} message="Belum ada varian." />}
-              </tbody>
-            </table>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}

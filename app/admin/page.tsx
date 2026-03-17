@@ -40,30 +40,19 @@ export default async function AdminDashboard() {
           {data.recentTransactions.length === 0 ? (
             <p className="text-sm text-muted-foreground">Belum ada transaksi.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-foreground/10 text-left text-muted-foreground">
-                  <th className="pb-2 font-medium">Sesi</th>
-                  <th className="pb-2 font-medium">Total</th>
-                  <th className="pb-2 font-medium">Metode</th>
-                  <th className="pb-2 font-medium">Waktu</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.recentTransactions.map((t) => (
-                  <tr key={t.id} className="border-b border-foreground/5">
-                    <td className="py-2">{t.sessionName}</td>
-                    <td className="py-2">{formatRupiah(t.totalAmount)}</td>
-                    <td className="py-2 capitalize">
-                      {t.paymentMethod.replace(/_/g, " ")}
-                    </td>
-                    <td className="py-2 text-muted-foreground">
-                      {formatDateTime(t.paidAt)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div className="divide-y divide-foreground/5">
+            {data.recentTransactions.map((t) => (
+              <div key={t.id} className="flex items-center justify-between py-2.5">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{t.sessionName}</p>
+                  <p className="text-xs text-muted-foreground capitalize">
+                    {t.paymentMethod.replace(/_/g, " ")} · {formatDateTime(t.paidAt)}
+                  </p>
+                </div>
+                <span className="text-sm font-medium ml-3 shrink-0">{formatRupiah(t.totalAmount)}</span>
+              </div>
+            ))}
+          </div>
           )}
         </CardContent>
       </Card>

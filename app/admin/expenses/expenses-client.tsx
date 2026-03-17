@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ErrorBanner, TableEmptyRow } from "@/components/admin/ui";
+import { ErrorBanner } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { addExpense, deleteExpense } from "@/app/actions/admin/expenses";
@@ -89,36 +89,30 @@ export default function ExpensesClient({
       <Card>
         <CardHeader><CardTitle>Daftar Pengeluaran ({expenses.length})</CardTitle></CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-foreground/10 text-left text-muted-foreground">
-                <th className="pb-2 font-medium">Tanggal</th>
-                <th className="pb-2 font-medium">Jumlah</th>
-                <th className="pb-2 font-medium">Keterangan</th>
-                <th className="pb-2 font-medium"></th>
-              </tr>
-            </thead>
-            <tbody>
+          {expenses.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Belum ada pengeluaran.</p>
+          ) : (
+            <div className="divide-y divide-foreground/5">
               {expenses.map((e) => (
-                <tr key={e.id} className="border-b border-foreground/5">
-                  <td className="py-2 text-xs text-muted-foreground">
-                    {formatDateTime(e.recordedAt, "medium")}
-                  </td>
-                  <td className="py-2 font-medium">{formatRupiah(e.amount)}</td>
-                  <td className="py-2 text-muted-foreground">{e.note ?? "—"}</td>
-                  <td className="py-2">
-                    <Button size="xs" variant="destructive" disabled={isPending}
-                      onClick={() => { if (confirm("Hapus pengeluaran ini?")) run(() => deleteExpense(e.id)); }}>
-                      Hapus
-                    </Button>
-                  </td>
-                </tr>
+                <div key={e.id} className="flex items-start justify-between py-2.5 gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">{formatRupiah(e.amount)}</p>
+                    <p className="text-xs text-muted-foreground">{formatDateTime(e.recordedAt, "medium")}</p>
+                    {e.note && <p className="text-xs text-muted-foreground mt-0.5">{e.note}</p>}
+                  </div>
+                  <Button
+                    size="xs"
+                    variant="destructive"
+                    disabled={isPending}
+                    className="shrink-0"
+                    onClick={() => { if (confirm("Hapus pengeluaran ini?")) run(() => deleteExpense(e.id)); }}
+                  >
+                    Hapus
+                  </Button>
+                </div>
               ))}
-              {expenses.length === 0 && (
-                <TableEmptyRow colSpan={4} message="Belum ada pengeluaran." />
-              )}
-            </tbody>
-          </table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -1,6 +1,6 @@
 import { Container } from "@/components/shared/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RoleBadge, StatusBadge, TableEmptyRow } from "@/components/admin/ui";
+import { RoleBadge, StatusBadge } from "@/components/admin/ui";
 import { getSessionsData } from "@/app/actions/admin/queries";
 import { formatDateTime } from "@/lib/format";
 
@@ -39,47 +39,36 @@ export default async function SessionsPage() {
         <CardHeader>
           <CardTitle>Pengguna Supabase ({rows.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-2">
           <p className="text-xs text-muted-foreground mb-4">
             &ldquo;Aktif&rdquo; = login dalam {ACTIVE_THRESHOLD_MINUTES} menit terakhir.
           </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-foreground/10 text-left text-muted-foreground">
-                  <th className="pb-2 font-medium">Email</th>
-                  <th className="pb-2 font-medium">Staff</th>
-                  <th className="pb-2 font-medium">Role</th>
-                  <th className="pb-2 font-medium">Login Terakhir</th>
-                  <th className="pb-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-foreground/5">
-                    <td className="py-2 font-mono text-xs">{r.email}</td>
-                    <td className="py-2">
-                      {r.staffName ?? (
-                        <span className="italic text-muted-foreground">Tidak terhubung</span>
-                      )}
-                    </td>
-                    <td className="py-2">
-                      {r.staffRole ? <RoleBadge role={r.staffRole} /> : <span className="text-xs text-muted-foreground">—</span>}
-                    </td>
-                    <td className="py-2 text-xs text-muted-foreground">
-                      {r.lastSignIn ? formatDateTime(r.lastSignIn, "medium") : "—"}
-                    </td>
-                    <td className="py-2">
-                      <StatusBadge active={r.isRecent} />
-                    </td>
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <TableEmptyRow colSpan={5} message="Tidak ada pengguna." />
-                )}
-              </tbody>
-            </table>
-          </div>
+
+          {rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada pengguna.</p>
+          ) : (
+            <div className="space-y-2">
+              {rows.map((r) => (
+                <div key={r.id} className="flex items-start justify-between rounded-lg border border-foreground/10 p-3 gap-3">
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-mono text-xs truncate">{r.email}</p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm">
+                        {r.staffName ?? (
+                          <span className="italic text-muted-foreground text-xs">Tidak terhubung</span>
+                        )}
+                      </span>
+                      {r.staffRole && <RoleBadge role={r.staffRole} />}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Login: {r.lastSignIn ? formatDateTime(r.lastSignIn, "medium") : "—"}
+                    </p>
+                  </div>
+                  <StatusBadge active={r.isRecent} />
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </Container>

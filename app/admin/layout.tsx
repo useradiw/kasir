@@ -1,14 +1,33 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { Container } from "@/components/shared/container";
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+  navigationMenuTriggerStyle,
+} from "@/components/ui/navigation-menu"
 
 const navItems = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/staff", label: "Staff" },
-  { href: "/admin/sessions", label: "Sesi Login" },
-  { href: "/admin/inventory", label: "Inventori" },
-  { href: "/admin/transactions", label: "Transaksi" },
-  { href: "/admin/expenses", label: "Pengeluaran" },
+  { trigger: "Navigasi", content: [
+    { href: "/admin", label: "Dashboard" },
+    { href: "/kasir", label: "Kembali ke kasir" }
+  ]},
+  { trigger: "Staff", content: [
+    { href: "/admin/staff", label: "Kelola Staff" },
+    { href: "/admin/sessions", label: "Sesi Login" }
+  ]},
+  { trigger: "Barang", content: [
+    { href: "/admin/inventory", label: "Inventori" },
+  ]},
+  { trigger: "Laporan", content: [
+    { href: "/admin/transactions", label: "Transaksi" },
+    { href: "/admin/expenses", label: "Pengeluaran" },
+  ]},
 ];
 
 export default async function AdminLayout({
@@ -27,36 +46,37 @@ export default async function AdminLayout({
   const displayEmail = user.email ?? "Admin";
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <aside className="w-56 shrink-0 border-r border-foreground/10 bg-card">
-        <div className="p-4 border-b border-foreground/10">
-          <p className="text-xs text-muted-foreground">Admin Panel</p>
-          <p className="text-sm font-semibold truncate">{displayEmail}</p>
+    <>
+      <Container id="nav" sectionStyle="border z-40 fixed top-0 right-0 left-0 bg-inherit shadow" className="flex flex-col">
+        <div className="flex items-center justify-between">
+          <span className="text-lg font-semibold">Admin Panel</span>
+          <span className="text-sm truncate text-muted-foreground max-w-45">{displayEmail}</span>
         </div>
-        <nav className="p-2 flex flex-col gap-1">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="rounded-lg px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="absolute bottom-4 left-0 w-56 p-2">
-          <Link
-            href="/kasir"
-            className="block rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-muted transition-colors"
-          >
-            ← Kembali ke Kasir
-          </Link>
-        </div>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1 overflow-auto">{children}</main>
-    </div>
+        <NavigationMenu className="mt-2" align="start">
+          <NavigationMenuList className="gap-0 justify-start">
+              {navItems.map((item) => (
+                <NavigationMenuItem key={item.trigger}>
+                  <NavigationMenuTrigger className="text-xs sm:text-sm px-2.5 sm:px-4">
+                    {item.trigger}
+                  </NavigationMenuTrigger>
+                  {item.content.map((item) => (
+                    <NavigationMenuContent key={item.label}>
+                      <NavigationMenuLink
+                        render={<Link href={item.href} />}
+                        className={navigationMenuTriggerStyle()}
+                      >
+                        {item.label}
+                      </NavigationMenuLink>
+                    </NavigationMenuContent>
+                  ))}
+                </NavigationMenuItem>
+              ))}
+          </NavigationMenuList>
+        </NavigationMenu>
+      </Container>
+      <main className="mt-24 sm:mt-28">
+        {children}
+      </main>
+    </>
   );
 }

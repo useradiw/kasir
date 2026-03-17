@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminSelect, TableEmptyRow } from "@/components/admin/ui";
+import { AdminSelect } from "@/components/admin/ui";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 
 type OrderItem = { nameSnapshot: string; qty: number; price: number; status: string };
@@ -121,92 +121,79 @@ export default function TransactionsClient({
         </CardContent>
       </Card>
 
-      {/* Table */}
+      {/* Transaction list */}
       <Card>
         <CardHeader>
           <CardTitle>Daftar Transaksi ({total} total)</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-foreground/10 text-left text-muted-foreground">
-                  <th className="pb-2 font-medium">Sesi</th>
-                  <th className="pb-2 font-medium">Total</th>
-                  <th className="pb-2 font-medium">Metode</th>
-                  <th className="pb-2 font-medium">Status</th>
-                  <th className="pb-2 font-medium">Kasir</th>
-                  <th className="pb-2 font-medium">Waktu</th>
-                  <th className="pb-2 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <>
-                    <tr key={r.id} className="border-b border-foreground/5">
-                      <td className="py-2 font-medium">
-                        {r.sessionName}
-                        {r.service && <span className="ml-1 text-xs text-muted-foreground">({r.service})</span>}
-                      </td>
-                      <td className="py-2">{formatRupiah(r.totalAmount)}</td>
-                      <td className="py-2 text-xs">{methodLabel[r.paymentMethod] ?? r.paymentMethod}</td>
-                      <td className="py-2">
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge[r.status] ?? ""}`}>
-                          {r.status === "PAID" ? "Dibayar" : "Void"}
-                        </span>
-                      </td>
-                      <td className="py-2 text-xs text-muted-foreground">{r.processedBy ?? "—"}</td>
-                      <td className="py-2 text-xs text-muted-foreground">
-                        {formatDateTime(r.paidAt)}
-                      </td>
-                      <td className="py-2">
-                        <Button size="xs" variant="outline" onClick={() => setExpandId(expandId === r.id ? null : r.id)}>
-                          Detail
-                        </Button>
-                      </td>
-                    </tr>
-                    {expandId === r.id && (
-                      <tr key={`d-${r.id}`} className="bg-muted/20">
-                        <td colSpan={7} className="px-4 py-3">
-                          <div className="grid grid-cols-2 gap-4 text-xs">
-                            <div className="space-y-1">
-                              <p className="font-medium mb-2">Item Pesanan</p>
-                              {r.orderItems.map((oi, i) => (
-                                <div key={i} className="flex justify-between">
-                                  <span>{oi.nameSnapshot} ×{oi.qty}</span>
-                                  <span>{formatRupiah(oi.price * oi.qty)}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="space-y-1">
-                              <p className="font-medium mb-2">Rincian Pembayaran</p>
-                              <div className="flex justify-between"><span>Subtotal</span><span>{formatRupiah(r.subtotal)}</span></div>
-                              {r.taxAmount > 0 && <div className="flex justify-between"><span>Pajak</span><span>{formatRupiah(r.taxAmount)}</span></div>}
-                              {r.serviceCharge > 0 && <div className="flex justify-between"><span>Service</span><span>{formatRupiah(r.serviceCharge)}</span></div>}
-                              <div className="flex justify-between font-medium border-t border-foreground/10 pt-1 mt-1"><span>Total</span><span>{formatRupiah(r.totalAmount)}</span></div>
-                              {r.cashAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>Tunai</span><span>{formatRupiah(r.cashAmount)}</span></div>}
-                              {r.qrisAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>QRIS</span><span>{formatRupiah(r.qrisAmount)}</span></div>}
-                            </div>
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </>
-                ))}
-                {rows.length === 0 && (
-                  <TableEmptyRow colSpan={7} message="Tidak ada transaksi." />
+        <CardContent className="space-y-2">
+          {rows.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada transaksi.</p>
+          ) : (
+            rows.map((r) => (
+              <div key={r.id} className="rounded-lg border border-foreground/10 p-3 space-y-2">
+                {/* Top row: session + amount */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">
+                      {r.sessionName}
+                      {r.service && <span className="ml-1 text-xs text-muted-foreground">({r.service})</span>}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {methodLabel[r.paymentMethod] ?? r.paymentMethod}
+                      {r.processedBy && <> · {r.processedBy}</>}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-medium">{formatRupiah(r.totalAmount)}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge[r.status] ?? ""}`}>
+                      {r.status === "PAID" ? "Dibayar" : "Void"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Bottom row: time + detail button */}
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">{formatDateTime(r.paidAt)}</span>
+                  <Button size="xs" variant="outline" onClick={() => setExpandId(expandId === r.id ? null : r.id)}>
+                    {expandId === r.id ? "Tutup" : "Detail"}
+                  </Button>
+                </div>
+
+                {/* Expandable detail */}
+                {expandId === r.id && (
+                  <div className="pt-2 border-t border-foreground/10 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div className="space-y-1">
+                      <p className="font-medium mb-2">Item Pesanan</p>
+                      {r.orderItems.map((oi, i) => (
+                        <div key={i} className="flex justify-between">
+                          <span>{oi.nameSnapshot} ×{oi.qty}</span>
+                          <span>{formatRupiah(oi.price * oi.qty)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-medium mb-2">Rincian Pembayaran</p>
+                      <div className="flex justify-between"><span>Subtotal</span><span>{formatRupiah(r.subtotal)}</span></div>
+                      {r.taxAmount > 0 && <div className="flex justify-between"><span>Pajak</span><span>{formatRupiah(r.taxAmount)}</span></div>}
+                      {r.serviceCharge > 0 && <div className="flex justify-between"><span>Service</span><span>{formatRupiah(r.serviceCharge)}</span></div>}
+                      <div className="flex justify-between font-medium border-t border-foreground/10 pt-1 mt-1"><span>Total</span><span>{formatRupiah(r.totalAmount)}</span></div>
+                      {r.cashAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>Tunai</span><span>{formatRupiah(r.cashAmount)}</span></div>}
+                      {r.qrisAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>QRIS</span><span>{formatRupiah(r.qrisAmount)}</span></div>}
+                    </div>
+                  </div>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+            ))
+          )}
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t border-foreground/10 mt-4">
-              <p className="text-sm text-muted-foreground">Halaman {page} dari {totalPages}</p>
+            <div className="flex items-center justify-between pt-4 border-t border-foreground/10 mt-2">
+              <p className="text-sm text-muted-foreground">Hal. {page} / {totalPages}</p>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => changePage(page - 1)}>← Sebelumnya</Button>
-                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => changePage(page + 1)}>Selanjutnya →</Button>
+                <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => changePage(page - 1)}>← Sblm</Button>
+                <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => changePage(page + 1)}>Slnjt →</Button>
               </div>
             </div>
           )}
