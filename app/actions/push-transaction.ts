@@ -12,6 +12,16 @@ export interface TransactionPayload {
 export async function pushTransaction(payload: TransactionPayload): Promise<void> {
   const { session, orderItems, transaction } = payload;
 
+  // Validate: each OrderItem must have exactly one of menuItemId or packageId
+  for (const item of orderItems) {
+    if (item.menuItemId && item.packageId) {
+      throw new Error(`OrderItem ${item.id}: cannot have both menuItemId and packageId`);
+    }
+    if (!item.menuItemId && !item.packageId) {
+      throw new Error(`OrderItem ${item.id}: must have either menuItemId or packageId`);
+    }
+  }
+
   await prisma.$transaction([
     // Upsert table session
     prisma.tableSession.upsert({
@@ -21,7 +31,7 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         name: session.name,
         service: session.service ?? undefined,
         customerAlias: session.customerAlias,
-        ownerId: session.ownerId,
+        ownerId: session.ownerId ?? undefined,
         orderedAt: session.orderedAt ? new Date(session.orderedAt) : null,
         servedAt: session.servedAt ? new Date(session.servedAt) : null,
         paidAt: session.paidAt ? new Date(session.paidAt) : null,
@@ -48,12 +58,18 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
           status: item.status,
           nameSnapshot: item.nameSnapshot,
           price: item.price,
+          preparedAt: item.preparedAt ? new Date(item.preparedAt) : null,
+          servedAt: item.servedAt ? new Date(item.servedAt) : null,
+          cancelledAt: item.cancelledAt ? new Date(item.cancelledAt) : null,
           createdAt: new Date(item.createdAt),
         },
         update: {
           qty: item.qty,
           note: item.note,
           status: item.status,
+          preparedAt: item.preparedAt ? new Date(item.preparedAt) : null,
+          servedAt: item.servedAt ? new Date(item.servedAt) : null,
+          cancelledAt: item.cancelledAt ? new Date(item.cancelledAt) : null,
         },
       })
     ),

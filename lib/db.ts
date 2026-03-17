@@ -36,6 +36,7 @@ export interface Package {
 }
 
 export interface PackageItem {
+  id: string;
   packageId: string;
   menuItemId: string;
   variantId: string | null;
@@ -62,7 +63,7 @@ export interface TableSession {
   name: string;
   service: ServiceEnum | null;
   customerAlias: string | null;
-  ownerId: string;
+  ownerId: string | null;
   orderedAt: string | null;
   servedAt: string | null;
   paidAt: string | null;
@@ -81,13 +82,16 @@ export interface OrderItem {
   status: OrderItemStatus;
   nameSnapshot: string;
   price: number;
+  preparedAt: string | null;
+  servedAt: string | null;
+  cancelledAt: string | null;
   createdAt: string;
 }
 
 export interface Transaction {
   id: string;
   tableSessionId: string;
-  processedById: string | null;
+  processedById: string;
   subtotal: number;
   taxAmount: number;
   serviceCharge: number;
@@ -108,7 +112,7 @@ export class KasirDB extends Dexie {
   menu_items!: EntityTable<MenuItem, "id">;
   menu_variants!: EntityTable<MenuVariant, "id">;
   packages!: EntityTable<Package, "id">;
-  package_items!: Table<PackageItem, [string, string]>;
+  package_items!: EntityTable<PackageItem, "id">;
   table_sessions!: EntityTable<TableSession, "id">;
   order_items!: EntityTable<OrderItem, "id">;
   transactions!: EntityTable<Transaction, "id">;
@@ -124,6 +128,9 @@ export class KasirDB extends Dexie {
       table_sessions: "id, paidAt, synced",
       order_items: "id, tableSessionId",
       transactions: "id, tableSessionId, synced",
+    });
+    this.version(2).stores({
+      package_items: "id, packageId",
     });
   }
 }

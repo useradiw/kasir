@@ -165,6 +165,7 @@ export async function getInventoryData() {
       updatedAt: p.updatedAt.toISOString(),
     })),
     packageItems: packageItems.map((pi) => ({
+      id: pi.id,
       packageId: pi.packageId,
       menuItemId: pi.menuItemId,
       variantId: pi.variantId,
@@ -214,6 +215,7 @@ export async function getTransactionsData(opts: {
       take: PAGE_SIZE,
       include: {
         processedBy: { select: { name: true } },
+        voidedBy: { select: { name: true } },
         tableSession: {
           select: {
             name: true,
@@ -244,6 +246,9 @@ export async function getTransactionsData(opts: {
       status: t.status as string,
       paidAt: t.paidAt.toISOString(),
       processedBy: t.processedBy?.name ?? null,
+      voidedBy: t.voidedBy?.name ?? null,
+      voidedAt: t.voidedAt?.toISOString() ?? null,
+      voidReason: t.voidReason ?? null,
       orderItems: t.tableSession.orderItems.map((oi) => ({
         nameSnapshot: oi.nameSnapshot,
         qty: oi.qty,

@@ -57,13 +57,16 @@ export async function createSession(
 // ─── Order item actions ───────────────────────────────────────────────────────
 
 export async function addOrderItem(
-  item: Omit<OrderItem, "id" | "createdAt" | "status">
+  item: Omit<OrderItem, "id" | "createdAt" | "status" | "preparedAt" | "servedAt" | "cancelledAt">
 ): Promise<string> {
   const id = newId();
   await db.order_items.add({
     ...item,
     id,
     status: "PENDING",
+    preparedAt: null,
+    servedAt: null,
+    cancelledAt: null,
     createdAt: nowISO(),
   });
 
@@ -79,7 +82,12 @@ export async function updateOrderItemStatus(
   id: string,
   status: OrderItem["status"]
 ): Promise<void> {
-  await db.order_items.update(id, { status });
+  const updates: Partial<OrderItem> = { status };
+  const now = nowISO();
+  if (status === "PREPARING") updates.preparedAt = now;
+  if (status === "SERVED") updates.servedAt = now;
+  if (status === "CANCELLED") updates.cancelledAt = now;
+  await db.order_items.update(id, updates);
 }
 
 export async function removeOrderItem(id: string): Promise<void> {
@@ -90,7 +98,7 @@ export async function removeOrderItem(id: string): Promise<void> {
 
 export interface PaymentInput {
   tableSessionId: string;
-  processedById: string | null;
+  processedById: string;
   subtotal: number;
   taxAmount: number;
   serviceCharge: number;

@@ -18,7 +18,7 @@ export default function AuthCodeError() {
                     </p>
                 </CardContent>
                 <CardFooter>
-                    <Link href="/auth/daftar" className="text-blue-700 underline hover:text-blue-800">Daftar Ulang</Link>
+                    <Link href="/auth/daftar" className="cursor-pointer text-blue-700 underline hover:text-blue-800">Daftar Ulang</Link>
                 </CardFooter>
             </Card>
         </Container>

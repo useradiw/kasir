@@ -171,18 +171,26 @@ export async function addPackageItem(formData: FormData) {
     throw new Error("Data tidak lengkap.");
   }
 
-  await prisma.packageItem.upsert({
-    where: { packageId_menuItemId: { packageId, menuItemId } },
-    create: { packageId, menuItemId, variantId, nameSnapshot },
-    update: { variantId, nameSnapshot },
+  // Find existing by compound unique, then create or update
+  const existing = await prisma.packageItem.findFirst({
+    where: { packageId, menuItemId, variantId },
   });
+
+  if (existing) {
+    await prisma.packageItem.update({
+      where: { id: existing.id },
+      data: { nameSnapshot },
+    });
+  } else {
+    await prisma.packageItem.create({
+      data: { packageId, menuItemId, variantId, nameSnapshot },
+    });
+  }
   revalidatePath("/admin/inventory");
 }
 
-export async function deletePackageItem(packageId: string, menuItemId: string) {
+export async function deletePackageItem(id: string) {
   await requireOwner();
-  await prisma.packageItem.delete({
-    where: { packageId_menuItemId: { packageId, menuItemId } },
-  });
+  await prisma.packageItem.delete({ where: { id } });
   revalidatePath("/admin/inventory");
 }

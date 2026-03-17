@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminSelect } from "@/components/admin/ui";
+import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
 import { formatRupiah, formatDateTime } from "@/lib/format";
+import { useAdminAction } from "@/hooks/use-admin-action";
+import { voidTransaction } from "@/app/actions/admin/transactions";
 
 type OrderItem = { nameSnapshot: string; qty: number; price: number; status: string };
 type Row = {
@@ -24,6 +26,9 @@ type Row = {
   status: string;
   paidAt: string;
   processedBy: string | null;
+  voidedBy: string | null;
+  voidedAt: string | null;
+  voidReason: string | null;
   orderItems: OrderItem[];
 };
 
@@ -56,6 +61,8 @@ export default function TransactionsClient({
   const router = useRouter();
   const [expandId, setExpandId] = useState<string | null>(null);
   const [localFilters, setLocalFilters] = useState(filters);
+  const [voidReason, setVoidReason] = useState("");
+  const { isPending, run, error } = useAdminAction();
 
   function applyFilters() {
     const params = new URLSearchParams({ page: "1" });
@@ -79,6 +86,7 @@ export default function TransactionsClient({
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Transaksi</h1>
+      {error && <ErrorBanner error={error} />}
 
       {/* Filters */}
       <Card>
@@ -155,32 +163,65 @@ export default function TransactionsClient({
                 {/* Bottom row: time + detail button */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{formatDateTime(r.paidAt)}</span>
-                  <Button size="xs" variant="outline" onClick={() => setExpandId(expandId === r.id ? null : r.id)}>
+                  <Button size="xs" variant="outline" onClick={() => { setExpandId(expandId === r.id ? null : r.id); setVoidReason(""); }}>
                     {expandId === r.id ? "Tutup" : "Detail"}
                   </Button>
                 </div>
 
                 {/* Expandable detail */}
                 {expandId === r.id && (
-                  <div className="pt-2 border-t border-foreground/10 grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    <div className="space-y-1">
-                      <p className="font-medium mb-2">Item Pesanan</p>
-                      {r.orderItems.map((oi, i) => (
-                        <div key={i} className="flex justify-between">
-                          <span>{oi.nameSnapshot} ×{oi.qty}</span>
-                          <span>{formatRupiah(oi.price * oi.qty)}</span>
+                  <div className="pt-2 border-t border-foreground/10 space-y-3 text-xs">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="font-medium mb-2">Item Pesanan</p>
+                        {r.orderItems.map((oi, i) => (
+                          <div key={i} className="flex justify-between">
+                            <span>{oi.nameSnapshot} ×{oi.qty}</span>
+                            <span>{formatRupiah(oi.price * oi.qty)}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium mb-2">Rincian Pembayaran</p>
+                        <div className="flex justify-between"><span>Subtotal</span><span>{formatRupiah(r.subtotal)}</span></div>
+                        {r.taxAmount > 0 && <div className="flex justify-between"><span>Pajak</span><span>{formatRupiah(r.taxAmount)}</span></div>}
+                        {r.serviceCharge > 0 && <div className="flex justify-between"><span>Service</span><span>{formatRupiah(r.serviceCharge)}</span></div>}
+                        <div className="flex justify-between font-medium border-t border-foreground/10 pt-1 mt-1"><span>Total</span><span>{formatRupiah(r.totalAmount)}</span></div>
+                        {r.cashAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>Tunai</span><span>{formatRupiah(r.cashAmount)}</span></div>}
+                        {r.qrisAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>QRIS</span><span>{formatRupiah(r.qrisAmount)}</span></div>}
+                      </div>
+                    </div>
+
+                    {/* Void audit info for voided transactions */}
+                    {r.status === "VOIDED" && (
+                      <div className="pt-2 border-t border-foreground/10 space-y-1 text-muted-foreground">
+                        <p className="font-medium text-destructive">Info Void</p>
+                        {r.voidReason && <p>Alasan: {r.voidReason}</p>}
+                        {r.voidedBy && <p>Oleh: {r.voidedBy}</p>}
+                        {r.voidedAt && <p>Waktu: {formatDateTime(r.voidedAt)}</p>}
+                      </div>
+                    )}
+
+                    {/* Void action for paid transactions */}
+                    {r.status === "PAID" && (
+                      <div className="pt-2 border-t border-foreground/10 space-y-2">
+                        <div className="flex gap-2 items-end">
+                          <div className="flex-1">
+                            <Label className="text-xs">Alasan void</Label>
+                            <Input
+                              value={voidReason}
+                              onChange={(e) => setVoidReason(e.target.value)}
+                              placeholder="Masukkan alasan void..."
+                              className="h-8 text-xs"
+                            />
+                          </div>
+                          <Button size="xs" variant="destructive" disabled={isPending || !voidReason.trim()}
+                            onClick={() => run(() => voidTransaction(r.id, voidReason))}>
+                            Void
+                          </Button>
                         </div>
-                      ))}
-                    </div>
-                    <div className="space-y-1">
-                      <p className="font-medium mb-2">Rincian Pembayaran</p>
-                      <div className="flex justify-between"><span>Subtotal</span><span>{formatRupiah(r.subtotal)}</span></div>
-                      {r.taxAmount > 0 && <div className="flex justify-between"><span>Pajak</span><span>{formatRupiah(r.taxAmount)}</span></div>}
-                      {r.serviceCharge > 0 && <div className="flex justify-between"><span>Service</span><span>{formatRupiah(r.serviceCharge)}</span></div>}
-                      <div className="flex justify-between font-medium border-t border-foreground/10 pt-1 mt-1"><span>Total</span><span>{formatRupiah(r.totalAmount)}</span></div>
-                      {r.cashAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>Tunai</span><span>{formatRupiah(r.cashAmount)}</span></div>}
-                      {r.qrisAmount > 0 && <div className="flex justify-between text-muted-foreground"><span>QRIS</span><span>{formatRupiah(r.qrisAmount)}</span></div>}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -58,6 +58,7 @@ export async function syncProducts(): Promise<ProductSnapshot> {
       updatedAt: p.updatedAt.toISOString(),
     })),
     packageItems: packageItems.map((pi) => ({
+      id: pi.id,
       packageId: pi.packageId,
       menuItemId: pi.menuItemId,
       variantId: pi.variantId,

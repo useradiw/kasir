@@ -2,11 +2,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
-import type { Staff } from "@/generated/prisma";
+import type { Staff, RoleEnum } from "@/generated/prisma";
 
-// Call at the top of every admin server component / action.
-// Returns the authenticated owner Staff record, or redirects to /.
-export async function requireOwner(): Promise<Staff> {
+// Returns the authenticated Staff record if they have one of the given roles.
+// Redirects to / otherwise.
+export async function requireRole(...roles: RoleEnum[]): Promise<Staff> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,7 +18,12 @@ export async function requireOwner(): Promise<Staff> {
     where: { supabaseUserId: user.id },
   });
 
-  if (!staff || !staff.isActive || staff.role !== "OWNER") redirect("/");
+  if (!staff || !staff.isActive || !roles.includes(staff.role)) redirect("/");
 
   return staff;
+}
+
+// Convenience: require OWNER role specifically.
+export async function requireOwner(): Promise<Staff> {
+  return requireRole("OWNER");
 }

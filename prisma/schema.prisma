@@ -60,6 +60,7 @@ model Package {
 }
 
 model PackageItem {
+  id           String       @id @default(uuid())
   packageId    String
   menuItemId   String
   variantId    String?
@@ -68,7 +69,7 @@ model PackageItem {
   menuItem     MenuItem     @relation(fields: [menuItemId], references: [id])
   variant      MenuVariant? @relation(fields: [variantId], references: [id])
 
-  @@id([packageId, menuItemId])
+  @@unique([packageId, menuItemId, variantId])
   @@map("package_items")
 }
 
@@ -79,11 +80,12 @@ model TableSession {
   name          String
   service       ServiceEnum?
   customerAlias String?
-  ownerId       String
+  ownerId       String?
   orderedAt     DateTime?
   servedAt      DateTime?
   paidAt        DateTime?
   createdAt     DateTime      @default(now())
+  owner         Staff?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   orderItems    OrderItem[]
   transactions  Transaction[]
 
@@ -101,6 +103,9 @@ model OrderItem {
   status         OrderItemStatus @default(PENDING)
   nameSnapshot   String
   price          Int
+  preparedAt     DateTime?
+  servedAt       DateTime?
+  cancelledAt    DateTime?
   createdAt      DateTime        @default(now())
   tableSession   TableSession    @relation(fields: [tableSessionId], references: [id], onDelete: Cascade)
   menuItem       MenuItem?       @relation(fields: [menuItemId], references: [id])
@@ -115,7 +120,7 @@ model OrderItem {
 model Transaction {
   id             String            @id @default(uuid())
   tableSessionId String
-  processedById  String?
+  processedById  String
   subtotal       Int
   taxAmount      Int               @default(0)
   serviceCharge  Int               @default(0)
@@ -124,10 +129,14 @@ model Transaction {
   qrisAmount     Int               @default(0)
   paymentMethod  PaymentMethod
   status         TransactionStatus @default(PAID)
+  voidedById     String?
+  voidedAt       DateTime?
+  voidReason     String?
   paidAt         DateTime          @default(now())
   createdAt      DateTime          @default(now())
   tableSession   TableSession      @relation(fields: [tableSessionId], references: [id])
-  processedBy    Staff?            @relation(fields: [processedById], references: [id])
+  processedBy    Staff             @relation("ProcessedTransactions", fields: [processedById], references: [id])
+  voidedBy       Staff?            @relation("VoidedTransactions", fields: [voidedById], references: [id], onDelete: SetNull)
 
   @@map("transactions")
 }
@@ -163,8 +172,10 @@ model Staff {
   supabaseUserId    String?            @unique
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  attendanceRecords AttendanceRecord[]
-  transactions      Transaction[]
+  attendanceRecords  AttendanceRecord[]
+  transactions       Transaction[]      @relation("ProcessedTransactions")
+  voidedTransactions Transaction[]      @relation("VoidedTransactions")
+  tableSessions      TableSession[]
 
   @@map("staff")
 }

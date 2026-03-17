@@ -44,8 +44,38 @@ export async function updateStaff(id: string, formData: FormData) {
 }
 
 export async function deleteStaff(id: string) {
-  await requireOwner();
-  await prisma.staff.delete({ where: { id } });
+  const owner = await requireOwner();
+
+  if (owner.id === id) throw new Error("Tidak dapat menghapus akun sendiri.");
+
+  const staff = await prisma.staff.findUnique({ where: { id } });
+  if (!staff) throw new Error("Staff tidak ditemukan.");
+
+  // Clean up references before deleting
+  await prisma.$transaction([
+    // Reassign processedById to the acting owner (processedById is required)
+    prisma.transaction.updateMany({
+      where: { processedById: id },
+      data: { processedById: owner.id },
+    }),
+    // Nullify voidedById on transactions voided by this staff
+    prisma.transaction.updateMany({
+      where: { voidedById: id },
+      data: { voidedById: null },
+    }),
+    // Delete the staff record (TableSession.ownerId auto-nullified via FK SetNull,
+    // AttendanceRecord cascade-deleted via onDelete: Cascade)
+    prisma.staff.delete({ where: { id } }),
+  ]);
+
+  // Disable the Supabase account if linked
+  if (staff.supabaseUserId) {
+    const supabase = createAdminClient();
+    await supabase.auth.admin.updateUserById(staff.supabaseUserId, {
+      ban_duration: "876600h", // ~100 years, effectively permanent
+    });
+  }
+
   revalidatePath("/admin/staff");
 }
 

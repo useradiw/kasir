@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Kasir",
-  description: "Kasir untuk Sate Kambing Katamso",
+  title: "Sate Kambing Katamso",
+  description: "Kasir Sate Kambing Katamso",
 };
 
 export default function RootLayout({

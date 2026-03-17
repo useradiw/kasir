@@ -21,7 +21,7 @@ type Category = { id: string; name: string; sortOrder: number; createdAt: string
 type MenuItem = { id: string; name: string; categoryId: string; categoryName: string; price: number; isHidden: boolean; createdAt: string; updatedAt: string };
 type Variant = { id: string; menuItemId: string; menuItemName: string; label: string; priceModifier: number };
 type Package = { id: string; name: string; bundlePrice: number; createdAt: string; updatedAt: string };
-type PackageItem = { packageId: string; menuItemId: string; variantId: string | null; nameSnapshot: string; menuItemName: string; variantLabel: string | null };
+type PackageItem = { id: string; packageId: string; menuItemId: string; variantId: string | null; nameSnapshot: string; menuItemName: string; variantLabel: string | null };
 
 type Props = {
   tab: string;
@@ -323,10 +323,10 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                     {isExpanded && (
                       <div className="px-4 pb-3 pt-2 space-y-2">
                         {items.map((pi) => (
-                          <div key={`${pi.packageId}-${pi.menuItemId}`} className="flex items-center justify-between text-sm">
+                          <div key={pi.id} className="flex items-center justify-between text-sm">
                             <span>{pi.menuItemName}{pi.variantLabel ? ` (${pi.variantLabel})` : ""}</span>
                             <Button size="xs" variant="ghost" disabled={isPending}
-                              onClick={() => run(() => deletePackageItem(pi.packageId, pi.menuItemId))}>Hapus</Button>
+                              onClick={() => run(() => deletePackageItem(pi.id))}>Hapus</Button>
                           </div>
                         ))}
                         <form action={(fd) => run(() => addPackageItem(fd))}

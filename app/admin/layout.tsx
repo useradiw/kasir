@@ -62,7 +62,7 @@ export default async function AdminLayout({
                   {item.content.map((item) => (
                     <NavigationMenuContent key={item.label}>
                       <NavigationMenuLink
-                        render={<Link href={item.href} />}
+                        render={<Link href={item.href} className="cursor-pointer" />}
                         className={navigationMenuTriggerStyle()}
                       >
                         {item.label}
