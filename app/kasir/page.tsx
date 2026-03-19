@@ -1,7 +1,5 @@
-const Kasir = () => {
-    return (
-        <div>Kasir - Under Construction.</div>
-    )
-};
+import { KasirShell } from "@/components/kasir/kasir-shell";
 
-export default Kasir;
+export default function KasirPage() {
+  return <KasirShell />;
+}

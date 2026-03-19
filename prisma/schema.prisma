@@ -124,6 +124,7 @@ model Transaction {
   subtotal       Int
   taxAmount      Int               @default(0)
   serviceCharge  Int               @default(0)
+  discountAmount Int               @default(0)
   totalAmount    Int
   cashAmount     Int               @default(0)
   qrisAmount     Int               @default(0)

@@ -84,6 +84,7 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         subtotal: transaction.subtotal,
         taxAmount: transaction.taxAmount,
         serviceCharge: transaction.serviceCharge,
+        discountAmount: transaction.discountAmount,
         totalAmount: transaction.totalAmount,
         cashAmount: transaction.cashAmount,
         qrisAmount: transaction.qrisAmount,

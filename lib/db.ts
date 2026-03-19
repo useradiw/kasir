@@ -95,6 +95,7 @@ export interface Transaction {
   subtotal: number;
   taxAmount: number;
   serviceCharge: number;
+  discountAmount: number;
   totalAmount: number;
   cashAmount: number;
   qrisAmount: number;

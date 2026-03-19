@@ -25,11 +25,42 @@ export function useOpenSessions() {
   );
 }
 
+/** All paid (closed) sessions, newest first. */
+export function usePaidSessions() {
+  return useLiveQuery(
+    () =>
+      db.table_sessions
+        .filter((s) => s.paidAt !== null)
+        .reverse()
+        .sortBy("paidAt"),
+    []
+  );
+}
+
 /** All order items for a given session. */
 export function useOrderItems(tableSessionId: string) {
   return useLiveQuery(
     () => db.order_items.where("tableSessionId").equals(tableSessionId).toArray(),
     [tableSessionId]
+  );
+}
+
+/** Transaction for a given session. */
+export function useTransaction(tableSessionId: string | null) {
+  return useLiveQuery(
+    () =>
+      tableSessionId
+        ? db.transactions.where("tableSessionId").equals(tableSessionId).first()
+        : undefined,
+    [tableSessionId]
+  );
+}
+
+/** Count of unsynced transactions. */
+export function useUnsyncedCount() {
+  return useLiveQuery(
+    () => db.transactions.where("synced").equals(0).count(),
+    []
   );
 }
 
@@ -94,6 +125,10 @@ export async function removeOrderItem(id: string): Promise<void> {
   await db.order_items.delete(id);
 }
 
+export async function updateOrderItemQty(id: string, qty: number): Promise<void> {
+  await db.order_items.update(id, { qty });
+}
+
 // ─── Payment & sync ───────────────────────────────────────────────────────────
 
 export interface PaymentInput {
@@ -102,6 +137,7 @@ export interface PaymentInput {
   subtotal: number;
   taxAmount: number;
   serviceCharge: number;
+  discountAmount: number;
   totalAmount: number;
   cashAmount: number;
   qrisAmount: number;
@@ -123,6 +159,7 @@ export async function recordPayment(input: PaymentInput): Promise<string> {
     subtotal: input.subtotal,
     taxAmount: input.taxAmount,
     serviceCharge: input.serviceCharge,
+    discountAmount: input.discountAmount,
     totalAmount: input.totalAmount,
     cashAmount: input.cashAmount,
     qrisAmount: input.qrisAmount,
