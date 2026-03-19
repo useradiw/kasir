@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Sate Kambing Katamso",
   description: "Kasir Sate Kambing Katamso",
+  robots: {
+    index: false,
+    follow: false,
+  },
 };
 
 export default function RootLayout({
