@@ -15,7 +15,7 @@ import {
 const navItems = [
   { trigger: "Navigasi", content: [
     { href: "/admin", label: "Dashboard" },
-    { href: "/kasir", label: "Kembali ke kasir" }
+    { href: "/", label: "Menu Utama" }
   ]},
   { trigger: "Staff", content: [
     { href: "/admin/staff", label: "Kelola Staff" },

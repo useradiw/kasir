@@ -41,13 +41,6 @@ export async function updateSession(request: NextRequest) {
 
   const user = data?.claims;
 
-  // Authenticated user on login page → redirect to kasir
-  if (user && request.nextUrl.pathname === "/") {
-    const url = request.nextUrl.clone();
-    url.pathname = "/kasir";
-    return NextResponse.redirect(url);
-  }
-
   // Unauthenticated user on protected route → redirect to login
   if (
     !user &&
