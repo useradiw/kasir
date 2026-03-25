@@ -19,7 +19,8 @@ const navItems = [
   ]},
   { trigger: "Staff", content: [
     { href: "/admin/staff", label: "Kelola Staff" },
-    { href: "/admin/sessions", label: "Sesi Login" }
+    { href: "/admin/sessions", label: "Sesi Login" },
+    { href: "/admin/attendance", label: "Absensi" },
   ]},
   { trigger: "Barang", content: [
     { href: "/admin/inventory", label: "Inventori" },
@@ -27,6 +28,7 @@ const navItems = [
   { trigger: "Laporan", content: [
     { href: "/admin/transactions", label: "Transaksi" },
     { href: "/admin/expenses", label: "Pengeluaran" },
+    { href: "/admin/cash-register", label: "Kas Harian" },
   ]},
 ];
 

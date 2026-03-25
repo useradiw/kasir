@@ -259,6 +259,148 @@ export async function getTransactionsData(opts: {
   };
 }
 
+// ─── Cash Register ───────────────────────────────────────────────────────────
+
+export async function getCashRegisterData(opts: { from: string; to: string }) {
+  await requireOwner();
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
+
+  // Date filter for history
+  const where: { date?: { gte?: Date; lt?: Date } } = {};
+  if (opts.from || opts.to) {
+    where.date = {};
+    if (opts.from) where.date.gte = new Date(opts.from);
+    if (opts.to) {
+      const toDate = new Date(opts.to);
+      toDate.setDate(toDate.getDate() + 1);
+      where.date.lt = toDate;
+    }
+  }
+
+  const [todayRegister, registers] = await Promise.all([
+    prisma.cashRegister.findUnique({ where: { date: startOfToday } }),
+    prisma.cashRegister.findMany({ where, orderBy: { date: "desc" }, take: 50 }),
+  ]);
+
+  // Compute date range for reconciliation batch queries
+  const allDates = registers.map((r) => r.date);
+  if (todayRegister && !allDates.some((d) => d.getTime() === startOfToday.getTime())) {
+    allDates.push(startOfToday);
+  }
+
+  let cashByDate: Record<string, number> = {};
+  let expenseByDate: Record<string, number> = {};
+
+  if (allDates.length > 0) {
+    const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())));
+    const maxDate = new Date(Math.max(...allDates.map((d) => d.getTime())) + 24 * 60 * 60 * 1000);
+
+    const [transactions, expenses] = await Promise.all([
+      prisma.transaction.findMany({
+        where: { status: "PAID", paidAt: { gte: minDate, lt: maxDate } },
+        select: { cashAmount: true, paidAt: true },
+      }),
+      prisma.expense.findMany({
+        where: { recordedAt: { gte: minDate, lt: maxDate } },
+        select: { amount: true, recordedAt: true },
+      }),
+    ]);
+
+    // Bucket by date key
+    for (const t of transactions) {
+      const key = t.paidAt.toISOString().slice(0, 10);
+      cashByDate[key] = (cashByDate[key] ?? 0) + t.cashAmount;
+    }
+    for (const e of expenses) {
+      const key = e.recordedAt.toISOString().slice(0, 10);
+      expenseByDate[key] = (expenseByDate[key] ?? 0) + e.amount;
+    }
+  }
+
+  function reconcile(r: { openingCash: number; closingCash: number | null; date: Date }) {
+    const key = r.date.toISOString().slice(0, 10);
+    const cashIncome = cashByDate[key] ?? 0;
+    const totalExpenses = expenseByDate[key] ?? 0;
+    const expectedClosing = r.openingCash + cashIncome - totalExpenses;
+    const difference = r.closingCash !== null ? r.closingCash - expectedClosing : null;
+    return { cashIncome, totalExpenses, expectedClosing, difference };
+  }
+
+  const todayRecon = todayRegister ? reconcile(todayRegister) : null;
+
+  return {
+    todayRegister: todayRegister
+      ? {
+          id: todayRegister.id,
+          date: todayRegister.date.toISOString(),
+          openingCash: todayRegister.openingCash,
+          closingCash: todayRegister.closingCash,
+          isOpen: todayRegister.closingCash === null,
+        }
+      : null,
+    todayCashIncome: todayRecon?.cashIncome ?? 0,
+    todayExpenses: todayRecon?.totalExpenses ?? 0,
+    todayExpectedClosing: todayRecon?.expectedClosing ?? 0,
+    registers: registers.map((r) => {
+      const recon = reconcile(r);
+      return {
+        id: r.id,
+        date: r.date.toISOString(),
+        openingCash: r.openingCash,
+        closingCash: r.closingCash,
+        cashIncome: recon.cashIncome,
+        totalExpenses: recon.totalExpenses,
+        expectedClosing: recon.expectedClosing,
+        difference: recon.difference,
+      };
+    }),
+  };
+}
+
+// ─── Attendance ──────────────────────────────────────────────────────────────
+
+export async function getAttendanceData(opts: { date: string }) {
+  await requireOwner();
+
+  const targetDate = opts.date ? new Date(opts.date) : new Date();
+  targetDate.setHours(0, 0, 0, 0);
+
+  const [activeStaffList, records] = await Promise.all([
+    prisma.staff.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
+    prisma.attendanceRecord.findMany({ where: { date: targetDate } }),
+  ]);
+
+  const recordMap = new Map(records.map((r) => [r.staffId, r]));
+
+  const staffAttendance = activeStaffList.map((s) => {
+    const record = recordMap.get(s.id);
+    return {
+      staffId: s.id,
+      staffName: s.name,
+      role: s.role as string,
+      status: (record?.status as "PRESENT" | "ABSENT") ?? null,
+      recordId: record?.id ?? null,
+    };
+  });
+
+  const present = staffAttendance.filter((s) => s.status === "PRESENT").length;
+  const absent = staffAttendance.filter((s) => s.status === "ABSENT").length;
+
+  return {
+    date: targetDate.toISOString().slice(0, 10),
+    staffAttendance,
+    summary: {
+      total: staffAttendance.length,
+      present,
+      absent,
+      unmarked: staffAttendance.length - present - absent,
+    },
+  };
+}
+
 // ─── Expenses ─────────────────────────────────────────────────────────────────
 
 export async function getExpensesData(opts: { from: string; to: string }) {
