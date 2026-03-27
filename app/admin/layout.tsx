@@ -26,6 +26,7 @@ const navItems = [
     { href: "/admin/inventory", label: "Inventori" },
   ]},
   { trigger: "Laporan", content: [
+    { href: "/admin/reports", label: "Laporan" },
     { href: "/admin/transactions", label: "Transaksi" },
     { href: "/admin/expenses", label: "Pengeluaran" },
     { href: "/admin/cash-register", label: "Kas Harian" },

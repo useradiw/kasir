@@ -212,8 +212,7 @@ enum OrderItemStatus {
 
 enum PaymentMethod {
   CASH
-  DYNAMIC_QRIS
-  STATIC_QRIS
+  QRIS
 }
 
 enum TransactionStatus {

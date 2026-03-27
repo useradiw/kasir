@@ -376,7 +376,7 @@ async function main() {
         totalAmount: 92400,
         cashAmount: 0,
         qrisAmount: 92400,
-        paymentMethod: "DYNAMIC_QRIS",
+        paymentMethod: "QRIS",
         status: "PAID",
       },
     }),

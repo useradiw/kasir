@@ -1,5 +1,6 @@
 import { Container } from "@/components/shared/container";
 import { getAttendanceData } from "@/app/actions/admin/queries";
+import { requireRole } from "@/lib/admin-auth";
 import AttendanceClient from "./attendance-client";
 
 export default async function AttendancePage({
@@ -7,6 +8,7 @@ export default async function AttendancePage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
+  await requireRole("OWNER", "MANAGER");
   const params = await searchParams;
   const date = params.date ?? "";
 

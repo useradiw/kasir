@@ -2,17 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 
 const statusEnum = z.enum(["PRESENT", "ABSENT"]);
 
 export async function markAttendance(staffId: string, date: string, status: "PRESENT" | "ABSENT") {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   statusEnum.parse(status);
-  const parsedDate = new Date(date);
-  parsedDate.setHours(0, 0, 0, 0);
+  // Parse YYYY-MM-DD as local date (not UTC)
+  const [y, m, d] = date.split("-").map(Number);
+  const parsedDate = new Date(y, m - 1, d);
 
   await prisma.attendanceRecord.upsert({
     where: { staffId_date: { staffId, date: parsedDate } },
@@ -26,10 +27,11 @@ export async function bulkMarkAttendance(
   date: string,
   entries: Array<{ staffId: string; status: "PRESENT" | "ABSENT" }>
 ) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
-  const parsedDate = new Date(date);
-  parsedDate.setHours(0, 0, 0, 0);
+  // Parse YYYY-MM-DD as local date (not UTC)
+  const [y, m, d] = date.split("-").map(Number);
+  const parsedDate = new Date(y, m - 1, d);
 
   await prisma.$transaction(
     entries.map((e) =>

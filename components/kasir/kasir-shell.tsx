@@ -46,7 +46,7 @@ export function KasirShell() {
   // Loading state
   if (staff.isLoading || sync.isLoading) {
     return (
-      <Container id="kasir" className="flex h-screen items-center justify-center">
+      <Container id="kasir" maxWidth="max-w-4xl" className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
           <Loader2 className="size-8 animate-spin" />
           <p className="text-sm">
@@ -60,7 +60,7 @@ export function KasirShell() {
   // Error state
   if (staff.isError || sync.isError) {
     return (
-      <Container id="kasir" className="flex h-screen items-center justify-center">
+      <Container id="kasir" maxWidth="max-w-4xl" className="flex h-screen items-center justify-center">
         <div className="text-center text-sm text-destructive">
           <p>Gagal memuat data.</p>
           <p className="mt-1 text-muted-foreground">
@@ -74,7 +74,7 @@ export function KasirShell() {
   const staffData = staff.data!;
 
   return (
-    <Container id="kasir" sectionStyle="min-h-screen flex flex-col" className="!py-0 !px-0 flex flex-col flex-1">
+    <Container id="kasir" sectionStyle="min-h-screen flex flex-col" maxWidth="max-w-4xl" className="!py-0 !px-0 flex flex-col flex-1">
       {view === "sessions" && (
         <SessionList
           staffId={staffData.staffId}

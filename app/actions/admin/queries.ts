@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
@@ -189,12 +189,12 @@ export async function getTransactionsData(opts: {
 
   const PAGE_SIZE = 20;
   const where: {
-    paymentMethod?: "CASH" | "DYNAMIC_QRIS" | "STATIC_QRIS";
+    paymentMethod?: "CASH" | "QRIS";
     status?: "PAID" | "VOIDED";
     paidAt?: { gte?: Date; lt?: Date };
   } = {};
 
-  if (opts.method) where.paymentMethod = opts.method as "CASH" | "DYNAMIC_QRIS" | "STATIC_QRIS";
+  if (opts.method) where.paymentMethod = opts.method as "CASH" | "QRIS";
   if (opts.status) where.status = opts.status as "PAID" | "VOIDED";
   if (opts.from || opts.to) {
     where.paidAt = {};
@@ -262,7 +262,7 @@ export async function getTransactionsData(opts: {
 // ─── Cash Register ───────────────────────────────────────────────────────────
 
 export async function getCashRegisterData(opts: { from: string; to: string }) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER", "CASHIER");
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -363,10 +363,17 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
 // ─── Attendance ──────────────────────────────────────────────────────────────
 
 export async function getAttendanceData(opts: { date: string }) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
-  const targetDate = opts.date ? new Date(opts.date) : new Date();
-  targetDate.setHours(0, 0, 0, 0);
+  let targetDate: Date;
+  if (opts.date) {
+    // Parse YYYY-MM-DD as local date (not UTC)
+    const [y, m, d] = opts.date.split("-").map(Number);
+    targetDate = new Date(y, m - 1, d);
+  } else {
+    const now = new Date();
+    targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }
 
   const [activeStaffList, records] = await Promise.all([
     prisma.staff.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
@@ -389,8 +396,11 @@ export async function getAttendanceData(opts: { date: string }) {
   const present = staffAttendance.filter((s) => s.status === "PRESENT").length;
   const absent = staffAttendance.filter((s) => s.status === "ABSENT").length;
 
+  // Format date as local YYYY-MM-DD (not toISOString which converts to UTC)
+  const dateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, "0")}-${String(targetDate.getDate()).padStart(2, "0")}`;
+
   return {
-    date: targetDate.toISOString().slice(0, 10),
+    date: dateStr,
     staffAttendance,
     summary: {
       total: staffAttendance.length,
@@ -433,3 +443,222 @@ export async function getExpensesData(opts: { from: string; to: string }) {
     totalAmount: total._sum.amount ?? 0,
   };
 }
+
+// ─── Reports ──────────────────────────────────────────────────────────────────
+
+function getDateRange(period: "daily" | "weekly" | "monthly", dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const base = new Date(y, m - 1, d);
+
+  if (period === "daily") {
+    const start = new Date(y, m - 1, d);
+    const end = new Date(y, m - 1, d + 1);
+    return { start, end };
+  }
+
+  if (period === "weekly") {
+    // Monday-based week
+    const day = base.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // Monday = 1
+    const monday = new Date(y, m - 1, d + diff);
+    const nextMonday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7);
+    return { start: monday, end: nextMonday };
+  }
+
+  // monthly
+  const start = new Date(y, m - 1, 1);
+  const end = new Date(y, m, 1);
+  return { start, end };
+}
+
+function localDateKey(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+export async function getReportData(opts: {
+  period: "daily" | "weekly" | "monthly";
+  date: string;
+}) {
+  await requireRole("OWNER", "MANAGER");
+
+  const { start, end } = getDateRange(opts.period, opts.date);
+
+  const [
+    transactions,
+    expenses,
+    cashRegisters,
+    attendanceRecords,
+  ] = await Promise.all([
+    prisma.transaction.findMany({
+      where: { paidAt: { gte: start, lt: end } },
+      include: {
+        processedBy: { select: { name: true } },
+        tableSession: {
+          select: {
+            name: true,
+            service: true,
+            orderItems: {
+              select: { nameSnapshot: true, qty: true, price: true, status: true },
+            },
+          },
+        },
+      },
+      orderBy: { paidAt: "desc" },
+    }),
+    prisma.expense.findMany({
+      where: { recordedAt: { gte: start, lt: end } },
+      orderBy: { recordedAt: "desc" },
+    }),
+    prisma.cashRegister.findMany({
+      where: { date: { gte: start, lt: end } },
+      orderBy: { date: "desc" },
+    }),
+    prisma.attendanceRecord.findMany({
+      where: { date: { gte: start, lt: end } },
+      include: { staff: { select: { name: true } } },
+    }),
+  ]);
+
+  // --- Revenue summary ---
+  const paidTx = transactions.filter((t) => t.status === "PAID");
+  const totalRevenue = paidTx.reduce((s, t) => s + t.totalAmount, 0);
+  const totalTransactions = paidTx.length;
+  const avgTransaction = totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 0;
+
+  // --- Revenue by day ---
+  const revenueByDayMap: Record<string, { revenue: number; count: number }> = {};
+  for (const t of paidTx) {
+    const key = localDateKey(t.paidAt);
+    if (!revenueByDayMap[key]) revenueByDayMap[key] = { revenue: 0, count: 0 };
+    revenueByDayMap[key].revenue += t.totalAmount;
+    revenueByDayMap[key].count += 1;
+  }
+  // Fill all days in range
+  const revenueByDay: { date: string; revenue: number; count: number }[] = [];
+  const cursor = new Date(start);
+  while (cursor < end) {
+    const key = localDateKey(cursor);
+    revenueByDay.push({ date: key, ...(revenueByDayMap[key] ?? { revenue: 0, count: 0 }) });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  // --- Payment method breakdown ---
+  const paymentMethodMap: Record<string, { amount: number; count: number }> = {};
+  for (const t of paidTx) {
+    const m = t.paymentMethod as string;
+    if (!paymentMethodMap[m]) paymentMethodMap[m] = { amount: 0, count: 0 };
+    paymentMethodMap[m].amount += t.totalAmount;
+    paymentMethodMap[m].count += 1;
+  }
+  const paymentMethods = Object.entries(paymentMethodMap).map(([method, v]) => ({
+    method,
+    ...v,
+  }));
+
+  // --- Service channel breakdown ---
+  const serviceMap: Record<string, { amount: number; count: number }> = {};
+  for (const t of paidTx) {
+    const svc = (t.tableSession.service as string) ?? "Dine In";
+    if (!serviceMap[svc]) serviceMap[svc] = { amount: 0, count: 0 };
+    serviceMap[svc].amount += t.totalAmount;
+    serviceMap[svc].count += 1;
+  }
+  const serviceChannels = Object.entries(serviceMap).map(([service, v]) => ({
+    service,
+    ...v,
+  }));
+
+  // --- Top selling items ---
+  const itemMap: Record<string, { name: string; qty: number; revenue: number }> = {};
+  for (const t of paidTx) {
+    for (const oi of t.tableSession.orderItems) {
+      if (oi.status === "CANCELLED") continue;
+      const key = oi.nameSnapshot;
+      if (!itemMap[key]) itemMap[key] = { name: key, qty: 0, revenue: 0 };
+      itemMap[key].qty += oi.qty;
+      itemMap[key].revenue += oi.price * oi.qty;
+    }
+  }
+  const topItems = Object.values(itemMap)
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 10);
+
+  // --- Expense summary ---
+  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+
+  // --- Cash register summary ---
+  // Reuse reconciliation pattern
+  const cashByDate: Record<string, number> = {};
+  const expenseByDate: Record<string, number> = {};
+  for (const t of paidTx) {
+    const key = localDateKey(t.paidAt);
+    cashByDate[key] = (cashByDate[key] ?? 0) + t.cashAmount;
+  }
+  for (const e of expenses) {
+    const key = localDateKey(e.recordedAt);
+    expenseByDate[key] = (expenseByDate[key] ?? 0) + e.amount;
+  }
+  const cashRegisterSummary = cashRegisters.map((r) => {
+    const key = localDateKey(r.date);
+    const cashIncome = cashByDate[key] ?? 0;
+    const dayExpenses = expenseByDate[key] ?? 0;
+    const expectedClosing = r.openingCash + cashIncome - dayExpenses;
+    return {
+      date: localDateKey(r.date),
+      openingCash: r.openingCash,
+      closingCash: r.closingCash,
+      cashIncome,
+      expenses: dayExpenses,
+      expectedClosing,
+      difference: r.closingCash !== null ? r.closingCash - expectedClosing : null,
+    };
+  });
+
+  // --- Attendance summary ---
+  const attendanceDayMap: Record<string, { present: number; absent: number }> = {};
+  for (const r of attendanceRecords) {
+    const key = localDateKey(r.date);
+    if (!attendanceDayMap[key]) attendanceDayMap[key] = { present: 0, absent: 0 };
+    if (r.status === "PRESENT") attendanceDayMap[key].present += 1;
+    else attendanceDayMap[key].absent += 1;
+  }
+  const attendanceSummary = Object.entries(attendanceDayMap).map(([date, v]) => ({
+    date,
+    ...v,
+  }));
+
+  return {
+    period: opts.period,
+    dateRange: { start: localDateKey(start), end: localDateKey(new Date(end.getTime() - 1)) },
+    revenue: { total: totalRevenue, count: totalTransactions, average: avgTransaction },
+    totalExpenses,
+    netProfit: totalRevenue - totalExpenses,
+    revenueByDay,
+    paymentMethods,
+    serviceChannels,
+    topItems,
+    cashRegisterSummary,
+    attendanceSummary,
+    expenses: expenses.map((e) => ({
+      id: e.id,
+      amount: e.amount,
+      note: e.note,
+      recordedAt: e.recordedAt.toISOString(),
+    })),
+    transactions: paidTx.map((t) => ({
+      id: t.id,
+      sessionName: t.tableSession.name,
+      service: (t.tableSession.service as string) ?? null,
+      totalAmount: t.totalAmount,
+      cashAmount: t.cashAmount,
+      qrisAmount: t.qrisAmount,
+      paymentMethod: t.paymentMethod as string,
+      status: t.status as string,
+      paidAt: t.paidAt.toISOString(),
+      processedBy: t.processedBy?.name ?? null,
+    })),
+    voidedCount: transactions.filter((t) => t.status === "VOIDED").length,
+  };
+}
+
+export type ReportData = Awaited<ReturnType<typeof getReportData>>;

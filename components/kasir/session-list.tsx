@@ -18,7 +18,7 @@ import { ErrorBanner } from "@/components/shared/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Plus, ShoppingBag, History, RefreshCw, Receipt, Home } from "lucide-react";
+import { Plus, ShoppingBag, History, RefreshCw, Receipt, Home, Landmark } from "lucide-react";
 import { ReceiptPreview } from "./receipt-preview";
 import Link from "next/link";
 
@@ -88,6 +88,9 @@ export function SessionList({
     <>
       <KasirTopBar title="Kasir">
         <span className="text-xs text-muted-foreground truncate max-w-24">{staffName}</span>
+        <Link href="/admin/cash-register" className="p-1">
+          <Landmark className="size-5 text-muted-foreground" />
+        </Link>
         <Link href="/" className="p-1">
           <Home className="size-5 text-muted-foreground" />
         </Link>

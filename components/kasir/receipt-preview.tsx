@@ -1,12 +1,13 @@
 "use client";
 
+import { useRef } from "react";
 import { useOrderItems, useTransaction } from "@/hooks/use-session-store";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { formatRupiah, formatDateTime } from "@/lib/format";
-import { calcSubtotal, getStatusLabel } from "@/lib/kasir-utils";
+import { calcSubtotal } from "@/lib/kasir-utils";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Download } from "lucide-react";
 
 export function ReceiptPreview({
   sessionId,
@@ -17,6 +18,7 @@ export function ReceiptPreview({
   mode: "checklist" | "receipt";
   onClose: () => void;
 }) {
+  const receiptRef = useRef<HTMLDivElement>(null);
   const items = useOrderItems(sessionId);
   const tx = useTransaction(sessionId);
   const session = useLiveQuery(
@@ -25,8 +27,21 @@ export function ReceiptPreview({
   );
 
   const activeItems = items?.filter((i) => i.status !== "CANCELLED") ?? [];
-  const cancelledItems = items?.filter((i) => i.status === "CANCELLED") ?? [];
   const subtotal = calcSubtotal(items ?? []);
+
+  async function handleDownload() {
+    if (!receiptRef.current) return;
+    const { default: html2canvas } = await import("html2canvas");
+    const canvas = await html2canvas(receiptRef.current, {
+      backgroundColor: "#ffffff",
+      scale: 2,
+    });
+    const link = document.createElement("a");
+    const name = session?.name ?? sessionId;
+    link.download = `${mode === "checklist" ? "checklist" : "struk"}-${name}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -40,24 +55,38 @@ export function ReceiptPreview({
           <X className="size-4" />
         </button>
 
-        {mode === "checklist" ? (
-          <ChecklistContent
-            session={session}
-            activeItems={activeItems}
-            cancelledItems={cancelledItems}
-            subtotal={subtotal}
-          />
-        ) : (
-          <ReceiptContent
-            session={session}
-            activeItems={activeItems}
-            tx={tx}
-            subtotal={subtotal}
-          />
-        )}
+        <div ref={receiptRef} className="bg-white p-2">
+          {mode === "checklist" ? (
+            <ChecklistContent
+              session={session}
+              activeItems={activeItems}
+            />
+          ) : (
+            <ReceiptContent
+              session={session}
+              activeItems={activeItems}
+              tx={tx}
+              subtotal={subtotal}
+            />
+          )}
+        </div>
 
-        <div className="mt-4">
-          <Button size="sm" variant="outline" className="w-full text-black border-gray-300" onClick={onClose}>
+        <div className="mt-4 flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 text-black border-gray-300"
+            onClick={handleDownload}
+          >
+            <Download className="size-3 mr-1" />
+            Unduh
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1 text-black border-gray-300"
+            onClick={onClose}
+          >
             Tutup
           </Button>
         </div>
@@ -71,13 +100,9 @@ export function ReceiptPreview({
 function ChecklistContent({
   session,
   activeItems,
-  cancelledItems,
-  subtotal,
 }: {
   session: { name: string; createdAt: string } | undefined;
-  activeItems: { nameSnapshot: string; qty: number; note: string | null; status: string }[];
-  cancelledItems: { nameSnapshot: string; qty: number }[];
-  subtotal: number;
+  activeItems: { nameSnapshot: string; qty: number; note: string | null }[];
 }) {
   return (
     <div className="font-mono text-xs space-y-2">
@@ -93,31 +118,13 @@ function ChecklistContent({
 
       {activeItems.map((item, i) => (
         <div key={i}>
-          <div className="flex justify-between">
-            <span>{item.qty}x {item.nameSnapshot}</span>
-            <span className="text-gray-500">[{getStatusLabel(item.status as any)}]</span>
-          </div>
+          <div>{item.qty}x {item.nameSnapshot}</div>
           {item.note && <p className="text-gray-400 ml-4">  {item.note}</p>}
         </div>
       ))}
 
-      {cancelledItems.length > 0 && (
-        <>
-          <Divider />
-          <p className="text-gray-400">Dibatalkan:</p>
-          {cancelledItems.map((item, i) => (
-            <div key={i} className="text-gray-400 line-through">
-              {item.qty}x {item.nameSnapshot}
-            </div>
-          ))}
-        </>
-      )}
-
       <Divider />
-      <div className="flex justify-between font-bold">
-        <span>Subtotal</span>
-        <span>{formatRupiah(subtotal)}</span>
-      </div>
+      <p className="text-center text-gray-500 font-bold">Bukan Nota</p>
     </div>
   );
 }
@@ -217,7 +224,9 @@ function ReceiptContent({
       )}
 
       <Divider />
-      <p className="text-center text-gray-400">Terima Kasih</p>
+      <p className="text-center text-gray-400 text-[10px] leading-tight">
+        Terimakasih dan silahkan<br />datang kembali.
+      </p>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { Container } from "@/components/shared/container";
 import { getCashRegisterData } from "@/app/actions/admin/queries";
+import { requireRole } from "@/lib/admin-auth";
 import CashRegisterClient from "./cash-register-client";
 
 export default async function CashRegisterPage({
@@ -7,6 +8,7 @@ export default async function CashRegisterPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
+  const staff = await requireRole("OWNER", "MANAGER", "CASHIER");
   const params = await searchParams;
   const from = params.from ?? "";
   const to = params.to ?? "";
@@ -16,6 +18,7 @@ export default async function CashRegisterPage({
   return (
     <Container id="admin-cash-register" sectionStyle="" className="!max-w-4xl py-6">
       <CashRegisterClient
+        staffRole={staff.role}
         todayRegister={data.todayRegister}
         todayCashIncome={data.todayCashIncome}
         todayExpenses={data.todayExpenses}

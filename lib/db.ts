@@ -54,7 +54,7 @@ export type ServiceEnum =
 
 export type OrderItemStatus = "PENDING" | "PREPARING" | "SERVED" | "CANCELLED";
 
-export type PaymentMethod = "CASH" | "DYNAMIC_QRIS" | "STATIC_QRIS";
+export type PaymentMethod = "CASH" | "QRIS";
 
 export type TransactionStatus = "PAID" | "VOIDED";
 

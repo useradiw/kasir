@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ErrorBanner } from "@/components/admin/ui";
+import { DenominationInput } from "@/components/admin/denomination-input";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { formatRupiah, formatDateTime } from "@/lib/format";
-import { openRegister, closeRegister, deleteRegister } from "@/app/actions/admin/cash-register";
+import { openRegister, closeRegister, editRegister, deleteRegister } from "@/app/actions/admin/cash-register";
+import type { RoleEnum } from "@/generated/prisma";
+import { Pencil } from "lucide-react";
 
 type TodayRegister = {
   id: string;
@@ -30,7 +34,62 @@ type RegisterRow = {
   difference: number | null;
 };
 
+function EditRegisterDialog({
+  register,
+  children,
+}: {
+  register: { id: string; date: string; openingCash: number; closingCash: number | null };
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const [openingAmount, setOpeningAmount] = useState(0);
+  const [closingAmount, setClosingAmount] = useState(0);
+  const { isPending, run, error } = useAdminAction();
+
+  function handleOpenChange(next: boolean) {
+    if (next) {
+      setOpeningAmount(register.openingCash);
+      setClosingAmount(register.closingCash ?? 0);
+    }
+    setOpen(next);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger render={children as React.ReactElement}>{}</DialogTrigger>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Kas — {formatDateTime(register.date, "long")}</DialogTitle>
+        </DialogHeader>
+        <ErrorBanner error={error} />
+        <form
+          action={(fd) => run(async () => { await editRegister(register.id, fd); setOpen(false); })}
+          className="space-y-4"
+        >
+          <div>
+            <Label className="text-base">Kas Awal</Label>
+            <DenominationInput value={openingAmount} onChange={setOpeningAmount} />
+            <input type="hidden" name="openingCash" value={openingAmount} />
+          </div>
+          {register.closingCash !== null && (
+            <div>
+              <Label className="text-base">Kas Akhir</Label>
+              <DenominationInput value={closingAmount} onChange={setClosingAmount} />
+              <input type="hidden" name="closingCash" value={closingAmount} />
+            </div>
+          )}
+          <div className="flex gap-2">
+            <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function CashRegisterClient({
+  staffRole,
   todayRegister,
   todayCashIncome,
   todayExpenses,
@@ -38,6 +97,7 @@ export default function CashRegisterClient({
   registers,
   filters,
 }: {
+  staffRole: RoleEnum;
   todayRegister: TodayRegister;
   todayCashIncome: number;
   todayExpenses: number;
@@ -48,6 +108,10 @@ export default function CashRegisterClient({
   const router = useRouter();
   const { isPending, run, error } = useAdminAction();
   const [localFilters, setLocalFilters] = useState(filters);
+  const [openingAmount, setOpeningAmount] = useState(0);
+  const [closingAmount, setClosingAmount] = useState(0);
+
+  const isOwner = staffRole === "OWNER";
 
   function applyFilters() {
     const params = new URLSearchParams();
@@ -69,13 +133,16 @@ export default function CashRegisterClient({
         </CardHeader>
         <CardContent>
           {todayRegister === null ? (
-            <form action={(fd) => run(() => openRegister(fd))} className="flex flex-wrap gap-3 items-end">
-              <div className="grid gap-1">
-                <Label>Kas Awal (Rp)</Label>
-                <Input name="openingCash" type="number" min={0} required placeholder="0" className="w-44" />
-              </div>
-              <Button type="submit" size="sm" disabled={isPending}>Buka Kas</Button>
-            </form>
+            isOwner ? (
+              <form action={(fd) => run(() => openRegister(fd))} className="space-y-4">
+                <Label className="text-base">Kas Awal</Label>
+                <DenominationInput value={openingAmount} onChange={setOpeningAmount} />
+                <input type="hidden" name="openingCash" value={openingAmount} />
+                <Button type="submit" size="sm" disabled={isPending || openingAmount === 0}>Buka Kas</Button>
+              </form>
+            ) : (
+              <p className="text-sm text-muted-foreground">Kas hari ini belum dibuka.</p>
+            )
           ) : todayRegister.isOpen ? (
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
@@ -96,13 +163,24 @@ export default function CashRegisterClient({
                   <p className="font-medium">{formatRupiah(todayExpectedClosing)}</p>
                 </div>
               </div>
-              <form action={(fd) => run(() => closeRegister(fd))} className="flex flex-wrap gap-3 items-end border-t pt-4">
-                <div className="grid gap-1">
-                  <Label>Kas Akhir (Rp)</Label>
-                  <Input name="closingCash" type="number" min={0} required placeholder="0" className="w-44" />
-                </div>
-                <Button type="submit" size="sm" disabled={isPending}>Tutup Kas</Button>
-              </form>
+              {isOwner && (
+                <>
+                  <div className="flex justify-end">
+                    <EditRegisterDialog register={todayRegister}>
+                      <Button size="xs" variant="outline">
+                        <Pencil className="size-3 mr-1" />
+                        Edit
+                      </Button>
+                    </EditRegisterDialog>
+                  </div>
+                  <form action={(fd) => run(() => closeRegister(fd))} className="space-y-4 border-t pt-4">
+                    <Label className="text-base">Kas Akhir</Label>
+                    <DenominationInput value={closingAmount} onChange={setClosingAmount} />
+                    <input type="hidden" name="closingCash" value={closingAmount} />
+                    <Button type="submit" size="sm" disabled={isPending || closingAmount === 0}>Tutup Kas</Button>
+                  </form>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -135,7 +213,17 @@ export default function CashRegisterClient({
                   );
                 })()}
               </div>
-              <p className="text-xs text-muted-foreground">Kas hari ini sudah ditutup.</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Kas hari ini sudah ditutup.</p>
+                {isOwner && (
+                  <EditRegisterDialog register={todayRegister}>
+                    <Button size="xs" variant="outline">
+                      <Pencil className="size-3 mr-1" />
+                      Edit
+                    </Button>
+                  </EditRegisterDialog>
+                )}
+              </div>
             </div>
           )}
         </CardContent>
@@ -187,15 +275,23 @@ export default function CashRegisterClient({
                         )}
                       </div>
                     </div>
-                    <Button
-                      size="xs"
-                      variant="destructive"
-                      disabled={isPending}
-                      className="shrink-0"
-                      onClick={() => { if (confirm("Hapus data kas ini?")) run(() => deleteRegister(r.id)); }}
-                    >
-                      Hapus
-                    </Button>
+                    {isOwner && (
+                      <div className="flex gap-1 shrink-0">
+                        <EditRegisterDialog register={r}>
+                          <Button size="xs" variant="outline" disabled={isPending}>
+                            <Pencil className="size-3" />
+                          </Button>
+                        </EditRegisterDialog>
+                        <Button
+                          size="xs"
+                          variant="destructive"
+                          disabled={isPending}
+                          onClick={() => { if (confirm("Hapus data kas ini?")) run(() => deleteRegister(r.id)); }}
+                        >
+                          Hapus
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}

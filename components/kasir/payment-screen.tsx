@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import { useOrderItems, recordPayment } from "@/hooks/use-session-store";
 import { formatRupiah } from "@/lib/format";
 import {
@@ -15,14 +15,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ErrorBanner } from "@/components/shared/ui";
 import { cn } from "@/lib/utils";
-import { CheckCircle, Loader2, ChevronDown, QrCode } from "lucide-react";
+import { CheckCircle, Loader2, ChevronDown, Smartphone } from "lucide-react";
 import type { PaymentMethod } from "@/lib/db";
 import { ReceiptPreview } from "./receipt-preview";
 
 const paymentMethods: { value: PaymentMethod; label: string }[] = [
   { value: "CASH", label: "Tunai" },
-  { value: "DYNAMIC_QRIS", label: "QRIS Dinamis" },
-  { value: "STATIC_QRIS", label: "QRIS Statis" },
+  { value: "QRIS", label: "QRIS" },
 ];
 
 export function PaymentScreen({
@@ -64,8 +63,7 @@ export function PaymentScreen({
   const [showReceipt, setShowReceipt] = useState(false);
 
   // QRIS flow state
-  const [qrisStep, setQrisStep] = useState<"idle" | "showing-qr">("idle");
-  const qrisTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [qrisStep, setQrisStep] = useState<"idle" | "confirming">("idle");
 
   // Build charge inputs
   const taxCharge: ChargeInput = { value: parseFloat(taxInput) || 0, mode: taxMode };
@@ -104,12 +102,6 @@ export function PaymentScreen({
     });
   })();
 
-  // Cleanup QRIS timer on unmount
-  useEffect(() => {
-    return () => {
-      if (qrisTimerRef.current) clearTimeout(qrisTimerRef.current);
-    };
-  }, []);
 
   const doRecordPayment = async () => {
     setProcessing(true);
@@ -142,14 +134,8 @@ export function PaymentScreen({
       if (!isValid) return;
       await doRecordPayment();
     } else {
-      // QRIS: show QR first
-      setQrisStep("showing-qr");
-      if (method === "DYNAMIC_QRIS") {
-        // Auto-confirm after 3s (dummy)
-        qrisTimerRef.current = setTimeout(() => {
-          doRecordPayment();
-        }, 3000);
-      }
+      // QRIS: show instruction page
+      setQrisStep("confirming");
     }
   };
 
@@ -158,10 +144,6 @@ export function PaymentScreen({
   };
 
   const handleQrisCancel = () => {
-    if (qrisTimerRef.current) {
-      clearTimeout(qrisTimerRef.current);
-      qrisTimerRef.current = null;
-    }
     setQrisStep("idle");
   };
 
@@ -194,48 +176,47 @@ export function PaymentScreen({
     );
   }
 
-  // QRIS QR display state
-  if (qrisStep === "showing-qr") {
+  // QRIS instruction & confirmation page
+  if (qrisStep === "confirming") {
     return (
       <>
         <KasirTopBar title="Pembayaran QRIS" onBack={handleQrisCancel} />
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8">
-          {/* QR Placeholder */}
-          <div className="flex size-52 items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/20">
-            <QrCode className="size-24 text-muted-foreground/40" />
+        <div className="flex flex-1 flex-col items-center gap-6 px-4 py-8">
+          <div className="flex size-20 items-center justify-center rounded-full bg-primary/10">
+            <Smartphone className="size-10 text-primary" />
           </div>
 
-          <p className="text-2xl font-bold">{formatRupiah(total)}</p>
+          <div className="text-center space-y-1">
+            <p className="text-lg font-semibold">Selesaikan pembayaran di aplikasi QRIS</p>
+          </div>
 
-          {method === "STATIC_QRIS" ? (
-            <>
-              <p className="text-sm text-muted-foreground text-center">
-                Minta pelanggan scan QR di atas, lalu verifikasi pembayaran secara manual.
-              </p>
-              <div className="flex gap-2 w-full max-w-xs">
-                <Button variant="outline" className="flex-1" onClick={handleQrisCancel}>
-                  Batal
-                </Button>
-                <Button className="flex-1" onClick={handleQrisConfirm} disabled={processing}>
-                  {processing ? (
-                    <><Loader2 className="size-4 animate-spin mr-2" /> Memproses...</>
-                  ) : (
-                    "Pembayaran Diterima"
-                  )}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" />
-                Menunggu konfirmasi pembayaran...
-              </div>
-              <Button variant="outline" onClick={handleQrisCancel}>
-                Batal
-              </Button>
-            </>
-          )}
+          <div className="w-full max-w-xs rounded-xl bg-primary/5 px-4 py-3 text-center">
+            <p className="text-xs text-muted-foreground">Total Pembayaran</p>
+            <p className="text-2xl font-bold">{formatRupiah(total)}</p>
+          </div>
+
+          <div className="w-full max-w-xs space-y-3 text-sm">
+            <p className="font-medium">Langkah:</p>
+            <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
+              <li>Buka aplikasi QRIS Anda</li>
+              <li>Pastikan jumlah pembayaran sesuai: <span className="font-semibold text-foreground">{formatRupiah(total)}</span></li>
+              <li>Proses pembayaran di aplikasi</li>
+              <li>Verifikasi pembayaran berhasil sebelum menekan tombol di bawah</li>
+            </ol>
+          </div>
+
+          <div className="w-full max-w-xs space-y-2 mt-auto">
+            <Button className="w-full" size="lg" onClick={handleQrisConfirm} disabled={processing}>
+              {processing ? (
+                <><Loader2 className="size-4 animate-spin mr-2" /> Memproses...</>
+              ) : (
+                <><CheckCircle className="size-4 mr-2" /> Pembayaran Sudah Diterima</>
+              )}
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={handleQrisCancel} disabled={processing}>
+              Batal
+            </Button>
+          </div>
 
           <ErrorBanner error={error} />
         </div>
@@ -321,7 +302,7 @@ export function PaymentScreen({
         {/* Payment method */}
         <div className="space-y-2">
           <Label className="text-xs">Metode Pembayaran</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {paymentMethods.map((pm) => (
               <button
                 key={pm.value}

@@ -36,8 +36,7 @@ type Filters = { method: string; status: string; from: string; to: string };
 
 const methodLabel: Record<string, string> = {
   CASH: "Tunai",
-  DYNAMIC_QRIS: "QRIS Dinamis",
-  STATIC_QRIS: "QRIS Statis",
+  QRIS: "QRIS",
 };
 
 const statusBadge: Record<string, string> = {
@@ -100,8 +99,7 @@ export default function TransactionsClient({
               >
                 <option value="">Semua</option>
                 <option value="CASH">Tunai</option>
-                <option value="DYNAMIC_QRIS">QRIS Dinamis</option>
-                <option value="STATIC_QRIS">QRIS Statis</option>
+                <option value="QRIS">QRIS</option>
               </AdminSelect>
             </div>
             <div className="grid gap-1">
