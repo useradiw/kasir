@@ -3,6 +3,7 @@
 import { cn } from "@/lib/utils";
 import { ArrowLeft, Minus, Plus, PackageOpen, LayoutList, Delete } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Container } from "@/components/shared/container";
 
 // ─── Kasir Top Bar ───────────────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ export function KasirTopBar({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-background px-3">
+    <Container id="kasirtopbar" className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-background px-3">
       {onBack && (
         <button type="button" onClick={onBack} className="p-1 -ml-1">
           <ArrowLeft className="size-5" />
@@ -31,7 +32,7 @@ export function KasirTopBar({
           <LayoutList className="size-5 text-muted-foreground" />
         </button>
       )}
-    </div>
+    </Container>
   );
 }
 

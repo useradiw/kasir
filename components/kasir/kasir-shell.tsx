@@ -74,7 +74,7 @@ export function KasirShell() {
   const staffData = staff.data!;
 
   return (
-    <Container id="kasir" sectionStyle="min-h-screen flex flex-col" maxWidth="max-w-4xl" className="!py-0 !px-0 flex flex-col flex-1">
+    <Container id="kasir" sectionStyle="min-h-screen flex flex-col" maxWidth="max-w-4xl" className="flex flex-col flex-1">
       {view === "sessions" && (
         <SessionList
           staffId={staffData.staffId}
