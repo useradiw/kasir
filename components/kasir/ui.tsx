@@ -40,9 +40,9 @@ export function KasirTopBar({
 
 export function BottomBar({ children }: { children: React.ReactNode }) {
   return (
-    <div className="sticky bottom-0 z-30 border-t bg-background px-3 py-3 space-y-2">
+    <Container id="kasirbottombar" className="sticky bottom-0 z-30 border-t bg-background px-3 py-3 space-y-2">
       {children}
-    </div>
+    </Container>
   );
 }
 

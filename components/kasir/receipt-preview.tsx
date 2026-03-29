@@ -45,7 +45,7 @@ export function ReceiptPreview({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="relative w-[300px] max-h-[90vh] overflow-y-auto rounded-lg bg-white text-black p-5">
+      <div className="relative w-75 max-h-[90vh] overflow-y-auto rounded-lg bg-white text-black p-5">
         {/* Close button */}
         <button
           type="button"

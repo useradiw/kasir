@@ -246,7 +246,7 @@ function SessionCard({
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-lg border bg-card p-3 text-left active:bg-accent transition-colors min-h-[56px]"
+      className="w-full rounded-lg border bg-card p-3 text-left active:bg-accent transition-colors min-h-14"
     >
       <div className="flex items-center justify-between">
         <span className="font-medium text-sm">{session.name}</span>
@@ -281,7 +281,7 @@ function PaidSessionCard({
   const tx = useTransaction(session.id);
 
   return (
-    <div className="rounded-lg border bg-card p-3 min-h-[56px]">
+    <div className="rounded-lg border bg-card p-3 min-h-14">
       <button
         type="button"
         onClick={onClick}
