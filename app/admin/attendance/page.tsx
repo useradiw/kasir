@@ -15,7 +15,7 @@ export default async function AttendancePage({
   const data = await getAttendanceData({ date });
 
   return (
-    <Container id="admin-attendance" sectionStyle="" className="!max-w-4xl py-6">
+    <Container id="admin-attendance" sectionStyle="" className="py-6">
       <AttendanceClient
         date={data.date}
         staffAttendance={data.staffAttendance}

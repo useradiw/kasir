@@ -14,7 +14,7 @@ export default async function ExpensesPage({
   const data = await getExpensesData({ from, to });
 
   return (
-    <Container id="admin-expenses" sectionStyle="" className="!max-w-4xl py-6">
+    <Container id="admin-expenses" sectionStyle="" className="py-6">
       <ExpensesClient
         expenses={data.expenses}
         totalAmount={data.totalAmount}

@@ -6,7 +6,7 @@ export default async function StaffPage() {
   const staffList = await getStaffWithEmails();
 
   return (
-    <Container id="admin-staff" sectionStyle="" className="!max-w-4xl py-6">
+    <Container id="admin-staff" sectionStyle="" className="py-6">
       <StaffClient staffList={staffList} />
     </Container>
   );

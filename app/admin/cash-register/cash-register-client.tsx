@@ -145,7 +145,7 @@ export default function CashRegisterClient({
             )
           ) : todayRegister.isOpen ? (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Kas Awal</p>
                   <p className="font-medium">{formatRupiah(todayRegister.openingCash)}</p>
@@ -184,7 +184,7 @@ export default function CashRegisterClient({
             </div>
           ) : (
             <div className="space-y-2">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Kas Awal</p>
                   <p className="font-medium">{formatRupiah(todayRegister.openingCash)}</p>
@@ -260,7 +260,7 @@ export default function CashRegisterClient({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium">{formatDateTime(r.date, "long")}</p>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-0.5 text-xs text-muted-foreground mt-1">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground mt-1">
                         <span>Kas Awal: {formatRupiah(r.openingCash)}</span>
                         <span>Tunai Masuk: {formatRupiah(r.cashIncome)}</span>
                         <span>Pengeluaran: {formatRupiah(r.totalExpenses)}</span>

@@ -19,7 +19,7 @@ export default async function ReportsPage({
   const data = await getReportData({ period, date });
 
   return (
-    <Container id="admin-reports" sectionStyle="" className="!max-w-5xl py-6">
+    <Container id="admin-reports" sectionStyle="" className="py-6">
       <ReportClient data={data} currentPeriod={period} currentDate={date} />
     </Container>
   );

@@ -14,10 +14,10 @@ export default async function AdminDashboard() {
   ];
 
   return (
-    <Container id="admin-dashboard" sectionStyle="" className="!max-w-4xl py-6 space-y-6">
+    <Container id="admin-dashboard" sectionStyle="" className="py-6 space-y-6">
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         {stats.map((s) => (
           <Card key={s.label}>
             <CardHeader>

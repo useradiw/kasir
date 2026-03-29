@@ -26,7 +26,7 @@ export default async function SessionsPage() {
     });
 
   return (
-    <Container id="admin-sessions" sectionStyle="" className="!max-w-4xl py-6 space-y-6">
+    <Container id="admin-sessions" sectionStyle="" className="py-6 space-y-6">
       <h1 className="text-2xl font-bold">Sesi Login</h1>
 
       {error && (

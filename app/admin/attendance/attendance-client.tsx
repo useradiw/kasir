@@ -74,7 +74,7 @@ export default function AttendanceClient({
       </Card>
 
       {/* Summary */}
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="pt-4 text-center">
             <p className="text-2xl font-bold">{summary.total}</p>

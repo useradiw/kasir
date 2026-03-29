@@ -11,7 +11,7 @@ export default async function InventoryPage({
   const data = await getInventoryData();
 
   return (
-    <Container id="admin-inventory" sectionStyle="" className="!max-w-4xl py-6">
+    <Container id="admin-inventory" sectionStyle="" className="py-6">
       <InventoryClient tab={tab} {...data} />
     </Container>
   );

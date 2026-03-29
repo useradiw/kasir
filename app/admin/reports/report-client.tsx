@@ -220,7 +220,7 @@ export function ReportClient({
       </p>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3">
         <SummaryCard label="Total Pendapatan" value={formatRupiah(data.revenue.total)} />
         <SummaryCard label="Transaksi" value={`${data.revenue.count} (avg ${formatRupiah(data.revenue.average)})`} />
         <SummaryCard label="Pengeluaran" value={formatRupiah(data.totalExpenses)} />
@@ -232,14 +232,14 @@ export function ReportClient({
       </div>
 
       {/* Charts Row 1: Revenue + Payment Methods */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+      <div className="grid gap-4">
+        <Card>
           <CardHeader>
             <CardTitle className="text-sm">Pendapatan per Hari</CardTitle>
           </CardHeader>
           <CardContent>
             {data.revenueByDay.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={data.revenueByDay}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" tickFormatter={shortDate} fontSize={11} />
@@ -257,13 +257,13 @@ export function ReportClient({
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card>
           <CardHeader>
             <CardTitle className="text-sm">Metode Pembayaran</CardTitle>
           </CardHeader>
           <CardContent>
             {data.paymentMethods.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
                     data={data.paymentMethods}
@@ -291,32 +291,23 @@ export function ReportClient({
       </div>
 
       {/* Charts Row 2: Top Items + Service Channels */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-sm">Item Terlaris</CardTitle>
           </CardHeader>
           <CardContent>
             {data.topItems.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 font-medium">Nama</th>
-                      <th className="py-2 font-medium text-right">Qty</th>
-                      <th className="py-2 font-medium text-right">Pendapatan</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.topItems.map((item, i) => (
-                      <tr key={i} className="border-b border-foreground/5">
-                        <td className="py-2">{item.name}</td>
-                        <td className="py-2 text-right">{item.qty}</td>
-                        <td className="py-2 text-right">{formatRupiah(item.revenue)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="divide-y divide-foreground/5">
+                {data.topItems.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between py-2">
+                    <span className="text-sm">{item.name}</span>
+                    <div className="text-right text-sm shrink-0 ml-3">
+                      <span className="text-muted-foreground">{item.qty}×</span>
+                      <span className="ml-2 font-medium">{formatRupiah(item.revenue)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>
@@ -330,7 +321,7 @@ export function ReportClient({
           </CardHeader>
           <CardContent>
             {data.serviceChannels.length > 0 ? (
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
                   <Pie
                     data={data.serviceChannels}
@@ -358,45 +349,33 @@ export function ReportClient({
       </div>
 
       {/* Cash Register */}
-      <div className="grid gap-4 lg:grid-cols-1">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Kas Harian</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.cashRegisterSummary.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 font-medium">Tanggal</th>
-                      <th className="py-2 font-medium text-right">Kas Awal</th>
-                      <th className="py-2 font-medium text-right">Kas Akhir</th>
-                      <th className="py-2 font-medium text-right">Selisih</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.cashRegisterSummary.map((c, i) => (
-                      <tr key={i} className="border-b border-foreground/5">
-                        <td className="py-2">{shortDate(c.date)}</td>
-                        <td className="py-2 text-right">{formatRupiah(c.openingCash)}</td>
-                        <td className="py-2 text-right">
-                          {c.closingCash !== null ? formatRupiah(c.closingCash) : <span className="text-muted-foreground">—</span>}
-                        </td>
-                        <td className={`py-2 text-right ${c.difference !== null && c.difference < 0 ? "text-destructive" : ""}`}>
-                          {c.difference !== null ? formatRupiah(c.difference) : "—"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada kas terdaftar.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm">Kas Harian</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {data.cashRegisterSummary.length > 0 ? (
+            <div className="divide-y divide-foreground/5">
+              {data.cashRegisterSummary.map((c, i) => (
+                <div key={i} className="py-2 space-y-0.5">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-medium">{shortDate(c.date)}</span>
+                    <span className={c.difference !== null && c.difference < 0 ? "text-destructive" : ""}>
+                      {c.difference !== null ? formatRupiah(c.difference) : "—"}
+                    </span>
+                  </div>
+                  <div className="flex gap-3 text-xs text-muted-foreground">
+                    <span>Awal: {formatRupiah(c.openingCash)}</span>
+                    <span>Akhir: {c.closingCash !== null ? formatRupiah(c.closingCash) : "—"}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada kas terdaftar.</p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Attendance Summary (if available) */}
       {data.attendanceSummary.length > 0 && (
@@ -405,25 +384,16 @@ export function ReportClient({
             <CardTitle className="text-sm">Ringkasan Kehadiran</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b text-left text-muted-foreground">
-                    <th className="py-2 font-medium">Tanggal</th>
-                    <th className="py-2 font-medium text-right">Hadir</th>
-                    <th className="py-2 font-medium text-right">Tidak Hadir</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.attendanceSummary.map((a, i) => (
-                    <tr key={i} className="border-b border-foreground/5">
-                      <td className="py-2">{shortDate(a.date)}</td>
-                      <td className="py-2 text-right text-primary">{a.present}</td>
-                      <td className="py-2 text-right text-destructive">{a.absent}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-foreground/5">
+              {data.attendanceSummary.map((a, i) => (
+                <div key={i} className="flex items-center justify-between py-2 text-sm">
+                  <span>{shortDate(a.date)}</span>
+                  <div className="flex gap-3">
+                    <span className="text-primary">{a.present} hadir</span>
+                    <span className="text-destructive">{a.absent} absen</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -442,35 +412,26 @@ export function ReportClient({
         {showTransactions && (
           <CardContent>
             {data.transactions.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b text-left text-muted-foreground">
-                      <th className="py-2 font-medium">Waktu</th>
-                      <th className="py-2 font-medium">Sesi</th>
-                      <th className="py-2 font-medium text-right">Total</th>
-                      <th className="py-2 font-medium">Metode</th>
-                      <th className="py-2 font-medium">Kasir</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.transactions.map((t) => (
-                      <tr key={t.id} className="border-b border-foreground/5">
-                        <td className="py-2 whitespace-nowrap">
+              <div className="divide-y divide-foreground/5">
+                {data.transactions.map((t) => (
+                  <div key={t.id} className="py-2 space-y-0.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate">{t.sessionName}</p>
+                        <p className="text-xs text-muted-foreground">
                           {new Date(t.paidAt).toLocaleString("id-ID", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
-                        </td>
-                        <td className="py-2">{t.sessionName}</td>
-                        <td className="py-2 text-right">{formatRupiah(t.totalAmount)}</td>
-                        <td className="py-2">
-                          <span className="rounded-full px-2 py-0.5 text-xs bg-primary/10 text-primary">
-                            {METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod}
-                          </span>
-                        </td>
-                        <td className="py-2">{t.processedBy ?? "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                          {t.processedBy && <> · {t.processedBy}</>}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-medium">{formatRupiah(t.totalAmount)}</p>
+                        <span className="rounded-full px-2 py-0.5 text-xs bg-primary/10 text-primary">
+                          {METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="text-sm text-muted-foreground py-4 text-center">Tidak ada transaksi.</p>

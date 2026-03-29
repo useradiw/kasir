@@ -23,7 +23,7 @@ export default async function TransactionsPage({
   const data = await getTransactionsData({ page, method, status, from, to });
 
   return (
-    <Container id="admin-transactions" sectionStyle="" className="!max-w-4xl py-6">
+    <Container id="admin-transactions" sectionStyle="" className="py-6">
       <TransactionsClient
         rows={data.rows}
         page={page}

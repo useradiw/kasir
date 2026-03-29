@@ -53,7 +53,7 @@ export default function ExpensesClient({
             </div>
             <div className="grid gap-1">
               <Label>Keterangan</Label>
-              <Input name="note" placeholder="Keterangan (opsional)" className="w-60" />
+              <Input name="note" placeholder="Keterangan (opsional)" />
             </div>
             <div className="grid gap-1">
               <Label>Tanggal</Label>

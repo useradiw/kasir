@@ -16,7 +16,7 @@ export default async function CashRegisterPage({
   const data = await getCashRegisterData({ from, to });
 
   return (
-    <Container id="admin-cash-register" sectionStyle="" className="!max-w-4xl py-6">
+    <Container id="admin-cash-register" sectionStyle="" className="py-6">
       <CashRegisterClient
         staffRole={staff.role}
         todayRegister={data.todayRegister}
