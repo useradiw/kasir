@@ -157,6 +157,10 @@ model CashRegister {
   date        DateTime @unique
   openingCash Int      @default(0)
   closingCash Int?
+  openedById  String?
+  closedById  String?
+  openedBy    Staff?   @relation("OpenedRegisters", fields: [openedById], references: [id])
+  closedBy    Staff?   @relation("ClosedRegisters", fields: [closedById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -173,10 +177,12 @@ model Staff {
   supabaseUserId    String?            @unique
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  attendanceRecords  AttendanceRecord[]
-  transactions       Transaction[]      @relation("ProcessedTransactions")
-  voidedTransactions Transaction[]      @relation("VoidedTransactions")
-  tableSessions      TableSession[]
+  attendanceRecords   AttendanceRecord[]
+  transactions        Transaction[]      @relation("ProcessedTransactions")
+  voidedTransactions  Transaction[]      @relation("VoidedTransactions")
+  tableSessions       TableSession[]
+  openedRegisters     CashRegister[]     @relation("OpenedRegisters")
+  closedRegisters     CashRegister[]     @relation("ClosedRegisters")
 
   @@map("staff")
 }
