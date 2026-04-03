@@ -2,12 +2,14 @@
 
 import { useRef } from "react";
 import { useOrderItems, useTransaction } from "@/hooks/use-session-store";
+import { useBluetoothPrinter } from "@/hooks/use-bluetooth-printer";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { calcSubtotal } from "@/lib/kasir-utils";
+import { buildReceipt, buildChecklist } from "@/lib/escpos";
 import { Button } from "@/components/ui/button";
-import { X, Download } from "lucide-react";
+import { X, Download, Printer, Loader2 } from "lucide-react";
 
 export function ReceiptPreview({
   sessionId,
@@ -26,8 +28,34 @@ export function ReceiptPreview({
     [sessionId]
   );
 
+  const { isConnected, isSupported, connect, print, printing, error: printError } = useBluetoothPrinter();
+
   const activeItems = items?.filter((i) => i.status !== "CANCELLED") ?? [];
   const subtotal = calcSubtotal(items ?? []);
+
+  async function handlePrint() {
+    if (!isConnected) await connect();
+    const data =
+      mode === "checklist"
+        ? buildChecklist({
+            sessionName: session?.name ?? "",
+            createdAt: session?.createdAt ?? "",
+            items: activeItems,
+          })
+        : buildReceipt({
+            sessionName: session?.name ?? "",
+            paidAt: tx?.paidAt ?? "",
+            items: activeItems,
+            subtotal: tx?.subtotal ?? subtotal,
+            taxAmount: tx?.taxAmount ?? 0,
+            serviceCharge: tx?.serviceCharge ?? 0,
+            discountAmount: tx?.discountAmount ?? 0,
+            totalAmount: tx?.totalAmount ?? 0,
+            paymentMethod: (tx?.paymentMethod as "CASH" | "QRIS") ?? "CASH",
+            cashAmount: tx?.cashAmount ?? 0,
+          });
+    await print(data);
+  }
 
   async function handleDownload() {
     if (!receiptRef.current) return;
@@ -72,6 +100,22 @@ export function ReceiptPreview({
         </div>
 
         <div className="mt-4 flex gap-2">
+          {isSupported && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 text-black border-gray-300"
+              onClick={handlePrint}
+              disabled={printing}
+            >
+              {printing ? (
+                <Loader2 className="size-3 mr-1 animate-spin" />
+              ) : (
+                <Printer className="size-3 mr-1" />
+              )}
+              {isConnected ? "Cetak" : "Cetak"}
+            </Button>
+          )}
           <Button
             size="sm"
             variant="outline"
@@ -90,6 +134,9 @@ export function ReceiptPreview({
             Tutup
           </Button>
         </div>
+        {printError && (
+          <p className="mt-1 text-center text-xs text-red-500">{printError}</p>
+        )}
       </div>
     </div>
   );
