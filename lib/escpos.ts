@@ -70,7 +70,7 @@ function padLine(left: string, right: string, w: number): number[] {
 
 export function buildReceipt(
   data: PrintReceiptData,
-  lineWidth = 32
+  lineWidth = 32,
 ): Uint8Array {
   const b: number[] = [];
   const w = lineWidth;
@@ -91,15 +91,13 @@ export function buildReceipt(
   // Cashier / customer / time / service
   b.push(...CMD.LEFT);
   b.push(...divider(w));
-  b.push(
-    ...padLine(`Kasir: ${data.cashierName}`, data.serviceLabel, w)
-  );
+  b.push(...padLine(`Kasir: ${data.cashierName}`, data.serviceLabel, w));
   if (data.customerAlias) {
     b.push(...line(`Pelanggan: ${data.customerAlias}`));
   }
-  if (data.customerPhone) {
-    b.push(...line(`HP: ${data.customerPhone}`));
-  }
+  // if (data.customerPhone) {
+  //   b.push(...line(`HP: ${data.customerPhone}`));
+  // }
   b.push(...line(formatDateTime(data.paidAt, "short")));
 
   // Total (large, centered)
@@ -112,9 +110,10 @@ export function buildReceipt(
   b.push(...CMD.LEFT);
   b.push(...divider(w));
   for (const item of data.items) {
-    const name = item.nameSnapshot.length > 30
-      ? item.nameSnapshot.slice(0, 30)
-      : item.nameSnapshot;
+    const name =
+      item.nameSnapshot.length > 30
+        ? item.nameSnapshot.slice(0, 30)
+        : item.nameSnapshot;
     b.push(...CMD.BOLD_ON);
     b.push(...line(name));
     b.push(...CMD.BOLD_OFF);
@@ -136,17 +135,12 @@ export function buildReceipt(
   // Payment info
   b.push(...divider(w));
   b.push(
-    ...padLine(
-      "Metode",
-      data.paymentMethod === "CASH" ? "Tunai" : "QRIS",
-      w
-    )
+    ...padLine("Metode", data.paymentMethod === "CASH" ? "Tunai" : "QRIS", w),
   );
   if (data.paymentMethod === "CASH") {
     b.push(...padLine("Dibayar", formatRupiah(data.cashAmount), w));
     const change = data.cashAmount - data.totalAmount;
-    if (change > 0)
-      b.push(...padLine("Kembalian", formatRupiah(change), w));
+    if (change > 0) b.push(...padLine("Kembalian", formatRupiah(change), w));
   }
 
   // Payment status
@@ -169,7 +163,7 @@ export function buildReceipt(
 
 export function buildChecklist(
   data: PrintChecklistData,
-  lineWidth = 32
+  lineWidth = 32,
 ): Uint8Array {
   const b: number[] = [];
   const w = lineWidth;

@@ -12,7 +12,9 @@ import { formatRupiah, formatDateTime, STORE_INFO } from "@/lib/format";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateTransaction } from "@/app/actions/admin/transactions";
 import type { TransactionDetail } from "@/app/actions/admin/queries";
-import { ArrowLeft, Pencil, Download, Printer, Save, X } from "lucide-react";
+import { ArrowLeft, Pencil, Download, Printer, Save, X, Loader2 } from "lucide-react";
+import { useBluetoothPrinter } from "@/hooks/use-bluetooth-printer";
+import { buildReceipt } from "@/lib/escpos";
 
 const serviceOptions = [
   { value: "", label: "Dine In" },
@@ -31,6 +33,7 @@ export default function TransactionDetailClient({
   const receiptRef = useRef<HTMLDivElement>(null);
   const [editing, setEditing] = useState(false);
   const { isPending, run, error, setError } = useAdminAction();
+  const { isSupported, isConnected, connect, print, printing, error: printError } = useBluetoothPrinter();
 
   // Editable state
   const [customerAlias, setCustomerAlias] = useState(data.session.customerAlias ?? "");
@@ -93,28 +96,31 @@ export default function TransactionDetailClient({
     link.click();
   }
 
-  function handlePrint() {
-    if (!receiptRef.current) return;
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    printWindow.document.write(`
-      <html><head><title>Struk ${data.session.name}</title>
-      <style>
-        body { font-family: monospace; font-size: 12px; width: 300px; margin: 0 auto; padding: 16px; }
-        .center { text-align: center; }
-        .bold { font-weight: bold; }
-        .flex { display: flex; justify-content: space-between; }
-        .divider { border-top: 1px dashed #ccc; margin: 6px 0; }
-        .large { font-size: 18px; font-weight: bold; }
-        .small { font-size: 10px; color: #999; }
-        .status-paid { color: green; font-weight: bold; text-align: center; }
-        .status-voided { color: red; font-weight: bold; text-align: center; }
-      </style></head><body>
-      ${receiptRef.current.innerHTML}
-      </body></html>
-    `);
-    printWindow.document.close();
-    printWindow.print();
+  async function handlePrint() {
+    if (!isSupported) return;
+    const printServiceLabel =
+      serviceOptions.find((o) => o.value === (data.session.service ?? ""))?.label ?? "Dine In";
+    const receiptData = buildReceipt({
+      sessionName: data.session.name,
+      cashierName: data.processedBy ?? "-",
+      customerAlias: data.session.customerAlias ?? null,
+      customerPhone: data.session.customerPhone ?? null,
+      serviceLabel: printServiceLabel,
+      paidAt: data.paidAt,
+      items: data.orderItems
+        .filter((oi) => oi.status !== "CANCELLED")
+        .map((oi) => ({ nameSnapshot: oi.nameSnapshot, qty: oi.qty, price: oi.price })),
+      subtotal: data.subtotal,
+      taxAmount: data.taxAmount,
+      serviceCharge: data.serviceCharge,
+      discountAmount: data.discountAmount,
+      totalAmount: data.totalAmount,
+      paymentMethod: data.paymentMethod as "CASH" | "QRIS",
+      cashAmount: data.cashAmount,
+      isPaid: data.status === "PAID",
+    });
+    if (!isConnected) await connect();
+    await print(receiptData);
   }
 
   const serviceLabel = serviceOptions.find((o) => o.value === (service || ""))?.label ?? "Dine In";
@@ -166,20 +172,29 @@ export default function TransactionDetailClient({
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Receipt Preview */}
         <Card>
-          <CardHeader>
+          <CardHeader className="pb-2">
             <CardTitle className="flex items-center justify-between">
               <span>Struk</span>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline" onClick={handlePrint}>
-                  <Printer className="size-3 mr-1" />
-                  Cetak
-                </Button>
+                {isSupported && (
+                  <Button size="sm" variant="outline" onClick={handlePrint} disabled={printing}>
+                    {printing ? (
+                      <Loader2 className="size-3 mr-1 animate-spin" />
+                    ) : (
+                      <Printer className="size-3 mr-1" />
+                    )}
+                    Cetak
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" onClick={handleDownload}>
                   <Download className="size-3 mr-1" />
                   Unduh
                 </Button>
               </div>
             </CardTitle>
+            {printError && (
+              <p className="text-xs text-red-500 mt-1">{printError}</p>
+            )}
           </CardHeader>
           <CardContent>
             <div className="flex justify-center">

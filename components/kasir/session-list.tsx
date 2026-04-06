@@ -79,7 +79,7 @@ export function SessionList({
   const handleCreate = async () => {
     setError(null);
     const id = await createSession({
-      name: `Table ${getNextTableNumber()}`,
+      name: `Meja ${getNextTableNumber()}`,
       service: service || null,
       customerAlias: customerAlias.trim() || null,
       customerPhone: customerPhone.trim() || null,
