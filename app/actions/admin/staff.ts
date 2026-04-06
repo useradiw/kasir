@@ -8,6 +8,8 @@ import { z } from "zod";
 import type { RoleEnum } from "@/generated/prisma";
 
 const staffSchema = z.object({
+  username: z.string().min(1, "Username tidak boleh kosong")
+    .regex(/^[a-zA-Z0-9._-]+$/, "Username hanya boleh huruf, angka, titik, underscore, dan strip"),
   name: z.string().min(1, "Nama tidak boleh kosong"),
   role: z.enum(["OWNER", "MANAGER", "CASHIER", "STAFF"]),
 });
@@ -16,13 +18,14 @@ export async function addStaff(formData: FormData) {
   await requireOwner();
 
   const parsed = staffSchema.safeParse({
+    username: formData.get("username"),
     name: formData.get("name"),
     role: formData.get("role"),
   });
   if (!parsed.success) throw new Error(parsed.error.flatten().formErrors[0]);
 
   await prisma.staff.create({
-    data: { name: parsed.data.name, role: parsed.data.role as RoleEnum },
+    data: { username: parsed.data.username, name: parsed.data.name, role: parsed.data.role as RoleEnum },
   });
   revalidatePath("/admin/staff");
 }
@@ -31,6 +34,7 @@ export async function updateStaff(id: string, formData: FormData) {
   await requireOwner();
 
   const parsed = staffSchema.safeParse({
+    username: formData.get("username"),
     name: formData.get("name"),
     role: formData.get("role"),
   });
@@ -38,7 +42,7 @@ export async function updateStaff(id: string, formData: FormData) {
 
   await prisma.staff.update({
     where: { id },
-    data: { name: parsed.data.name, role: parsed.data.role as RoleEnum },
+    data: { username: parsed.data.username, name: parsed.data.name, role: parsed.data.role as RoleEnum },
   });
   revalidatePath("/admin/staff");
 }

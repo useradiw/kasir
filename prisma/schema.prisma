@@ -173,6 +173,7 @@ model CashRegister {
 
 model Staff {
   id                String             @id @default(uuid())
+  username          String?            @unique
   name              String
   role              RoleEnum
   isActive          Boolean            @default(true)

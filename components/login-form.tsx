@@ -4,11 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Form from "next/form";
 import { createClient } from "@/utils/supabase/server";
+import { createAdminClient } from "@/utils/supabase/admin";
+import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
 const masukSchema = z.object({
-    email: z.email({ message: "Email tidak valid." }),
+    username: z.string().min(1, { message: "Username tidak boleh kosong." }),
     password: z.string().min(1, { message: "Password tidak boleh kosong." }),
 });
 
@@ -17,7 +19,7 @@ export function LoginForm() {
         "use server";
 
         const parsed = masukSchema.safeParse({
-            email: formData.get("email"),
+            username: formData.get("username"),
             password: formData.get("password"),
         });
 
@@ -27,15 +29,34 @@ export function LoginForm() {
             throw new Error(message);
         }
 
-        const supabase = await createClient();
+        const staff = await prisma.staff.findUnique({
+            where: { username: parsed.data.username },
+        });
 
+        if (!staff || !staff.supabaseUserId) {
+            throw new Error("Username tidak ditemukan.");
+        }
+
+        if (!staff.isActive) {
+            throw new Error("Akun staff tidak aktif.");
+        }
+
+        const adminSupabase = createAdminClient();
+        const { data: userData, error: userError } =
+            await adminSupabase.auth.admin.getUserById(staff.supabaseUserId);
+
+        if (userError || !userData.user?.email) {
+            throw new Error("Gagal mengambil data akun.");
+        }
+
+        const supabase = await createClient();
         const { error } = await supabase.auth.signInWithPassword({
-            email: parsed.data.email,
+            email: userData.user.email,
             password: parsed.data.password,
         });
 
         if (error) {
-            throw new Error(error.message);
+            throw new Error("Password salah.");
         }
 
         redirect("/");
@@ -46,19 +67,19 @@ export function LoginForm() {
             <CardHeader className="border-b">
                 <CardTitle className="font-bold text-xl">Kasir - Sate Kambing Katamso</CardTitle>
                 <CardDescription>
-                    Masuk dengan email dan password.
+                    Masuk dengan username dan password.
                 </CardDescription>
             </CardHeader>
             <Form action={handleClick}>
                 <CardContent className="mb-6">
                     <div className="flex flex-col gap-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email</Label>
+                            <Label htmlFor="username">Username</Label>
                             <Input
-                                id="email"
-                                name="email"
-                                type="email"
-                                placeholder="contoh@gmail.com"
+                                id="username"
+                                name="username"
+                                type="text"
+                                placeholder="username"
                                 required
                             />
                         </div>

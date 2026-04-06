@@ -60,10 +60,10 @@ export default async function Home() {
   return (
     <Container id="menu" sectionStyle="bg-white dark:bg-black min-h-screen" className="py-6">
       <div className="flex items-center justify-between mb-6">
-        <div>
+        <Link href="/profile" className="hover:underline">
           <h1 className="text-lg font-bold">{staffName}</h1>
           <RoleBadge role={staffRole} />
-        </div>
+        </Link>
         <form action={signOut}>
           <Button type="submit" variant="outline" size="sm" className="cursor-pointer gap-1.5">
             <LogOut className="size-4" />

@@ -72,6 +72,7 @@ export async function getStaffWithEmails() {
 
   return staffList.map((s) => ({
     id: s.id,
+    username: s.username,
     name: s.name,
     role: s.role as "OWNER" | "MANAGER" | "CASHIER" | "STAFF",
     isActive: s.isActive,

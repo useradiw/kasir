@@ -27,3 +27,21 @@ export async function requireRole(...roles: RoleEnum[]): Promise<Staff> {
 export async function requireOwner(): Promise<Staff> {
   return requireRole("OWNER");
 }
+
+// Any active authenticated staff member passes — no role check.
+export async function requireAuth(): Promise<Staff> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/");
+
+  const staff = await prisma.staff.findUnique({
+    where: { supabaseUserId: user.id },
+  });
+
+  if (!staff || !staff.isActive) redirect("/");
+
+  return staff;
+}

@@ -18,6 +18,7 @@ import {
 
 type StaffRow = {
   id: string;
+  username: string | null;
   name: string;
   role: "OWNER" | "MANAGER" | "CASHIER" | "STAFF";
   isActive: boolean;
@@ -63,6 +64,10 @@ export default function StaffClient({ staffList }: { staffList: StaffRow[] }) {
               className="flex flex-wrap gap-3 items-end"
             >
               <div className="grid gap-1">
+                <Label htmlFor="add-username">Username</Label>
+                <Input id="add-username" name="username" required placeholder="username" />
+              </div>
+              <div className="grid gap-1">
                 <Label htmlFor="add-name">Nama</Label>
                 <Input id="add-name" name="name" required placeholder="Nama staff" />
               </div>
@@ -96,7 +101,7 @@ export default function StaffClient({ staffList }: { staffList: StaffRow[] }) {
                     <div className="min-w-0">
                       <p className="font-medium">{s.name}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {s.supabaseEmail ?? <span className="italic">Belum terhubung</span>}
+                        {s.username ? `@${s.username}` : <span className="italic">Belum ada username</span>} · {s.supabaseEmail ?? <span className="italic">Belum terhubung</span>}
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
@@ -163,6 +168,10 @@ export default function StaffClient({ staffList }: { staffList: StaffRow[] }) {
                         }
                         className="flex flex-wrap gap-3 items-end"
                       >
+                        <div className="grid gap-1">
+                          <Label>Username</Label>
+                          <Input name="username" defaultValue={s.username ?? ""} required />
+                        </div>
                         <div className="grid gap-1">
                           <Label>Nama</Label>
                           <Input name="name" defaultValue={s.name} required />
