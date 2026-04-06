@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -158,12 +159,17 @@ export default function TransactionsClient({
                   </div>
                 </div>
 
-                {/* Bottom row: time + detail button */}
+                {/* Bottom row: time + detail/view buttons */}
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{formatDateTime(r.paidAt)}</span>
-                  <Button size="xs" variant="outline" onClick={() => { setExpandId(expandId === r.id ? null : r.id); setVoidReason(""); }}>
-                    {expandId === r.id ? "Tutup" : "Detail"}
-                  </Button>
+                  <div className="flex gap-1">
+                    <Link href={`/admin/transactions/${r.id}`}>
+                      <Button size="xs" variant="outline">Lihat</Button>
+                    </Link>
+                    <Button size="xs" variant="outline" onClick={() => { setExpandId(expandId === r.id ? null : r.id); setVoidReason(""); }}>
+                      {expandId === r.id ? "Tutup" : "Detail"}
+                    </Button>
+                  </div>
                 </div>
 
                 {/* Expandable detail */}

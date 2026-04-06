@@ -5,8 +5,9 @@ import { useOrderItems, useTransaction } from "@/hooks/use-session-store";
 import { useBluetoothPrinter } from "@/hooks/use-bluetooth-printer";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
-import { formatRupiah, formatDateTime } from "@/lib/format";
-import { calcSubtotal } from "@/lib/kasir-utils";
+import type { ServiceEnum } from "@/lib/db";
+import { formatRupiah, formatDateTime, STORE_INFO } from "@/lib/format";
+import { calcSubtotal, getServiceLabel } from "@/lib/kasir-utils";
 import { buildReceipt, buildChecklist } from "@/lib/escpos";
 import { Button } from "@/components/ui/button";
 import { X, Download, Printer, Loader2 } from "lucide-react";
@@ -14,10 +15,12 @@ import { X, Download, Printer, Loader2 } from "lucide-react";
 export function ReceiptPreview({
   sessionId,
   mode,
+  cashierName,
   onClose,
 }: {
   sessionId: string;
   mode: "checklist" | "receipt";
+  cashierName?: string;
   onClose: () => void;
 }) {
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -33,6 +36,10 @@ export function ReceiptPreview({
   const activeItems = items?.filter((i) => i.status !== "CANCELLED") ?? [];
   const subtotal = calcSubtotal(items ?? []);
 
+  const resolvedCashierName = tx?.cashierName ?? cashierName ?? "-";
+  const serviceLabel = getServiceLabel((session?.service as ServiceEnum) ?? null);
+  const isPaid = tx?.status === "PAID";
+
   async function handlePrint() {
     if (!isConnected) await connect();
     const data =
@@ -44,6 +51,10 @@ export function ReceiptPreview({
           })
         : buildReceipt({
             sessionName: session?.name ?? "",
+            cashierName: resolvedCashierName,
+            customerAlias: session?.customerAlias ?? null,
+            customerPhone: session?.customerPhone,
+            serviceLabel,
             paidAt: tx?.paidAt ?? "",
             items: activeItems,
             subtotal: tx?.subtotal ?? subtotal,
@@ -53,6 +64,7 @@ export function ReceiptPreview({
             totalAmount: tx?.totalAmount ?? 0,
             paymentMethod: (tx?.paymentMethod as "CASH" | "QRIS") ?? "CASH",
             cashAmount: tx?.cashAmount ?? 0,
+            isPaid,
           });
     await print(data);
   }
@@ -95,6 +107,9 @@ export function ReceiptPreview({
               activeItems={activeItems}
               tx={tx}
               subtotal={subtotal}
+              cashierName={resolvedCashierName}
+              serviceLabel={serviceLabel}
+              isPaid={isPaid}
             />
           )}
         </div>
@@ -113,7 +128,7 @@ export function ReceiptPreview({
               ) : (
                 <Printer className="size-3 mr-1" />
               )}
-              {isConnected ? "Cetak" : "Cetak"}
+              Cetak
             </Button>
           )}
           <Button
@@ -183,33 +198,67 @@ function ReceiptContent({
   activeItems,
   tx,
   subtotal,
+  cashierName,
+  serviceLabel,
+  isPaid,
 }: {
-  session: { name: string; paidAt: string | null } | undefined;
+  session: { name: string; paidAt: string | null; service: ServiceEnum | null; customerAlias: string | null } | undefined;
   activeItems: { nameSnapshot: string; qty: number; price: number }[];
-  tx: { subtotal: number; taxAmount: number; serviceCharge: number; discountAmount: number; totalAmount: number; paymentMethod: string; cashAmount: number; qrisAmount: number; paidAt: string } | undefined;
+  tx: { subtotal: number; taxAmount: number; serviceCharge: number; discountAmount: number; totalAmount: number; paymentMethod: string; cashAmount: number; qrisAmount: number; paidAt: string; status: string } | undefined;
   subtotal: number;
+  cashierName: string;
+  serviceLabel: string;
+  isPaid: boolean;
 }) {
   return (
     <div className="font-mono text-xs space-y-2">
-      <p className="text-center font-bold text-sm">STRUK PEMBAYARAN</p>
-      {session && (
-        <div className="text-center text-gray-500">
-          <p>{session.name}</p>
-          {tx && <p>{formatDateTime(tx.paidAt, "short")}</p>}
-        </div>
-      )}
+      {/* Store header */}
+      <div className="text-center">
+        <p className="font-bold text-base">{STORE_INFO.name}</p>
+        <p className="text-gray-500">{STORE_INFO.address}</p>
+        <p className="text-gray-500">Telp: {STORE_INFO.phone}</p>
+        <p className="text-gray-500">IG: {STORE_INFO.instagram}</p>
+      </div>
 
       <Divider />
 
+      {/* Cashier, customer, time, service */}
+      <div>
+        <div className="flex justify-between">
+          <span>Kasir: {cashierName}</span>
+          <span className="font-medium">{serviceLabel}</span>
+        </div>
+        {session?.customerAlias && (
+          <div>Pelanggan: {session.customerAlias}</div>
+        )}
+        {tx && <div>{formatDateTime(tx.paidAt, "short")}</div>}
+      </div>
+
+      <Divider />
+
+      {/* Total (large, centered) */}
+      <div className="text-center py-1">
+        <p className="font-bold text-lg">
+          {formatRupiah(tx?.totalAmount ?? subtotal)}
+        </p>
+      </div>
+
+      <Divider />
+
+      {/* Order items */}
       {activeItems.map((item, i) => (
-        <div key={i} className="flex justify-between">
-          <span>{item.qty}x {item.nameSnapshot}</span>
-          <span>{formatRupiah(item.price * item.qty)}</span>
+        <div key={i}>
+          <div className="font-bold">{item.nameSnapshot}</div>
+          <div className="flex justify-between text-gray-500">
+            <span>&nbsp;&nbsp;{item.qty} x {formatRupiah(item.price)}</span>
+            <span>{formatRupiah(item.price * item.qty)}</span>
+          </div>
         </div>
       ))}
 
       <Divider />
 
+      {/* Charges */}
       {tx ? (
         <>
           <div className="flex justify-between">
@@ -234,13 +283,6 @@ function ReceiptContent({
               <span>-{formatRupiah(tx.discountAmount)}</span>
             </div>
           )}
-
-          <Divider />
-
-          <div className="flex justify-between font-bold text-sm">
-            <span>TOTAL</span>
-            <span>{formatRupiah(tx.totalAmount)}</span>
-          </div>
 
           <Divider />
 
@@ -270,6 +312,13 @@ function ReceiptContent({
         </div>
       )}
 
+      {/* Payment status */}
+      <Divider />
+      <p className={`text-center font-bold text-sm ${isPaid ? "text-green-600" : "text-red-600"}`}>
+        {isPaid ? "LUNAS" : "Belum Dibayar"}
+      </p>
+
+      {/* Footer */}
       <Divider />
       <p className="text-center text-gray-400 text-[10px] leading-tight">
         Terimakasih dan silahkan<br />datang kembali.

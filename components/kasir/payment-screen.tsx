@@ -27,6 +27,7 @@ const paymentMethods: { value: PaymentMethod; label: string }[] = [
 export function PaymentScreen({
   sessionId,
   staffId,
+  staffName,
   staffRole,
   onDone,
   onBack,
@@ -34,6 +35,7 @@ export function PaymentScreen({
 }: {
   sessionId: string;
   staffId: string;
+  staffName: string;
   staffRole?: string;
   onDone: () => void;
   onBack: () => void;
@@ -109,6 +111,7 @@ export function PaymentScreen({
       await recordPayment({
         tableSessionId: sessionId,
         processedById: staffId,
+        cashierName: staffName,
         subtotal,
         taxAmount,
         serviceCharge: serviceAmount,
@@ -169,6 +172,7 @@ export function PaymentScreen({
           <ReceiptPreview
             sessionId={sessionId}
             mode="receipt"
+            cashierName={staffName}
             onClose={() => setShowReceipt(false)}
           />
         )}

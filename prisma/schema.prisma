@@ -80,10 +80,12 @@ model TableSession {
   name          String
   service       ServiceEnum?
   customerAlias String?
+  customerPhone String?
   ownerId       String?
   orderedAt     DateTime?
   servedAt      DateTime?
   paidAt        DateTime?
+  erasedAt      DateTime?
   createdAt     DateTime      @default(now())
   owner         Staff?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
   orderItems    OrderItem[]

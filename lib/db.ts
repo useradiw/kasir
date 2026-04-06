@@ -63,10 +63,12 @@ export interface TableSession {
   name: string;
   service: ServiceEnum | null;
   customerAlias: string | null;
+  customerPhone: string | null;
   ownerId: string | null;
   orderedAt: string | null;
   servedAt: string | null;
   paidAt: string | null;
+  erasedAt: string | null;
   createdAt: string;
   synced: 0 | 1; // 0 = not synced, 1 = synced (IndexedDB only indexes numbers cleanly)
 }
@@ -92,6 +94,7 @@ export interface Transaction {
   id: string;
   tableSessionId: string;
   processedById: string;
+  cashierName: string;
   subtotal: number;
   taxAmount: number;
   serviceCharge: number;
@@ -132,6 +135,14 @@ export class KasirDB extends Dexie {
     });
     this.version(2).stores({
       package_items: "id, packageId",
+    });
+    this.version(3).stores({
+      table_sessions: "id, paidAt, synced",
+    }).upgrade(tx => {
+      return tx.table('table_sessions').toCollection().modify(session => {
+        if (session.customerPhone === undefined) session.customerPhone = null;
+        if (session.erasedAt === undefined) session.erasedAt = null;
+      });
     });
   }
 }

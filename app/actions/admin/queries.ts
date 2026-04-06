@@ -259,6 +259,67 @@ export async function getTransactionsData(opts: {
   };
 }
 
+// ─── Transaction Detail ──────────────────────────────────────────────────────
+
+export async function getTransactionDetail(transactionId: string) {
+  await requireOwner();
+
+  const tx = await prisma.transaction.findUnique({
+    where: { id: transactionId },
+    include: {
+      processedBy: { select: { name: true } },
+      voidedBy: { select: { name: true } },
+      tableSession: {
+        include: {
+          orderItems: {
+            orderBy: { createdAt: "asc" },
+          },
+          owner: { select: { name: true } },
+        },
+      },
+    },
+  });
+
+  if (!tx) return null;
+
+  return {
+    id: tx.id,
+    subtotal: tx.subtotal,
+    taxAmount: tx.taxAmount,
+    serviceCharge: tx.serviceCharge,
+    discountAmount: tx.discountAmount,
+    totalAmount: tx.totalAmount,
+    cashAmount: tx.cashAmount,
+    qrisAmount: tx.qrisAmount,
+    paymentMethod: tx.paymentMethod as string,
+    status: tx.status as string,
+    paidAt: tx.paidAt.toISOString(),
+    createdAt: tx.createdAt.toISOString(),
+    processedBy: tx.processedBy?.name ?? null,
+    voidedBy: tx.voidedBy?.name ?? null,
+    voidedAt: tx.voidedAt?.toISOString() ?? null,
+    voidReason: tx.voidReason ?? null,
+    session: {
+      id: tx.tableSession.id,
+      name: tx.tableSession.name,
+      service: tx.tableSession.service as string | null,
+      customerAlias: tx.tableSession.customerAlias,
+      customerPhone: tx.tableSession.customerPhone,
+      ownerName: tx.tableSession.owner?.name ?? null,
+    },
+    orderItems: tx.tableSession.orderItems.map((oi) => ({
+      id: oi.id,
+      nameSnapshot: oi.nameSnapshot,
+      qty: oi.qty,
+      price: oi.price,
+      note: oi.note,
+      status: oi.status as string,
+    })),
+  };
+}
+
+export type TransactionDetail = NonNullable<Awaited<ReturnType<typeof getTransactionDetail>>>;
+
 // ─── Cash Register ───────────────────────────────────────────────────────────
 
 export async function getCashRegisterData(opts: { from: string; to: string }) {

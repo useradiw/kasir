@@ -9,6 +9,7 @@ import {
   useTransaction,
   useUnsyncedCount,
   createSession,
+  eraseSession,
   retryUnsyncedTransactions,
 } from "@/hooks/use-session-store";
 import { formatRupiah, formatDateTime } from "@/lib/format";
@@ -18,7 +19,7 @@ import { ErrorBanner } from "@/components/shared/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Plus, ShoppingBag, History, RefreshCw, Receipt, Home, Landmark } from "lucide-react";
+import { Plus, ShoppingBag, History, RefreshCw, Receipt, Home, Landmark, Trash2 } from "lucide-react";
 import { ReceiptPreview } from "./receipt-preview";
 import Link from "next/link";
 
@@ -49,12 +50,26 @@ export function SessionList({
   const [showForm, setShowForm] = useState(false);
   const [service, setService] = useState<ServiceEnum | "">("");
   const [customerAlias, setCustomerAlias] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [receiptSessionId, setReceiptSessionId] = useState<string | null>(null);
 
+  // Query ALL sessions created today (open, paid, erased) for unique table numbering
+  const todaySessions = useLiveQuery(() => {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
+    return db.table_sessions
+      .filter((s) => {
+        const created = new Date(s.createdAt);
+        return created >= startOfDay && created < endOfDay;
+      })
+      .toArray();
+  }, []);
+
   const getNextTableNumber = () => {
-    const tableNumbers = (sessions ?? [])
+    const tableNumbers = (todaySessions ?? [])
       .map((s) => s.name.match(/^Table (\d+)$/))
       .filter(Boolean)
       .map((m) => parseInt(m![1]));
@@ -67,10 +82,12 @@ export function SessionList({
       name: `Table ${getNextTableNumber()}`,
       service: service || null,
       customerAlias: customerAlias.trim() || null,
+      customerPhone: customerPhone.trim() || null,
       ownerId: staffId,
     });
     setService("");
     setCustomerAlias("");
+    setCustomerPhone("");
     setShowForm(false);
     onOpenSession(id);
   };
@@ -171,6 +188,12 @@ export function SessionList({
                   value={customerAlias}
                   onChange={(e) => setCustomerAlias(e.target.value)}
                 />
+                <Input
+                  type="tel"
+                  placeholder="No. HP pelanggan (opsional)"
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                />
                 <ErrorBanner error={error} />
                 <div className="flex gap-2">
                   <Button size="sm" className="flex-1" onClick={handleCreate}>
@@ -193,6 +216,11 @@ export function SessionList({
                     key={session.id}
                     session={session}
                     onClick={() => onOpenSession(session.id)}
+                    onErase={async () => {
+                      if (window.confirm("Batalkan sesi ini?")) {
+                        await eraseSession(session.id);
+                      }
+                    }}
                   />
                 ))}
               </div>
@@ -223,6 +251,7 @@ export function SessionList({
         <ReceiptPreview
           sessionId={receiptSessionId}
           mode="receipt"
+          cashierName={staffName}
           onClose={() => setReceiptSessionId(null)}
         />
       )}
@@ -233,9 +262,11 @@ export function SessionList({
 function SessionCard({
   session,
   onClick,
+  onErase,
 }: {
-  session: { id: string; name: string; service: ServiceEnum | null; customerAlias: string | null; createdAt: string };
+  session: { id: string; name: string; service: ServiceEnum | null; customerAlias: string | null; customerPhone: string | null; createdAt: string };
   onClick: () => void;
+  onErase: () => void;
 }) {
   const itemCount = useLiveQuery(
     () => db.order_items.where("tableSessionId").equals(session.id).count(),
@@ -243,29 +274,46 @@ function SessionCard({
   );
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full rounded-lg border bg-card p-3 text-left active:bg-accent transition-colors min-h-14"
-    >
-      <div className="flex items-center justify-between">
-        <span className="font-medium text-sm">{session.name}</span>
-        <div className="flex items-center gap-1.5">
-          {typeof itemCount === "number" && itemCount > 0 && (
-            <Badge className="bg-primary/10 text-primary">{itemCount} item</Badge>
-          )}
-          <Badge className={getServiceColor(session.service)}>
-            {getServiceLabel(session.service)}
-          </Badge>
+    <div className="rounded-lg border bg-card p-3 min-h-14">
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full text-left active:bg-accent transition-colors"
+      >
+        <div className="flex items-center justify-between">
+          <span className="font-medium text-sm">{session.name}</span>
+          <div className="flex items-center gap-1.5">
+            {typeof itemCount === "number" && itemCount > 0 && (
+              <Badge className="bg-primary/10 text-primary">{itemCount} item</Badge>
+            )}
+            <Badge className={getServiceColor(session.service)}>
+              {getServiceLabel(session.service)}
+            </Badge>
+          </div>
         </div>
+        {(session.customerAlias || session.customerPhone || session.createdAt) && (
+          <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+            {session.customerAlias && <span>{session.customerAlias}</span>}
+            {session.customerPhone && <span>{session.customerPhone}</span>}
+            <span>{formatDateTime(session.createdAt, "short")}</span>
+          </div>
+        )}
+      </button>
+      <div className="mt-2 flex justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs text-destructive hover:text-destructive"
+          onClick={(e) => {
+            e.stopPropagation();
+            onErase();
+          }}
+        >
+          <Trash2 className="size-3 mr-1" />
+          Batalkan
+        </Button>
       </div>
-      {(session.customerAlias || session.createdAt) && (
-        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-          {session.customerAlias && <span>{session.customerAlias}</span>}
-          <span>{formatDateTime(session.createdAt, "short")}</span>
-        </div>
-      )}
-    </button>
+    </div>
   );
 }
 
@@ -279,45 +327,53 @@ function PaidSessionCard({
   onReceipt: () => void;
 }) {
   const tx = useTransaction(session.id);
+  const isErased = !!session.erasedAt && !session.paidAt;
 
   return (
     <div className="rounded-lg border bg-card p-3 min-h-14">
       <button
         type="button"
-        onClick={onClick}
-        className="w-full text-left"
+        onClick={isErased ? undefined : onClick}
+        className={cn("w-full text-left", isErased && "cursor-default")}
+        disabled={isErased}
       >
         <div className="flex items-center justify-between">
-          <span className="font-medium text-sm">{session.name}</span>
+          <span className={cn("font-medium text-sm", isErased && "text-muted-foreground")}>{session.name}</span>
           <div className="flex items-center gap-1.5">
             <SyncBadge synced={session.synced} />
-            {tx && (
+            {isErased ? (
+              <Badge className="bg-destructive/10 text-destructive">Dibatalkan</Badge>
+            ) : tx ? (
               <Badge className="bg-primary/10 text-primary">
                 {formatRupiah(tx.totalAmount)}
               </Badge>
-            )}
+            ) : null}
           </div>
         </div>
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           {session.customerAlias && <span>{session.customerAlias}</span>}
-          {tx && <span>{tx.paymentMethod === "CASH" ? "Tunai" : "QRIS"}</span>}
-          {session.paidAt && <span>{formatDateTime(session.paidAt, "short")}</span>}
+          {session.customerPhone && <span>{session.customerPhone}</span>}
+          {!isErased && tx && <span>{tx.paymentMethod === "CASH" ? "Tunai" : "QRIS"}</span>}
+          {isErased && session.erasedAt && <span>{formatDateTime(session.erasedAt, "short")}</span>}
+          {!isErased && session.paidAt && <span>{formatDateTime(session.paidAt, "short")}</span>}
         </div>
       </button>
-      <div className="mt-2 flex justify-end">
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-7 text-xs"
-          onClick={(e) => {
-            e.stopPropagation();
-            onReceipt();
-          }}
-        >
-          <Receipt className="size-3 mr-1" />
-          Struk
-        </Button>
-      </div>
+      {!isErased && (
+        <div className="mt-2 flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              onReceipt();
+            }}
+          >
+            <Receipt className="size-3 mr-1" />
+            Struk
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

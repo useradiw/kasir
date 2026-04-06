@@ -1,9 +1,16 @@
+export const STORE_INFO = {
+  name: "Sate Kambing Sido Mampir",
+  address: "Jl. Brigjen Katamso 51, Surakarta",
+  phone: "000000000000",
+  instagram: "@kambingsidomampir",
+} as const;
+
 export function formatRupiah(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
-  }).format(amount);
+  }).format(amount).replace(/\u00a0/g, " ");
 }
 
 export function formatDateTime(

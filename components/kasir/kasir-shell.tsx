@@ -103,6 +103,7 @@ export function KasirShell() {
         <PaymentScreen
           sessionId={activeSessionId}
           staffId={staffData.staffId}
+          staffName={staffData.staffName}
           staffRole={staffData.staffRole}
           onDone={goToSessions}
           onBack={goToReview}

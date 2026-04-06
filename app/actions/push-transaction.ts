@@ -31,15 +31,18 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         name: session.name,
         service: session.service ?? undefined,
         customerAlias: session.customerAlias,
+        customerPhone: session.customerPhone,
         ownerId: session.ownerId ?? undefined,
         orderedAt: session.orderedAt ? new Date(session.orderedAt) : null,
         servedAt: session.servedAt ? new Date(session.servedAt) : null,
         paidAt: session.paidAt ? new Date(session.paidAt) : null,
+        erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
         createdAt: new Date(session.createdAt),
       },
       update: {
         paidAt: session.paidAt ? new Date(session.paidAt) : null,
         servedAt: session.servedAt ? new Date(session.servedAt) : null,
+        erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
       },
     }),
 
@@ -98,4 +101,27 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
       },
     }),
   ]);
+}
+
+/** Sync an erased (cancelled) session to the server — no transaction needed. */
+export async function pushErasedSession(session: TableSession): Promise<void> {
+  await prisma.tableSession.upsert({
+    where: { id: session.id },
+    create: {
+      id: session.id,
+      name: session.name,
+      service: session.service ?? undefined,
+      customerAlias: session.customerAlias,
+      customerPhone: session.customerPhone,
+      ownerId: session.ownerId ?? undefined,
+      orderedAt: session.orderedAt ? new Date(session.orderedAt) : null,
+      servedAt: session.servedAt ? new Date(session.servedAt) : null,
+      paidAt: null,
+      erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
+      createdAt: new Date(session.createdAt),
+    },
+    update: {
+      erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
+    },
+  });
 }

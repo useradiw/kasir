@@ -3,7 +3,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { TableSession, OrderItem, Transaction } from "@/lib/db";
-import { pushTransaction } from "@/app/actions/push-transaction";
+import { pushTransaction, pushErasedSession } from "@/app/actions/push-transaction";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -17,22 +17,26 @@ function newId() {
 
 // ─── Reactive queries ─────────────────────────────────────────────────────────
 
-/** All open (unpaid) sessions. */
+/** All open (unpaid, not erased) sessions. */
 export function useOpenSessions() {
   return useLiveQuery(
-    () => db.table_sessions.filter((s) => s.paidAt === null).toArray(),
+    () => db.table_sessions.filter((s) => s.paidAt === null && !s.erasedAt).toArray(),
     []
   );
 }
 
-/** All paid (closed) sessions, newest first. */
+/** All closed sessions (paid or erased), newest first. */
 export function usePaidSessions() {
   return useLiveQuery(
     () =>
       db.table_sessions
-        .filter((s) => s.paidAt !== null)
-        .reverse()
-        .sortBy("paidAt"),
+        .filter((s) => s.paidAt !== null || !!s.erasedAt)
+        .toArray()
+        .then((arr) => arr.sort((a, b) => {
+          const aTime = a.paidAt ?? a.erasedAt ?? a.createdAt;
+          const bTime = b.paidAt ?? b.erasedAt ?? b.createdAt;
+          return bTime.localeCompare(aTime);
+        })),
     []
   );
 }
@@ -67,7 +71,7 @@ export function useUnsyncedCount() {
 // ─── Session actions ──────────────────────────────────────────────────────────
 
 export async function createSession(
-  data: Pick<TableSession, "name" | "service" | "customerAlias" | "ownerId">
+  data: Pick<TableSession, "name" | "service" | "customerAlias" | "customerPhone" | "ownerId">
 ): Promise<string> {
   const id = newId();
   await db.table_sessions.add({
@@ -75,14 +79,30 @@ export async function createSession(
     name: data.name,
     service: data.service,
     customerAlias: data.customerAlias,
+    customerPhone: data.customerPhone,
     ownerId: data.ownerId,
     orderedAt: null,
     servedAt: null,
     paidAt: null,
+    erasedAt: null,
     createdAt: nowISO(),
     synced: 0,
   });
   return id;
+}
+
+/** Erase (cancel) a session without payment. */
+export async function eraseSession(sessionId: string): Promise<void> {
+  const erasedAt = nowISO();
+  await db.table_sessions.update(sessionId, { erasedAt, synced: 0 });
+
+  // Fire-and-forget sync to server
+  const session = await db.table_sessions.get(sessionId);
+  if (session) {
+    pushErasedSession(session)
+      .then(() => db.table_sessions.update(sessionId, { synced: 1 }))
+      .catch((err) => console.error("[eraseSession] sync failed", err));
+  }
 }
 
 // ─── Order item actions ───────────────────────────────────────────────────────
@@ -134,6 +154,7 @@ export async function updateOrderItemQty(id: string, qty: number): Promise<void>
 export interface PaymentInput {
   tableSessionId: string;
   processedById: string;
+  cashierName: string;
   subtotal: number;
   taxAmount: number;
   serviceCharge: number;
@@ -156,6 +177,7 @@ export async function recordPayment(input: PaymentInput): Promise<string> {
     id: txId,
     tableSessionId: input.tableSessionId,
     processedById: input.processedById,
+    cashierName: input.cashierName,
     subtotal: input.subtotal,
     taxAmount: input.taxAmount,
     serviceCharge: input.serviceCharge,
@@ -236,6 +258,19 @@ export async function retryUnsyncedTransactions(): Promise<void> {
       })
       .catch((err) => {
         console.error(`[retryUnsyncedTransactions] tx ${tx.id} failed`, err);
+      });
+  }
+
+  // Also retry erased sessions that haven't synced
+  const unsyncedErased = await db.table_sessions
+    .filter((s) => !!s.erasedAt && s.synced === 0)
+    .toArray();
+
+  for (const session of unsyncedErased) {
+    pushErasedSession(session)
+      .then(() => db.table_sessions.update(session.id, { synced: 1 }))
+      .catch((err) => {
+        console.error(`[retryUnsyncedTransactions] erased session ${session.id} failed`, err);
       });
   }
 }

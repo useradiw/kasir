@@ -1,9 +1,13 @@
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { formatRupiah, formatDateTime, STORE_INFO } from "@/lib/format";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface PrintReceiptData {
   sessionName: string;
+  cashierName: string;
+  customerAlias: string | null;
+  customerPhone?: string | null;
+  serviceLabel: string;
   paidAt: string;
   items: Array<{ nameSnapshot: string; qty: number; price: number }>;
   subtotal: number;
@@ -13,6 +17,7 @@ export interface PrintReceiptData {
   totalAmount: number;
   paymentMethod: "CASH" | "QRIS";
   cashAmount: number;
+  isPaid: boolean;
 }
 
 export interface PrintChecklistData {
@@ -47,14 +52,14 @@ function text(s: string): number[] {
 }
 
 function line(s: string): number[] {
-  return [...text(s), 0x0a]; // append newline
+  return [...text(s), 0x0a];
 }
 
 function divider(w: number): number[] {
   return line("-".repeat(w));
 }
 
-/** Left-right aligned line: "2x Nasi Goreng      Rp 30.000" */
+/** Left-right aligned line: "Kasir: Adi           Dine In" */
 function padLine(left: string, right: string, w: number): number[] {
   const gap = w - left.length - right.length;
   if (gap < 1) return line(left + " " + right);
@@ -70,21 +75,52 @@ export function buildReceipt(
   const b: number[] = [];
   const w = lineWidth;
 
-  // Init + Header
+  // Init
   b.push(...CMD.INIT);
-  b.push(...CMD.CENTER, ...CMD.BOLD_ON);
-  b.push(...line("STRUK PEMBAYARAN"));
-  b.push(...CMD.BOLD_OFF);
-  b.push(...line(data.sessionName));
+
+  // Store header
+  b.push(...CMD.CENTER, ...CMD.BOLD_ON, ...CMD.DOUBLE_H);
+  b.push(...line(STORE_INFO.name));
+  b.push(...CMD.NORMAL, ...CMD.BOLD_OFF);
+  b.push(...CMD.CENTER);
+  b.push(...line("Jl. Brigjen Katamso 51"));
+  b.push(...line("Surakarta"));
+  b.push(...line(`Telp: ${STORE_INFO.phone}`));
+  b.push(...line(`IG: ${STORE_INFO.instagram}`));
+
+  // Cashier / customer / time / service
+  b.push(...CMD.LEFT);
+  b.push(...divider(w));
+  b.push(
+    ...padLine(`Kasir: ${data.cashierName}`, data.serviceLabel, w)
+  );
+  if (data.customerAlias) {
+    b.push(...line(`Pelanggan: ${data.customerAlias}`));
+  }
+  if (data.customerPhone) {
+    b.push(...line(`HP: ${data.customerPhone}`));
+  }
   b.push(...line(formatDateTime(data.paidAt, "short")));
 
-  // Items
+  // Total (large, centered)
+  b.push(...divider(w));
+  b.push(...CMD.CENTER, ...CMD.BOLD_ON, ...CMD.DOUBLE_H);
+  b.push(...line(formatRupiah(data.totalAmount)));
+  b.push(...CMD.NORMAL, ...CMD.BOLD_OFF);
+
+  // Order items
   b.push(...CMD.LEFT);
   b.push(...divider(w));
   for (const item of data.items) {
-    const left = `${item.qty}x ${item.nameSnapshot}`;
-    const right = formatRupiah(item.price * item.qty);
-    b.push(...padLine(left, right, w));
+    const name = item.nameSnapshot.length > 30
+      ? item.nameSnapshot.slice(0, 30)
+      : item.nameSnapshot;
+    b.push(...CMD.BOLD_ON);
+    b.push(...line(name));
+    b.push(...CMD.BOLD_OFF);
+    const detail = `  ${item.qty} x ${formatRupiah(item.price)}`;
+    const lineTotal = formatRupiah(item.price * item.qty);
+    b.push(...padLine(detail, lineTotal, w));
   }
 
   // Charges
@@ -96,12 +132,6 @@ export function buildReceipt(
     b.push(...padLine("Service", "+" + formatRupiah(data.serviceCharge), w));
   if (data.discountAmount > 0)
     b.push(...padLine("Diskon", "-" + formatRupiah(data.discountAmount), w));
-
-  // Total
-  b.push(...divider(w));
-  b.push(...CMD.BOLD_ON, ...CMD.DOUBLE_H);
-  b.push(...padLine("TOTAL", formatRupiah(data.totalAmount), w));
-  b.push(...CMD.NORMAL, ...CMD.BOLD_OFF);
 
   // Payment info
   b.push(...divider(w));
@@ -118,6 +148,12 @@ export function buildReceipt(
     if (change > 0)
       b.push(...padLine("Kembalian", formatRupiah(change), w));
   }
+
+  // Payment status
+  b.push(...divider(w));
+  b.push(...CMD.CENTER, ...CMD.BOLD_ON);
+  b.push(...line(data.isPaid ? "** LUNAS **" : "** Belum Dibayar **"));
+  b.push(...CMD.BOLD_OFF);
 
   // Footer
   b.push(...divider(w));
