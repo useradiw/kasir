@@ -30,7 +30,7 @@ type StaffRow = {
 
 const ROLES = ["OWNER", "MANAGER", "CASHIER", "STAFF"] as const;
 
-export default function StaffClient({ staffList }: { staffList: StaffRow[] }) {
+export default function StaffClient({ staffList, isOwner }: { staffList: StaffRow[]; isOwner: boolean }) {
   const { isPending, run, error } = useAdminAction();
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -40,9 +40,11 @@ export default function StaffClient({ staffList }: { staffList: StaffRow[] }) {
   return (
     <div className="space-y-6">
       <AdminPageHeader title="Manajemen Staff">
-        <Button onClick={() => setShowAdd((v) => !v)} size="sm">
-          {showAdd ? "Batal" : "+ Tambah Staff"}
-        </Button>
+        {isOwner && (
+          <Button onClick={() => setShowAdd((v) => !v)} size="sm">
+            {showAdd ? "Batal" : "+ Tambah Staff"}
+          </Button>
+        )}
       </AdminPageHeader>
 
       <ErrorBanner error={error} />
@@ -115,46 +117,48 @@ export default function StaffClient({ staffList }: { staffList: StaffRow[] }) {
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex gap-1 flex-wrap">
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      onClick={() => setEditId(editId === s.id ? null : s.id)}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="outline"
-                      onClick={() => {
-                        setLinkId(linkId === s.id ? null : s.id);
-                        setLinkEmail("");
-                      }}
-                    >
-                      {s.supabaseEmail ? "Ganti Akun" : "Hubungkan"}
-                    </Button>
-                    {s.supabaseEmail && (
+                  {isOwner && (
+                    <div className="flex gap-1 flex-wrap">
                       <Button
                         size="xs"
-                        variant="ghost"
-                        onClick={() => run(() => unlinkSupabaseUser(s.id))}
+                        variant="outline"
+                        onClick={() => setEditId(editId === s.id ? null : s.id)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="xs"
+                        variant="outline"
+                        onClick={() => {
+                          setLinkId(linkId === s.id ? null : s.id);
+                          setLinkEmail("");
+                        }}
+                      >
+                        {s.supabaseEmail ? "Ganti Akun" : "Hubungkan"}
+                      </Button>
+                      {s.supabaseEmail && (
+                        <Button
+                          size="xs"
+                          variant="ghost"
+                          onClick={() => run(() => unlinkSupabaseUser(s.id))}
+                          disabled={isPending}
+                        >
+                          Putuskan
+                        </Button>
+                      )}
+                      <Button
+                        size="xs"
+                        variant="destructive"
+                        onClick={() => {
+                          if (confirm(`Hapus staff "${s.name}"? Aksi ini tidak bisa dibatalkan.`))
+                            run(() => deleteStaff(s.id));
+                        }}
                         disabled={isPending}
                       >
-                        Putuskan
+                        Hapus
                       </Button>
-                    )}
-                    <Button
-                      size="xs"
-                      variant="destructive"
-                      onClick={() => {
-                        if (confirm(`Hapus staff "${s.name}"? Aksi ini tidak bisa dibatalkan.`))
-                          run(() => deleteStaff(s.id));
-                      }}
-                      disabled={isPending}
-                    >
-                      Hapus
-                    </Button>
-                  </div>
+                    </div>
+                  )}
 
                   {/* Inline edit form */}
                   {editId === s.id && (

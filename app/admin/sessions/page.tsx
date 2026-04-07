@@ -2,11 +2,13 @@ import { Container } from "@/components/shared/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RoleBadge, StatusBadge } from "@/components/admin/ui";
 import { getSessionsData } from "@/app/actions/admin/queries";
+import { requireRole } from "@/lib/admin-auth";
 import { formatDateTime } from "@/lib/format";
 
 const ACTIVE_THRESHOLD_MINUTES = 30;
 
 export default async function SessionsPage() {
+  await requireRole("OWNER", "MANAGER");
   const { users, error } = await getSessionsData();
 
   const now = Date.now();

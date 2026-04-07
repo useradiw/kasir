@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 
 // ─── Category ─────────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ const categorySchema = z.object({
 });
 
 export async function addCategory(formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = categorySchema.safeParse({
     name: formData.get("name"),
     sortOrder: formData.get("sortOrder") || 0,
@@ -50,7 +50,7 @@ const menuItemSchema = z.object({
 });
 
 export async function addMenuItem(formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = menuItemSchema.safeParse({
     name: formData.get("name"),
     categoryId: formData.get("categoryId"),

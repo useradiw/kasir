@@ -1,5 +1,6 @@
 import { Container } from "@/components/shared/container";
 import { getExpensesData } from "@/app/actions/admin/queries";
+import { requireRole } from "@/lib/admin-auth";
 import ExpensesClient from "./expenses-client";
 
 export default async function ExpensesPage({
@@ -7,6 +8,7 @@ export default async function ExpensesPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
+  const staff = await requireRole("OWNER", "MANAGER");
   const params = await searchParams;
   const from = params.from ?? "";
   const to = params.to ?? "";
@@ -19,6 +21,7 @@ export default async function ExpensesPage({
         expenses={data.expenses}
         totalAmount={data.totalAmount}
         filters={{ from, to }}
+        isOwner={staff.role === "OWNER"}
       />
     </Container>
   );

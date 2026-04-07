@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 
 const expenseSchema = z.object({
@@ -12,7 +12,7 @@ const expenseSchema = z.object({
 });
 
 export async function addExpense(formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const parsed = expenseSchema.safeParse({
     amount: formData.get("amount"),

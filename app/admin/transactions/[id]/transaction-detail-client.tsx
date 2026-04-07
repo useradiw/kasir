@@ -26,8 +26,10 @@ const serviceOptions = [
 
 export default function TransactionDetailClient({
   data,
+  isOwner,
 }: {
   data: TransactionDetail;
+  isOwner: boolean;
 }) {
   const router = useRouter();
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -139,32 +141,34 @@ export default function TransactionDetailClient({
           </Link>
           <h1 className="text-2xl font-bold">{data.session.name}</h1>
         </div>
-        <div className="flex items-center gap-2">
-          {!editing ? (
-            <Button size="sm" onClick={() => setEditing(true)}>
-              <Pencil className="size-4 mr-1" />
-              Edit
-            </Button>
-          ) : (
-            <>
-              <Button size="sm" onClick={handleSave} disabled={isPending}>
-                <Save className="size-4 mr-1" />
-                Simpan
+        {isOwner && (
+          <div className="flex items-center gap-2">
+            {!editing ? (
+              <Button size="sm" onClick={() => setEditing(true)}>
+                <Pencil className="size-4 mr-1" />
+                Edit
               </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  resetForm();
-                  setEditing(false);
-                }}
-              >
-                <X className="size-4 mr-1" />
-                Batal
-              </Button>
-            </>
-          )}
-        </div>
+            ) : (
+              <>
+                <Button size="sm" onClick={handleSave} disabled={isPending}>
+                  <Save className="size-4 mr-1" />
+                  Simpan
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    resetForm();
+                    setEditing(false);
+                  }}
+                >
+                  <X className="size-4 mr-1" />
+                  Batal
+                </Button>
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       {error && <ErrorBanner error={error} />}

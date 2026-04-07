@@ -30,6 +30,7 @@ type Props = {
   variants: Variant[];
   packages: Package[];
   packageItems: PackageItem[];
+  isOwner: boolean;
 };
 
 const TABS = [
@@ -39,7 +40,7 @@ const TABS = [
   { key: "packages", label: "Paket" },
 ];
 
-export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems }: Props) {
+export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, isOwner }: Props) {
   const router = useRouter();
   const { isPending, run, error, setError } = useAdminAction();
   const [editId, setEditId] = useState<string | null>(null);
@@ -104,13 +105,15 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                         <span className="text-sm font-medium">{c.name}</span>
                         <span className="ml-2 text-xs text-muted-foreground">#{c.sortOrder}</span>
                       </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button size="xs" variant="outline" onClick={() => setEditId(editId === c.id ? null : c.id)}>Edit</Button>
-                        <Button size="xs" variant="destructive" disabled={isPending}
-                          onClick={() => { if (confirm(`Hapus kategori "${c.name}"?`)) run(() => deleteCategory(c.id)); }}>Hapus</Button>
-                      </div>
+                      {isOwner && (
+                        <div className="flex gap-1 shrink-0">
+                          <Button size="xs" variant="outline" onClick={() => setEditId(editId === c.id ? null : c.id)}>Edit</Button>
+                          <Button size="xs" variant="destructive" disabled={isPending}
+                            onClick={() => { if (confirm(`Hapus kategori "${c.name}"?`)) run(() => deleteCategory(c.id)); }}>Hapus</Button>
+                        </div>
+                      )}
                     </div>
-                    {editId === c.id && (
+                    {isOwner && editId === c.id && (
                       <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
                         <form action={(fd) => run(async () => { await updateCategory(c.id, fd); setEditId(null); })}
                           className="flex flex-wrap gap-3 items-end">
@@ -166,19 +169,25 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                         <p className="text-xs text-muted-foreground">{m.categoryName} · {formatRupiah(m.price)}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-                        <StatusBadge
-                          active={!m.isHidden}
-                          activeLabel="Tampil"
-                          inactiveLabel="Disembunyikan"
-                          onClick={() => run(() => toggleMenuItemVisibility(m.id, m.isHidden))}
-                          disabled={isPending}
-                        />
-                        <Button size="xs" variant="outline" onClick={() => setEditId(editId === m.id ? null : m.id)}>Edit</Button>
-                        <Button size="xs" variant="destructive" disabled={isPending}
-                          onClick={() => { if (confirm(`Hapus "${m.name}"?`)) run(() => deleteMenuItem(m.id)); }}>Hapus</Button>
+                        {isOwner ? (
+                          <>
+                            <StatusBadge
+                              active={!m.isHidden}
+                              activeLabel="Tampil"
+                              inactiveLabel="Disembunyikan"
+                              onClick={() => run(() => toggleMenuItemVisibility(m.id, m.isHidden))}
+                              disabled={isPending}
+                            />
+                            <Button size="xs" variant="outline" onClick={() => setEditId(editId === m.id ? null : m.id)}>Edit</Button>
+                            <Button size="xs" variant="destructive" disabled={isPending}
+                              onClick={() => { if (confirm(`Hapus "${m.name}"?`)) run(() => deleteMenuItem(m.id)); }}>Hapus</Button>
+                          </>
+                        ) : (
+                          <StatusBadge active={!m.isHidden} activeLabel="Tampil" inactiveLabel="Disembunyikan" />
+                        )}
                       </div>
                     </div>
-                    {editId === m.id && (
+                    {isOwner && editId === m.id && (
                       <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
                         <form action={(fd) => run(async () => { await updateMenuItem(m.id, fd); setEditId(null); })}
                           className="flex flex-wrap gap-3 items-end">
@@ -247,13 +256,15 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                           {v.menuItemName} · {v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)}
                         </p>
                       </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button size="xs" variant="outline" onClick={() => setEditId(editId === v.id ? null : v.id)}>Edit</Button>
-                        <Button size="xs" variant="destructive" disabled={isPending}
-                          onClick={() => { if (confirm(`Hapus varian "${v.label}"?`)) run(() => deleteVariant(v.id)); }}>Hapus</Button>
-                      </div>
+                      {isOwner && (
+                        <div className="flex gap-1 shrink-0">
+                          <Button size="xs" variant="outline" onClick={() => setEditId(editId === v.id ? null : v.id)}>Edit</Button>
+                          <Button size="xs" variant="destructive" disabled={isPending}
+                            onClick={() => { if (confirm(`Hapus varian "${v.label}"?`)) run(() => deleteVariant(v.id)); }}>Hapus</Button>
+                        </div>
+                      )}
                     </div>
-                    {editId === v.id && (
+                    {isOwner && editId === v.id && (
                       <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
                         <form action={(fd) => run(async () => { await updateVariant(v.id, fd); setEditId(null); })}
                           className="flex flex-wrap gap-3 items-end">
@@ -296,7 +307,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                 return (
                   <div key={pkg.id} className="border border-foreground/10 rounded-lg overflow-hidden">
                     <div className="flex items-center justify-between px-4 py-2 bg-muted/30">
-                      {editId === pkg.id ? (
+                      {isOwner && editId === pkg.id ? (
                         <form action={(fd) => run(async () => { await updatePackage(pkg.id, fd); setEditId(null); })}
                           className="flex flex-wrap gap-3 items-end flex-1 mr-3">
                           <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={pkg.name} required /></div>
@@ -314,9 +325,13 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                         <Button size="xs" variant="outline" onClick={() => setExpandPackage(isExpanded ? null : pkg.id)}>
                           {isExpanded ? "Tutup" : `Item (${items.length})`}
                         </Button>
-                        <Button size="xs" variant="outline" onClick={() => setEditId(editId === pkg.id ? null : pkg.id)}>Edit</Button>
-                        <Button size="xs" variant="destructive" disabled={isPending}
-                          onClick={() => { if (confirm(`Hapus paket "${pkg.name}"?`)) run(() => deletePackage(pkg.id)); }}>Hapus</Button>
+                        {isOwner && (
+                          <>
+                            <Button size="xs" variant="outline" onClick={() => setEditId(editId === pkg.id ? null : pkg.id)}>Edit</Button>
+                            <Button size="xs" variant="destructive" disabled={isPending}
+                              onClick={() => { if (confirm(`Hapus paket "${pkg.name}"?`)) run(() => deletePackage(pkg.id)); }}>Hapus</Button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -325,8 +340,10 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                         {items.map((pi) => (
                           <div key={pi.id} className="flex items-center justify-between text-sm">
                             <span>{pi.menuItemName}{pi.variantLabel ? ` (${pi.variantLabel})` : ""}</span>
-                            <Button size="xs" variant="ghost" disabled={isPending}
-                              onClick={() => run(() => deletePackageItem(pi.id))}>Hapus</Button>
+                            {isOwner && (
+                              <Button size="xs" variant="ghost" disabled={isPending}
+                                onClick={() => run(() => deletePackageItem(pi.id))}>Hapus</Button>
+                            )}
                           </div>
                         ))}
                         <form action={(fd) => run(() => addPackageItem(fd))}

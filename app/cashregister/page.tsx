@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
-import { prisma } from "@/lib/prisma";
 import { Container } from "@/components/shared/container";
+import { requireRole } from "@/lib/admin-auth";
 import { getCashRegisterDataForStaff } from "@/app/actions/cashregister";
 import CashRegisterStaffClient from "./cashregister-client";
 
@@ -10,19 +8,7 @@ export default async function CashRegisterPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/");
-
-  const staff = await prisma.staff.findUnique({
-    where: { supabaseUserId: user.id },
-    select: { id: true, role: true },
-  });
-
-  if (!staff || !staff) redirect("/");
+  const staff = await requireRole("OWNER", "MANAGER", "CASHIER");
 
   const params = await searchParams;
   const from = params.from ?? "";

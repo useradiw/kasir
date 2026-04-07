@@ -17,10 +17,12 @@ export default function ExpensesClient({
   expenses,
   totalAmount,
   filters,
+  isOwner,
 }: {
   expenses: Expense[];
   totalAmount: number;
   filters: { from: string; to: string };
+  isOwner: boolean;
 }) {
   const router = useRouter();
   const { isPending, run, error } = useAdminAction();
@@ -100,15 +102,17 @@ export default function ExpensesClient({
                     <p className="text-xs text-muted-foreground">{formatDateTime(e.recordedAt, "medium")}</p>
                     {e.note && <p className="text-xs text-muted-foreground mt-0.5">{e.note}</p>}
                   </div>
-                  <Button
-                    size="xs"
-                    variant="destructive"
-                    disabled={isPending}
-                    className="shrink-0"
-                    onClick={() => { if (confirm("Hapus pengeluaran ini?")) run(() => deleteExpense(e.id)); }}
-                  >
-                    Hapus
-                  </Button>
+                  {isOwner && (
+                    <Button
+                      size="xs"
+                      variant="destructive"
+                      disabled={isPending}
+                      className="shrink-0"
+                      onClick={() => { if (confirm("Hapus pengeluaran ini?")) run(() => deleteExpense(e.id)); }}
+                    >
+                      Hapus
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

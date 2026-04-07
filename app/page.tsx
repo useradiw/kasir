@@ -18,13 +18,17 @@ import {
   Wallet,
   Landmark,
   LogOut,
+  UserPen
 } from "lucide-react";
 
-const kasirLinks = [
-  { href: "/kasir", label: "Kasir", desc: "Buka halaman kasir (POS)", icon: ShoppingCart },
-];
+const allKasirLinks = [
+  { href: "/kasir", label: "Kasir", desc: "Buka halaman kasir (POS)", icon: ShoppingCart, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
+  { href: "/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Landmark, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
+  { href: "/cashregister", label: "Kas Kecil", desc: "Buka & tutup kas", icon: Wallet, roles: ["OWNER", "MANAGER", "CASHIER"] },
+  { href: "/profile", label: "Profil", desc: "Profil pengguna", icon: UserPen, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
+] as const;
 
-const adminLinks = [
+const allAdminLinks = [
   { href: "/admin", label: "Dashboard", desc: "Ringkasan & statistik", icon: LayoutDashboard },
   { href: "/admin/staff", label: "Kelola Staff", desc: "Tambah & atur staff", icon: Users },
   { href: "/admin/sessions", label: "Sesi Login", desc: "Aktivitas login pengguna", icon: Monitor },
@@ -33,6 +37,7 @@ const adminLinks = [
   { href: "/admin/transactions", label: "Transaksi", desc: "Riwayat transaksi", icon: Receipt },
   { href: "/admin/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Wallet },
   { href: "/admin/cash-register", label: "Kas Harian", desc: "Buka & tutup kas", icon: Landmark },
+  { href: "/admin/reports", label: "Laporan", desc: "Laporan & analitik", icon: Receipt, ownerOnly: true },
 ];
 
 export default async function Home() {
@@ -56,6 +61,12 @@ export default async function Home() {
   const staffName = staff?.name ?? user.email ?? "Pengguna";
   const staffRole = staff?.role ?? "STAFF";
   const isOwner = staffRole === "OWNER";
+  const isManager = staffRole === "MANAGER";
+
+  const kasirLinks = allKasirLinks.filter((l) => (l.roles as readonly string[]).includes(staffRole));
+  const adminLinks = (isOwner || isManager)
+    ? allAdminLinks.filter((l) => !("ownerOnly" in l) || !l.ownerOnly || isOwner)
+    : [];
 
   return (
     <Container id="menu" sectionStyle="bg-white dark:bg-black min-h-screen" className="py-6">
@@ -91,7 +102,7 @@ export default async function Home() {
         </div>
       </section>
 
-      {isOwner && (
+      {adminLinks.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-muted-foreground mb-3">Admin</h2>
           <div className="grid gap-3">

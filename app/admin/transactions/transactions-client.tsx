@@ -51,12 +51,14 @@ export default function TransactionsClient({
   totalPages,
   total,
   filters,
+  isOwner,
 }: {
   rows: Row[];
   page: number;
   totalPages: number;
   total: number;
   filters: Filters;
+  isOwner: boolean;
 }) {
   const router = useRouter();
   const [expandId, setExpandId] = useState<string | null>(null);
@@ -207,7 +209,7 @@ export default function TransactionsClient({
                     )}
 
                     {/* Void action for paid transactions */}
-                    {r.status === "PAID" && (
+                    {isOwner && r.status === "PAID" && (
                       <div className="pt-2 border-t border-foreground/10 space-y-2">
                         <div className="flex gap-2 items-end">
                           <div className="flex-1">

@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
 import { Container } from "@/components/shared/container";
+import { requireRole } from "@/lib/admin-auth";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -12,7 +11,7 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
 
-const navItems = [
+const navItemsBase = [
   { trigger: "Navigasi", content: [
     { href: "/admin", label: "Dashboard" },
     { href: "/", label: "Menu Utama" }
@@ -26,7 +25,7 @@ const navItems = [
     { href: "/admin/inventory", label: "Inventori" },
   ]},
   { trigger: "Laporan", content: [
-    { href: "/admin/reports", label: "Laporan" },
+    { href: "/admin/reports", label: "Laporan", ownerOnly: true },
     { href: "/admin/transactions", label: "Transaksi" },
     { href: "/admin/expenses", label: "Pengeluaran" },
     { href: "/admin/cash-register", label: "Kas Harian" },
@@ -38,15 +37,14 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Auth check (no Prisma here — each page's query handles OWNER role validation)
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const staff = await requireRole("OWNER", "MANAGER");
+  const isOwner = staff.role === "OWNER";
+  const displayEmail = staff.name ?? "Admin";
 
-  if (!user) redirect("/");
-
-  const displayEmail = user.email ?? "Admin";
+  const navItems = navItemsBase.map((group) => ({
+    ...group,
+    content: group.content.filter((item) => !("ownerOnly" in item) || !item.ownerOnly || isOwner),
+  })).filter((group) => group.content.length > 0);
 
   return (
     <>

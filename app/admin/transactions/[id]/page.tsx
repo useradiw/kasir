@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Container } from "@/components/shared/container";
 import { getTransactionDetail } from "@/app/actions/admin/queries";
+import { requireRole } from "@/lib/admin-auth";
 import TransactionDetailClient from "./transaction-detail-client";
 
 export default async function TransactionDetailPage({
@@ -8,6 +9,7 @@ export default async function TransactionDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const staff = await requireRole("OWNER", "MANAGER");
   const { id } = await params;
   const data = await getTransactionDetail(id);
 
@@ -15,7 +17,7 @@ export default async function TransactionDetailPage({
 
   return (
     <Container id="admin-transaction-detail" sectionStyle="" className="py-6">
-      <TransactionDetailClient data={data} />
+      <TransactionDetailClient data={data} isOwner={staff.role === "OWNER"} />
     </Container>
   );
 }

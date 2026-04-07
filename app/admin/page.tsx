@@ -1,9 +1,11 @@
 import { Container } from "@/components/shared/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getDashboardData } from "@/app/actions/admin/queries";
+import { requireRole } from "@/lib/admin-auth";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 
 export default async function AdminDashboard() {
+  await requireRole("OWNER", "MANAGER");
   const data = await getDashboardData();
 
   const stats = [

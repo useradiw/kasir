@@ -7,7 +7,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export async function getDashboardData() {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const now = new Date();
   const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -53,7 +53,7 @@ export async function getDashboardData() {
 // ─── Staff ────────────────────────────────────────────────────────────────────
 
 export async function getStaffWithEmails() {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const staffList = await prisma.staff.findMany({ orderBy: { createdAt: "asc" } });
 
@@ -86,7 +86,7 @@ export async function getStaffWithEmails() {
 // ─── Sessions ─────────────────────────────────────────────────────────────────
 
 export async function getSessionsData() {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const supabase = createAdminClient();
   const [{ data, error }, staff] = await Promise.all([
@@ -112,7 +112,7 @@ export async function getSessionsData() {
 // ─── Inventory ────────────────────────────────────────────────────────────────
 
 export async function getInventoryData() {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const [categories, menuItems, variants, packages, packageItems] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
@@ -186,7 +186,7 @@ export async function getTransactionsData(opts: {
   from: string;
   to: string;
 }) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const PAGE_SIZE = 20;
   const where: {
@@ -263,7 +263,7 @@ export async function getTransactionsData(opts: {
 // ─── Transaction Detail ──────────────────────────────────────────────────────
 
 export async function getTransactionDetail(transactionId: string) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const tx = await prisma.transaction.findUnique({
     where: { id: transactionId },
@@ -324,7 +324,7 @@ export type TransactionDetail = NonNullable<Awaited<ReturnType<typeof getTransac
 // ─── Cash Register ───────────────────────────────────────────────────────────
 
 export async function getCashRegisterData(opts: { from: string; to: string }) {
-  await requireRole("OWNER", "MANAGER", "CASHIER");
+  await requireRole("OWNER", "MANAGER");
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -476,7 +476,7 @@ export async function getAttendanceData(opts: { date: string }) {
 // ─── Expenses ─────────────────────────────────────────────────────────────────
 
 export async function getExpensesData(opts: { from: string; to: string }) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const where: { recordedAt?: { gte?: Date; lt?: Date } } = {};
   if (opts.from || opts.to) {
@@ -541,7 +541,7 @@ export async function getReportData(opts: {
   period: "daily" | "weekly" | "monthly";
   date: string;
 }) {
-  await requireRole("OWNER", "MANAGER");
+  await requireOwner();
 
   const { start, end } = getDateRange(opts.period, opts.date);
 

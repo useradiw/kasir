@@ -8,7 +8,7 @@ export default async function CashRegisterPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const staff = await requireRole("OWNER", "MANAGER", "CASHIER");
+  const staff = await requireRole("OWNER", "MANAGER");
   const params = await searchParams;
   const from = params.from ?? "";
   const to = params.to ?? "";

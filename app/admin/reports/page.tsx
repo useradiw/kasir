@@ -1,5 +1,6 @@
 import { Container } from "@/components/shared/container";
 import { getReportData } from "@/app/actions/admin/queries";
+import { requireOwner } from "@/lib/admin-auth";
 import { ReportClient } from "./report-client";
 
 export default async function ReportsPage({
@@ -7,6 +8,7 @@ export default async function ReportsPage({
 }: {
   searchParams: Promise<{ period?: string; date?: string }>;
 }) {
+  await requireOwner();
   const params = await searchParams;
   const period = (["daily", "weekly", "monthly"].includes(params.period ?? "")
     ? params.period
