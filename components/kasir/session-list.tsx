@@ -105,7 +105,7 @@ export function SessionList({
     <>
       <KasirTopBar title="Kasir">
         <span className="text-xs text-muted-foreground truncate max-w-24">{staffName}</span>
-        <Link href="/admin/cash-register" className="p-1">
+        <Link href="/cashregister" className="p-1">
           <Landmark className="size-5 text-muted-foreground" />
         </Link>
         <Link href="/" className="p-1">
