@@ -30,6 +30,9 @@ const navItemsBase = [
     { href: "/admin/expenses", label: "Pengeluaran" },
     { href: "/admin/cash-register", label: "Kas Harian" },
   ]},
+  { trigger: "Sistem", content: [
+    { href: "/admin/backup", label: "Backup DB", ownerOnly: true },
+  ]},
 ];
 
 export default async function AdminLayout({

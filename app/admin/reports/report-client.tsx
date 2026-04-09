@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,11 +116,12 @@ export function ReportClient({
       },
       {
         title: "Pengeluaran",
-        headers: ["Tanggal", "Jumlah", "Catatan"],
+        headers: ["Tanggal", "Total", "Keterangan", "Item"],
         rows: data.expenses.map((e) => [
           new Date(e.recordedAt).toLocaleString("id-ID"),
-          e.amount,
-          e.note ?? "-",
+          e.total,
+          e.description ?? "-",
+          e.items.map((i) => `${i.description} (${i.amount}x${i.cost})`).join("; "),
         ]),
       },
     ];

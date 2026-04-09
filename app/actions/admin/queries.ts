@@ -328,7 +328,6 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
 
   // Date filter for history
   const where: { date?: { gte?: Date; lt?: Date } } = {};
@@ -353,8 +352,8 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
     allDates.push(startOfToday);
   }
 
-  let cashByDate: Record<string, number> = {};
-  let expenseByDate: Record<string, number> = {};
+  const cashByDate: Record<string, number> = {};
+  const expenseByDate: Record<string, number> = {};
 
   if (allDates.length > 0) {
     const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())));
@@ -367,7 +366,7 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
       }),
       prisma.expense.findMany({
         where: { recordedAt: { gte: minDate, lt: maxDate } },
-        select: { amount: true, recordedAt: true },
+        include: { items: { select: { amount: true, cost: true } } },
       }),
     ]);
 
@@ -378,7 +377,8 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
     }
     for (const e of expenses) {
       const key = e.recordedAt.toISOString().slice(0, 10);
-      expenseByDate[key] = (expenseByDate[key] ?? 0) + e.amount;
+      const total = e.items.reduce((s: number, i: { amount: number; cost: number }) => s + i.amount * i.cost, 0);
+      expenseByDate[key] = (expenseByDate[key] ?? 0) + total;
     }
   }
 
@@ -489,21 +489,36 @@ export async function getExpensesData(opts: { from: string; to: string }) {
     }
   }
 
-  const [expenses, total] = await Promise.all([
-    prisma.expense.findMany({ where, orderBy: { recordedAt: "desc" }, take: 50 }),
-    prisma.expense.aggregate({ where, _sum: { amount: true } }),
-  ]);
+  const expenses = await prisma.expense.findMany({
+    where,
+    orderBy: { recordedAt: "desc" },
+    take: 50,
+    include: { items: true, staff: { select: { name: true } } },
+  });
 
-  return {
-    expenses: expenses.map((e) => ({
+  const mapped = expenses.map((e) => {
+    const items = e.items.map((i) => ({
+      id: i.id,
+      description: i.description,
+      amount: i.amount,
+      cost: i.cost,
+    }));
+    return {
       id: e.id,
-      amount: e.amount,
-      note: e.note,
+      description: e.description,
       recordedAt: e.recordedAt.toISOString(),
       createdAt: e.createdAt.toISOString(),
-    })),
-    totalAmount: total._sum.amount ?? 0,
-  };
+      staffName: e.staff?.name ?? null,
+      items,
+    };
+  });
+
+  const totalAmount = mapped.reduce(
+    (sum, e) => sum + e.items.reduce((s, i) => s + i.amount * i.cost, 0),
+    0,
+  );
+
+  return { expenses: mapped, totalAmount };
 }
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
@@ -570,6 +585,7 @@ export async function getReportData(opts: {
     prisma.expense.findMany({
       where: { recordedAt: { gte: start, lt: end } },
       orderBy: { recordedAt: "desc" },
+      include: { items: true },
     }),
     prisma.cashRegister.findMany({
       where: { date: { gte: start, lt: end } },
@@ -646,7 +662,10 @@ export async function getReportData(opts: {
     .slice(0, 10);
 
   // --- Expense summary ---
-  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
+  function expenseTotal(e: (typeof expenses)[number]) {
+    return e.items.reduce((s, i) => s + i.amount * i.cost, 0);
+  }
+  const totalExpenses = expenses.reduce((s, e) => s + expenseTotal(e), 0);
 
   // --- Cash register summary ---
   // Reuse reconciliation pattern
@@ -658,7 +677,7 @@ export async function getReportData(opts: {
   }
   for (const e of expenses) {
     const key = localDateKey(e.recordedAt);
-    expenseByDate[key] = (expenseByDate[key] ?? 0) + e.amount;
+    expenseByDate[key] = (expenseByDate[key] ?? 0) + expenseTotal(e);
   }
   const cashRegisterSummary = cashRegisters.map((r) => {
     const key = localDateKey(r.date);
@@ -703,9 +722,14 @@ export async function getReportData(opts: {
     attendanceSummary,
     expenses: expenses.map((e) => ({
       id: e.id,
-      amount: e.amount,
-      note: e.note,
+      total: expenseTotal(e),
+      description: e.description,
       recordedAt: e.recordedAt.toISOString(),
+      items: e.items.map((i) => ({
+        description: i.description,
+        amount: i.amount,
+        cost: i.cost,
+      })),
     })),
     transactions: paidTx.map((t) => ({
       id: t.id,

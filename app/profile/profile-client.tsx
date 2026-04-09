@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, LogOut } from "lucide-react";
+import { toast } from "sonner";
 import { createClient } from "@/utils/supabase/client";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateProfileName } from "@/app/actions/profile";
@@ -10,6 +11,7 @@ import { signOut } from "@/app/actions/sign-out";
 import { RoleBadge } from "@/components/admin/ui";
 import { ErrorBanner, PageHeader } from "@/components/shared/ui";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,13 +30,11 @@ export function ProfileClient({ name, username, role, email }: Props) {
   const [pwNew, setPwNew] = useState("");
   const [pwConfirm, setPwConfirm] = useState("");
   const [pwError, setPwError] = useState<string | null>(null);
-  const [pwSuccess, setPwSuccess] = useState<string | null>(null);
   const [pwPending, setPwPending] = useState(false);
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
     setPwError(null);
-    setPwSuccess(null);
 
     if (pwNew.length < 6) {
       setPwError("Password minimal 6 karakter");
@@ -71,7 +71,7 @@ export function ProfileClient({ name, username, role, email }: Props) {
       setPwOld("");
       setPwNew("");
       setPwConfirm("");
-      setPwSuccess("Password berhasil diubah");
+      toast.success("Password berhasil diubah");
     } finally {
       setPwPending(false);
     }
@@ -125,7 +125,7 @@ export function ProfileClient({ name, username, role, email }: Props) {
         </CardHeader>
         <CardContent>
           <form
-            action={(fd) => nameAction.run(() => updateProfileName(fd))}
+            action={(fd) => nameAction.run(() => updateProfileName(fd), { successMessage: "Nama berhasil diubah" })}
             className="space-y-3"
           >
             <div>
@@ -134,7 +134,7 @@ export function ProfileClient({ name, username, role, email }: Props) {
             </div>
             <ErrorBanner error={nameAction.error} />
             <Button type="submit" disabled={nameAction.isPending} className="cursor-pointer">
-              {nameAction.isPending ? "Menyimpan..." : "Simpan"}
+              {nameAction.isPending ? <><Spinner /> Menyimpan...</> : "Simpan"}
             </Button>
           </form>
         </CardContent>
@@ -179,13 +179,8 @@ export function ProfileClient({ name, username, role, email }: Props) {
                 />
               </div>
               <ErrorBanner error={pwError} />
-              {pwSuccess && (
-                <div className="rounded-lg bg-primary/10 px-4 py-2 text-sm text-primary">
-                  {pwSuccess}
-                </div>
-              )}
               <Button type="submit" disabled={pwPending} className="cursor-pointer">
-                {pwPending ? "Mengubah..." : "Ubah Password"}
+                {pwPending ? <><Spinner /> Mengubah...</> : "Ubah Password"}
               </Button>
             </form>
           </CardContent>

@@ -402,20 +402,20 @@ async function main() {
   const expenses = await Promise.all([
     prisma.expense.create({
       data: {
-        amount: 150000,
-        note: "Pembelian stock bahan minuman",
+        description: "Pembelian stock bahan minuman",
+        items: { create: [{ description: "Sirup", amount: 5, cost: 15000 }, { description: "Gula", amount: 3, cost: 25000 }] },
       },
     }),
     prisma.expense.create({
       data: {
-        amount: 200000,
-        note: "Perbaikan kompor dapur",
+        description: "Perbaikan kompor dapur",
+        items: { create: [{ description: "Jasa perbaikan kompor", amount: 1, cost: 200000 }] },
       },
     }),
     prisma.expense.create({
       data: {
-        amount: 75000,
-        note: "Pembelian tissue dan pembersih",
+        description: "Pembelian tissue dan pembersih",
+        items: { create: [{ description: "Tissue", amount: 5, cost: 10000 }, { description: "Pembersih lantai", amount: 1, cost: 25000 }] },
       },
     }),
   ]);

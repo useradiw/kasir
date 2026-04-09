@@ -103,7 +103,6 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const endOfToday = new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
 
   const where: { date?: { gte?: Date; lt?: Date } } = {};
   if (opts.from || opts.to) {
@@ -141,8 +140,8 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
     allDates.push(startOfToday);
   }
 
-  let cashByDate: Record<string, number> = {};
-  let expenseByDate: Record<string, number> = {};
+  const cashByDate: Record<string, number> = {};
+  const expenseByDate: Record<string, number> = {};
 
   if (allDates.length > 0) {
     const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())));
@@ -155,7 +154,7 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
       }),
       prisma.expense.findMany({
         where: { recordedAt: { gte: minDate, lt: maxDate } },
-        select: { amount: true, recordedAt: true },
+        include: { items: { select: { amount: true, cost: true } } },
       }),
     ]);
 
@@ -165,7 +164,8 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
     }
     for (const e of expenses) {
       const key = e.recordedAt.toISOString().slice(0, 10);
-      expenseByDate[key] = (expenseByDate[key] ?? 0) + e.amount;
+      const total = e.items.reduce((s, i) => s + i.amount * i.cost, 0);
+      expenseByDate[key] = (expenseByDate[key] ?? 0) + total;
     }
   }
 

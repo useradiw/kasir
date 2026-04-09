@@ -5,29 +5,64 @@ import { prisma } from "@/lib/prisma";
 import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 
-const expenseSchema = z.object({
-  amount: z.coerce.number().int().min(1, "Jumlah harus lebih dari 0"),
-  note: z.string().optional(),
-  recordedAt: z.string().optional(),
+const expenseItemSchema = z.object({
+  description: z.string().min(1, "Deskripsi item harus diisi"),
+  amount: z.coerce.number().int().min(1, "Jumlah harus minimal 1"),
+  cost: z.coerce.number().int().min(0, "Biaya tidak boleh negatif"),
 });
 
-export async function addExpense(formData: FormData) {
-  await requireRole("OWNER", "MANAGER");
+const expenseSchema = z.object({
+  description: z.string().optional(),
+  items: z.array(expenseItemSchema).min(1, "Minimal 1 item pengeluaran"),
+});
 
-  const parsed = expenseSchema.safeParse({
-    amount: formData.get("amount"),
-    note: formData.get("note") || undefined,
-    recordedAt: formData.get("recordedAt") || undefined,
-  });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+export async function addExpense(data: {
+  description?: string;
+  items: { description: string; amount: number; cost: number }[];
+}) {
+  const staff = await requireRole("OWNER", "MANAGER");
+
+  const parsed = expenseSchema.safeParse(data);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
   await prisma.expense.create({
     data: {
-      amount: parsed.data.amount,
-      note: parsed.data.note,
-      recordedAt: parsed.data.recordedAt ? new Date(parsed.data.recordedAt) : new Date(),
+      description: parsed.data.description || null,
+      staffId: staff.id,
+      recordedAt: new Date(),
+      items: {
+        create: parsed.data.items,
+      },
     },
   });
+  revalidatePath("/admin/expenses");
+}
+
+export async function updateExpense(
+  id: string,
+  data: {
+    description?: string;
+    items: { description: string; amount: number; cost: number }[];
+  },
+) {
+  await requireRole("OWNER", "MANAGER");
+
+  const parsed = expenseSchema.safeParse(data);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+
+  await prisma.$transaction([
+    prisma.expenseItem.deleteMany({ where: { expenseId: id } }),
+    prisma.expense.update({
+      where: { id },
+      data: {
+        description: parsed.data.description || null,
+        items: {
+          create: parsed.data.items,
+        },
+      },
+    }),
+  ]);
+
   revalidatePath("/admin/expenses");
 }
 

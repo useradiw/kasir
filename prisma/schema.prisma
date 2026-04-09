@@ -145,13 +145,26 @@ model Transaction {
 }
 
 model Expense {
-  id         String   @id @default(uuid())
-  amount     Int
-  note       String?
-  recordedAt DateTime @default(now())
-  createdAt  DateTime @default(now())
+  id          String        @id @default(uuid())
+  description String?
+  recordedAt  DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+  staffId     String?
+  staff       Staff?        @relation(fields: [staffId], references: [id])
+  items       ExpenseItem[]
 
   @@map("expenses")
+}
+
+model ExpenseItem {
+  id          String  @id @default(uuid())
+  expenseId   String
+  expense     Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  description String
+  amount      Int
+  cost        Int
+
+  @@map("expense_items")
 }
 
 model CashRegister {
@@ -186,6 +199,7 @@ model Staff {
   tableSessions       TableSession[]
   openedRegisters     CashRegister[]     @relation("OpenedRegisters")
   closedRegisters     CashRegister[]     @relation("ClosedRegisters")
+  expenses            Expense[]
 
   @@map("staff")
 }

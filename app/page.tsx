@@ -18,7 +18,8 @@ import {
   Wallet,
   Landmark,
   LogOut,
-  UserPen
+  UserPen,
+  HardDrive,
 } from "lucide-react";
 
 const allKasirLinks = [
@@ -38,6 +39,7 @@ const allAdminLinks = [
   { href: "/admin/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Wallet },
   { href: "/admin/cash-register", label: "Kas Harian", desc: "Buka & tutup kas", icon: Landmark },
   { href: "/admin/reports", label: "Laporan", desc: "Laporan & analitik", icon: Receipt, ownerOnly: true },
+  { href: "/admin/backup", label: "Backup DB", desc: "Export data database", icon: HardDrive, ownerOnly: true },
 ];
 
 export default async function Home() {
