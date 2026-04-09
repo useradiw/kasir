@@ -43,3 +43,5 @@ next-env.d.ts
 /generated/prisma
 .claude
 .vscode
+
+/scripts/cleanup-db.ts

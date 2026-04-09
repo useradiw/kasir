@@ -1,18 +1,17 @@
 /**
  * Production DB cleanup script.
- * Removes test data while preserving Staff accounts and auth users.
+ * Wipes all data except Staff accounts and auth users.
  *
  * Usage: npx tsx scripts/cleanup-db.ts
  *
  * Tables DELETED:
- *   - OrderItem, TableSession, Transaction
+ *   - OrderItem, Transaction, TableSession
  *   - ExpenseItem, Expense
- *   - AttendanceRecord
- *   - CashRegister
+ *   - AttendanceRecord, CashRegister
+ *   - PackageItem, MenuVariant, Package, MenuItem, Category
  *
  * Tables KEPT:
  *   - Staff (accounts + Supabase links)
- *   - Category, MenuItem, MenuVariant, Package, PackageItem (menu data)
  */
 
 import "dotenv/config";
@@ -32,6 +31,11 @@ async function main() {
     ["Expense", () => prisma.expense.deleteMany()],
     ["AttendanceRecord", () => prisma.attendanceRecord.deleteMany()],
     ["CashRegister", () => prisma.cashRegister.deleteMany()],
+    ["PackageItem", () => prisma.packageItem.deleteMany()],
+    ["MenuVariant", () => prisma.menuVariant.deleteMany()],
+    ["Package", () => prisma.package.deleteMany()],
+    ["MenuItem", () => prisma.menuItem.deleteMany()],
+    ["Category", () => prisma.category.deleteMany()],
   ];
 
   for (const [name, action] of steps) {
@@ -40,16 +44,10 @@ async function main() {
   }
 
   // Report what's kept
-  const [staffCount, categoryCount, menuItemCount] = await Promise.all([
-    prisma.staff.count(),
-    prisma.category.count(),
-    prisma.menuItem.count(),
-  ]);
+  const staffCount = await prisma.staff.count();
 
   console.log("\n📋 Preserved data:");
   console.log(`  Staff: ${staffCount}`);
-  console.log(`  Categories: ${categoryCount}`);
-  console.log(`  Menu Items: ${menuItemCount}`);
   console.log("\n✅ Cleanup complete.");
 }
 
