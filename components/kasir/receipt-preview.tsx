@@ -6,7 +6,8 @@ import { useBluetoothPrinter } from "@/hooks/use-bluetooth-printer";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { ServiceEnum } from "@/lib/db";
-import { formatRupiah, formatDateTime, STORE_INFO } from "@/lib/format";
+import { formatRupiah, formatDateTime } from "@/lib/format";
+import type { StoreInfo } from "@/lib/settings";
 import { calcSubtotal, getServiceLabel } from "@/lib/kasir-utils";
 import { buildReceipt, buildChecklist } from "@/lib/escpos";
 import { Button } from "@/components/ui/button";
@@ -16,11 +17,13 @@ export function ReceiptPreview({
   sessionId,
   mode,
   cashierName,
+  storeInfo,
   onClose,
 }: {
   sessionId: string;
   mode: "checklist" | "receipt";
   cashierName?: string;
+  storeInfo: StoreInfo;
   onClose: () => void;
 }) {
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -65,7 +68,7 @@ export function ReceiptPreview({
             paymentMethod: (tx?.paymentMethod as "CASH" | "QRIS") ?? "CASH",
             cashAmount: tx?.cashAmount ?? 0,
             isPaid,
-          });
+          }, storeInfo);
     await print(data);
   }
 
@@ -110,6 +113,7 @@ export function ReceiptPreview({
               cashierName={resolvedCashierName}
               serviceLabel={serviceLabel}
               isPaid={isPaid}
+              storeInfo={storeInfo}
             />
           )}
         </div>
@@ -201,6 +205,7 @@ function ReceiptContent({
   cashierName,
   serviceLabel,
   isPaid,
+  storeInfo,
 }: {
   session: { name: string; paidAt: string | null; service: ServiceEnum | null; customerAlias: string | null } | undefined;
   activeItems: { nameSnapshot: string; qty: number; price: number }[];
@@ -209,15 +214,16 @@ function ReceiptContent({
   cashierName: string;
   serviceLabel: string;
   isPaid: boolean;
+  storeInfo: StoreInfo;
 }) {
   return (
     <div className="font-mono text-xs space-y-2">
       {/* Store header */}
       <div className="text-center">
-        <p className="font-bold text-base">{STORE_INFO.name}</p>
-        <p className="text-gray-500">{STORE_INFO.address}</p>
-        <p className="text-gray-500">Telp: {STORE_INFO.phone}</p>
-        <p className="text-gray-500">IG: {STORE_INFO.instagram}</p>
+        <p className="font-bold text-base">{storeInfo.name}</p>
+        <p className="text-gray-500">{storeInfo.address}</p>
+        {storeInfo.phone && <p className="text-gray-500">Telp: {storeInfo.phone}</p>}
+        {storeInfo.instagram && <p className="text-gray-500">IG: {storeInfo.instagram}</p>}
       </div>
 
       <Divider />
@@ -320,8 +326,8 @@ function ReceiptContent({
 
       {/* Footer */}
       <Divider />
-      <p className="text-center text-gray-400 text-[10px] leading-tight">
-        Terimakasih dan silahkan<br />datang kembali.
+      <p className="text-center text-gray-400 text-[10px] leading-tight whitespace-pre-line">
+        {storeInfo.receiptFooter}
       </p>
     </div>
   );

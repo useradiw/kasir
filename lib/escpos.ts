@@ -1,4 +1,5 @@
-import { formatRupiah, formatDateTime, STORE_INFO } from "@/lib/format";
+import { formatRupiah, formatDateTime } from "@/lib/format";
+import type { StoreInfo } from "@/lib/settings";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,7 @@ function padLine(left: string, right: string, w: number): number[] {
 
 export function buildReceipt(
   data: PrintReceiptData,
+  storeInfo: StoreInfo,
   lineWidth = 32,
 ): Uint8Array {
   const b: number[] = [];
@@ -80,13 +82,12 @@ export function buildReceipt(
 
   // Store header
   b.push(...CMD.CENTER, ...CMD.BOLD_ON, ...CMD.DOUBLE_H);
-  b.push(...line(STORE_INFO.name));
+  b.push(...line(storeInfo.name));
   b.push(...CMD.NORMAL, ...CMD.BOLD_OFF);
   b.push(...CMD.CENTER);
-  b.push(...line("Jl. Brigjen Katamso 51"));
-  b.push(...line("Surakarta"));
-  b.push(...line(`Telp: ${STORE_INFO.phone}`));
-  b.push(...line(`IG: ${STORE_INFO.instagram}`));
+  b.push(...line(storeInfo.address));
+  if (storeInfo.phone) b.push(...line(`Telp: ${storeInfo.phone}`));
+  if (storeInfo.instagram) b.push(...line(`IG: ${storeInfo.instagram}`));
 
   // Cashier / customer / time / service
   b.push(...CMD.LEFT);
@@ -152,8 +153,8 @@ export function buildReceipt(
   // Footer
   b.push(...divider(w));
   b.push(...CMD.CENTER);
-  b.push(...line("Terimakasih dan silahkan"));
-  b.push(...line("datang kembali."));
+  const footerLines = storeInfo.receiptFooter.split("\n");
+  for (const fl of footerLines) b.push(...line(fl));
 
   // Feed + Cut
   b.push(...CMD.FEED_3, ...CMD.CUT);

@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle, Loader2, ChevronDown, Smartphone } from "lucide-react";
 import type { PaymentMethod } from "@/lib/db";
 import { ReceiptPreview } from "./receipt-preview";
+import type { StoreInfo } from "@/lib/settings";
 
 const paymentMethods: { value: PaymentMethod; label: string }[] = [
   { value: "CASH", label: "Tunai" },
@@ -29,6 +30,9 @@ export function PaymentScreen({
   staffId,
   staffName,
   staffRole,
+  storeInfo,
+  defaultTaxPct = 0,
+  defaultServicePct = 0,
   onDone,
   onBack,
   onHome,
@@ -37,6 +41,9 @@ export function PaymentScreen({
   staffId: string;
   staffName: string;
   staffRole?: string;
+  storeInfo: StoreInfo;
+  defaultTaxPct?: number;
+  defaultServicePct?: number;
   onDone: () => void;
   onBack: () => void;
   onHome?: () => void;
@@ -50,9 +57,9 @@ export function PaymentScreen({
   const [method, setMethod] = useState<PaymentMethod>("CASH");
 
   // Charge fields with mode toggle
-  const [taxInput, setTaxInput] = useState("0");
+  const [taxInput, setTaxInput] = useState(defaultTaxPct > 0 ? String(defaultTaxPct) : "0");
   const [taxMode, setTaxMode] = useState<"pct" | "abs">("pct");
-  const [serviceInput, setServiceInput] = useState("0");
+  const [serviceInput, setServiceInput] = useState(defaultServicePct > 0 ? String(defaultServicePct) : "0");
   const [serviceMode, setServiceMode] = useState<"pct" | "abs">("pct");
   const [discountInput, setDiscountInput] = useState("");
   const [discountMode, setDiscountMode] = useState<"pct" | "abs">("abs");
@@ -173,6 +180,7 @@ export function PaymentScreen({
             sessionId={sessionId}
             mode="receipt"
             cashierName={staffName}
+            storeInfo={storeInfo}
             onClose={() => setShowReceipt(false)}
           />
         )}

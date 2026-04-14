@@ -6,8 +6,9 @@ import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Staff } from "@/generated/prisma";
+import { getSetting } from "@/lib/settings";
 
-const LOCK_HOURS = 7;
+const DEFAULT_LOCK_HOURS = 4;
 
 // ─── Auth helper ─────────────────────────────────────────────────────────────
 
@@ -76,8 +77,9 @@ export async function closeRegisterForStaff(formData: FormData) {
   if (!register) throw new Error("Kas hari ini belum dibuka.");
   if (register.closingCash !== null) throw new Error("Kas hari ini sudah ditutup.");
 
-  // 7-hour lock check
-  const lockExpiry = new Date(register.createdAt.getTime() + LOCK_HOURS * 60 * 60 * 1000);
+  // Lock check (duration from settings)
+  const lockHours = parseInt(await getSetting("lock_hours")) || DEFAULT_LOCK_HOURS;
+  const lockExpiry = new Date(register.createdAt.getTime() + lockHours * 60 * 60 * 1000);
   if (now < lockExpiry) {
     const remaining = lockExpiry.getTime() - now.getTime();
     const hours = Math.floor(remaining / (60 * 60 * 1000));
@@ -100,6 +102,7 @@ export async function closeRegisterForStaff(formData: FormData) {
 
 export async function getCashRegisterDataForStaff(opts: { from: string; to: string }) {
   await getStaffFromSession();
+  const lockHours = parseInt(await getSetting("lock_hours")) || DEFAULT_LOCK_HOURS;
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -196,7 +199,7 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
     todayCashIncome: todayRecon?.cashIncome ?? 0,
     todayExpenses: todayRecon?.totalExpenses ?? 0,
     todayExpectedClosing: todayRecon?.expectedClosing ?? 0,
-    lockHours: LOCK_HOURS,
+    lockHours,
     registers: registers.map((r) => {
       const recon = reconcile(r);
       return {

@@ -71,13 +71,11 @@ function EditRegisterDialog({
             <DenominationInput value={openingAmount} onChange={setOpeningAmount} />
             <input type="hidden" name="openingCash" value={openingAmount} />
           </div>
-          {register.closingCash !== null && (
-            <div>
-              <Label className="text-base">Kas Akhir</Label>
-              <DenominationInput value={closingAmount} onChange={setClosingAmount} />
-              <input type="hidden" name="closingCash" value={closingAmount} />
-            </div>
-          )}
+          <div>
+            <Label className="text-base">Kas Akhir</Label>
+            <DenominationInput value={closingAmount} onChange={setClosingAmount} />
+            <input type="hidden" name="closingCash" value={closingAmount} />
+          </div>
           <div className="flex gap-2">
             <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
             <Button type="button" size="sm" variant="outline" onClick={() => setOpen(false)}>Batal</Button>

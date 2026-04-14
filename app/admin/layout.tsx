@@ -32,6 +32,7 @@ const navItemsBase = [
   ]},
   { trigger: "Sistem", content: [
     { href: "/admin/backup", label: "Backup DB", ownerOnly: true },
+    { href: "/settings", label: "Pengaturan", ownerOnly: true },
   ]},
 ];
 

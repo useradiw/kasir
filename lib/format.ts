@@ -1,7 +1,8 @@
+/** @deprecated Use `getStoreInfo()` from `@/lib/settings` for dynamic values. */
 export const STORE_INFO = {
   name: "Sate Kambing Sido Mampir",
   address: "Jl. Brigjen Katamso 51, Surakarta",
-  phone: "000000000000",
+  phone: "",
   instagram: "@kambingsidomampir",
 } as const;
 

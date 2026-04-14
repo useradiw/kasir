@@ -16,6 +16,7 @@ import { X, ClipboardList, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OrderItem, OrderItemStatus } from "@/lib/db";
 import { ReceiptPreview } from "./receipt-preview";
+import type { StoreInfo } from "@/lib/settings";
 
 const nextStatus: Partial<Record<OrderItemStatus, OrderItemStatus>> = {
   PENDING: "PREPARING",
@@ -28,12 +29,14 @@ export function OrderReview({
   onPay,
   onHome,
   readOnly,
+  storeInfo,
 }: {
   sessionId: string;
   onBack: () => void;
   onPay?: () => void;
   onHome?: () => void;
   readOnly?: boolean;
+  storeInfo: StoreInfo;
 }) {
   const items = useOrderItems(sessionId);
   const tx = useTransaction(readOnly ? sessionId : null);
@@ -101,6 +104,7 @@ export function OrderReview({
         <ReceiptPreview
           sessionId={sessionId}
           mode="checklist"
+          storeInfo={storeInfo}
           onClose={() => setShowChecklist(false)}
         />
       )}

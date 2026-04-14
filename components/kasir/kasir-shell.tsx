@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { Container } from "@/components/shared/container";
-import { useStaffId, useProductSyncQuery } from "@/hooks/use-kasir-query";
+import { useStaffId, useProductSyncQuery, useStoreConfig } from "@/hooks/use-kasir-query";
 import { retryUnsyncedTransactions } from "@/hooks/use-session-store";
 import { Loader2 } from "lucide-react";
 import { SessionList } from "./session-list";
@@ -18,6 +18,7 @@ export function KasirShell() {
 
   const staff = useStaffId();
   const sync = useProductSyncQuery();
+  const config = useStoreConfig();
 
   // Retry unsynced transactions on mount
   useEffect(() => {
@@ -44,7 +45,7 @@ export function KasirShell() {
   const goToPayment = useCallback(() => setView("payment"), []);
 
   // Loading state
-  if (staff.isLoading || sync.isLoading) {
+  if (staff.isLoading || sync.isLoading || config.isLoading) {
     return (
       <Container id="kasir" className="flex h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -58,13 +59,13 @@ export function KasirShell() {
   }
 
   // Error state
-  if (staff.isError || sync.isError) {
+  if (staff.isError || sync.isError || config.isError) {
     return (
       <Container id="kasir" className="flex h-screen items-center justify-center">
         <div className="text-center text-sm text-destructive">
           <p>Gagal memuat data.</p>
           <p className="mt-1 text-muted-foreground">
-            {staff.error?.message || sync.error?.message}
+            {staff.error?.message || sync.error?.message || config.error?.message}
           </p>
         </div>
       </Container>
@@ -72,6 +73,7 @@ export function KasirShell() {
   }
 
   const staffData = staff.data!;
+  const storeConfig = config.data!;
 
   return (
     <Container id="kasir" sectionStyle="min-h-screen flex flex-col" className="flex flex-col flex-1">
@@ -79,6 +81,7 @@ export function KasirShell() {
         <SessionList
           staffId={staffData.staffId}
           staffName={staffData.staffName}
+          storeInfo={storeConfig.storeInfo}
           onOpenSession={openSession}
           onOpenPaidSession={openPaidSession}
         />
@@ -94,6 +97,7 @@ export function KasirShell() {
       {view === "review" && activeSessionId && (
         <OrderReview
           sessionId={activeSessionId}
+          storeInfo={storeConfig.storeInfo}
           onBack={goToMenu}
           onPay={goToPayment}
           onHome={goToSessions}
@@ -105,6 +109,9 @@ export function KasirShell() {
           staffId={staffData.staffId}
           staffName={staffData.staffName}
           staffRole={staffData.staffRole}
+          storeInfo={storeConfig.storeInfo}
+          defaultTaxPct={storeConfig.defaultTaxPct}
+          defaultServicePct={storeConfig.defaultServicePct}
           onDone={goToSessions}
           onBack={goToReview}
           onHome={goToSessions}
@@ -113,6 +120,7 @@ export function KasirShell() {
       {view === "history-review" && activeSessionId && (
         <OrderReview
           sessionId={activeSessionId}
+          storeInfo={storeConfig.storeInfo}
           onBack={goToSessions}
           onHome={goToSessions}
           readOnly

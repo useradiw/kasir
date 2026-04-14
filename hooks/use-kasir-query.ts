@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getStaffId } from "@/app/actions/get-staff-id";
 import { syncProducts } from "@/app/actions/sync-products";
+import { fetchStoreConfig } from "@/app/actions/fetch-store-config";
 import { db } from "@/lib/db";
 
 /** Cached staff identity — fetched once, never refetches automatically. */
@@ -10,6 +11,16 @@ export function useStaffId() {
   return useQuery({
     queryKey: ["staff-id"],
     queryFn: () => getStaffId(),
+    staleTime: Infinity,
+    retry: 1,
+  });
+}
+
+/** Store config (store info + default charges) — fetched once. */
+export function useStoreConfig() {
+  return useQuery({
+    queryKey: ["store-config"],
+    queryFn: () => fetchStoreConfig(),
     staleTime: Infinity,
     retry: 1,
   });

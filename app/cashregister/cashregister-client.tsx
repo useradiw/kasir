@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ import { useAdminAction } from "@/hooks/use-admin-action";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { openRegisterForStaff, closeRegisterForStaff } from "@/app/actions/cashregister";
 import type { RoleEnum } from "@/generated/prisma";
-import { ArrowLeft, Lock, Clock } from "lucide-react";
+import { ArrowLeft, Lock } from "lucide-react";
 
 type TodayRegister = {
   id: string;
@@ -39,30 +39,32 @@ type RegisterRow = {
   closedByName: string | null;
 };
 
-function LockCountdown({ createdAt, lockHours }: { createdAt: string; lockHours: number }) {
-  const [remaining, setRemaining] = useState("");
-
-  useEffect(() => {
-    function update() {
-      const lockExpiry = new Date(new Date(createdAt).getTime() + lockHours * 60 * 60 * 1000);
-      const now = new Date();
-      const diff = lockExpiry.getTime() - now.getTime();
-      if (diff <= 0) {
-        setRemaining("");
-        return;
-      }
-      const h = Math.floor(diff / (60 * 60 * 1000));
-      const m = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
-      const s = Math.floor((diff % (60 * 1000)) / 1000);
-      setRemaining(`${h} jam ${m} menit ${s} detik`);
-    }
-    update();
-    const interval = setInterval(update, 1000);
-    return () => clearInterval(interval);
+/** Reactive lock state — returns { locked, remaining } and auto-updates every second. */
+function useLockState(createdAt: string | undefined, lockHours: number) {
+  const calcRemaining = useCallback(() => {
+    if (!createdAt) return { locked: false, remaining: "" };
+    const lockExpiry = new Date(new Date(createdAt).getTime() + lockHours * 60 * 60 * 1000);
+    const diff = lockExpiry.getTime() - Date.now();
+    if (diff <= 0) return { locked: false, remaining: "" };
+    const h = Math.floor(diff / (60 * 60 * 1000));
+    const m = Math.floor((diff % (60 * 60 * 1000)) / (60 * 1000));
+    const s = Math.floor((diff % (60 * 1000)) / 1000);
+    return { locked: true, remaining: `${h} jam ${m} menit ${s} detik` };
   }, [createdAt, lockHours]);
 
-  if (!remaining) return null;
+  const [state, setState] = useState(calcRemaining);
 
+  useEffect(() => {
+    setState(calcRemaining());
+    const interval = setInterval(() => setState(calcRemaining()), 1000);
+    return () => clearInterval(interval);
+  }, [calcRemaining]);
+
+  return state;
+}
+
+function LockCountdown({ remaining }: { remaining: string }) {
+  if (!remaining) return null;
   return (
     <div className="flex items-center gap-2 rounded-lg bg-muted p-3 text-sm">
       <Lock className="size-4 text-muted-foreground shrink-0" />
@@ -74,11 +76,6 @@ function LockCountdown({ createdAt, lockHours }: { createdAt: string; lockHours:
       </div>
     </div>
   );
-}
-
-function isLocked(createdAt: string, lockHours: number): boolean {
-  const lockExpiry = new Date(new Date(createdAt).getTime() + lockHours * 60 * 60 * 1000);
-  return new Date() < lockExpiry;
 }
 
 export default function CashRegisterStaffClient({
@@ -106,9 +103,11 @@ export default function CashRegisterStaffClient({
   const [openingAmount, setOpeningAmount] = useState(0);
   const [closingAmount, setClosingAmount] = useState(0);
 
-  const locked = todayRegister?.isOpen
-    ? isLocked(todayRegister.createdAt, lockHours)
-    : false;
+  const lockState = useLockState(
+    todayRegister?.isOpen ? todayRegister.createdAt : undefined,
+    lockHours,
+  );
+  const locked = lockState.locked;
 
   function applyFilters() {
     const params = new URLSearchParams();
@@ -180,7 +179,7 @@ export default function CashRegisterStaffClient({
               )}
 
               {locked ? (
-                <LockCountdown createdAt={todayRegister.createdAt} lockHours={lockHours} />
+                <LockCountdown remaining={lockState.remaining} />
               ) : (
                 <form action={(fd) => run(() => closeRegisterForStaff(fd))} className="space-y-4 border-t pt-4">
                   <Label className="text-base">Kas Akhir</Label>

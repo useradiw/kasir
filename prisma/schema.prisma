@@ -174,12 +174,25 @@ model CashRegister {
   closingCash Int?
   openedById  String?
   closedById  String?
+  editedById  String?
+  editedAt    DateTime?
   openedBy    Staff?   @relation("OpenedRegisters", fields: [openedById], references: [id])
   closedBy    Staff?   @relation("ClosedRegisters", fields: [closedById], references: [id])
+  editedBy    Staff?   @relation("EditedRegisters", fields: [editedById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@map("cash_registers")
+}
+
+// --- SETTINGS ---
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
 }
 
 // --- STAFF & ATTENDANCE ---
@@ -199,6 +212,7 @@ model Staff {
   tableSessions       TableSession[]
   openedRegisters     CashRegister[]     @relation("OpenedRegisters")
   closedRegisters     CashRegister[]     @relation("ClosedRegisters")
+  editedRegisters     CashRegister[]     @relation("EditedRegisters")
   expenses            Expense[]
 
   @@map("staff")

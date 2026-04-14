@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
-import { formatRupiah, formatDateTime, STORE_INFO } from "@/lib/format";
+import { formatRupiah, formatDateTime } from "@/lib/format";
+import type { StoreInfo } from "@/lib/settings";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateTransaction } from "@/app/actions/admin/transactions";
 import type { TransactionDetail } from "@/app/actions/admin/queries";
@@ -27,9 +28,11 @@ const serviceOptions = [
 export default function TransactionDetailClient({
   data,
   isOwner,
+  storeInfo,
 }: {
   data: TransactionDetail;
   isOwner: boolean;
+  storeInfo: StoreInfo;
 }) {
   const router = useRouter();
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -120,7 +123,7 @@ export default function TransactionDetailClient({
       paymentMethod: data.paymentMethod as "CASH" | "QRIS",
       cashAmount: data.cashAmount,
       isPaid: data.status === "PAID",
-    });
+    }, storeInfo);
     if (!isConnected) await connect();
     await print(receiptData);
   }
@@ -208,10 +211,10 @@ export default function TransactionDetailClient({
               >
                 {/* Store header */}
                 <div className="text-center">
-                  <p className="font-bold text-base">{STORE_INFO.name}</p>
-                  <p className="text-gray-500">{STORE_INFO.address}</p>
-                  <p className="text-gray-500">Telp: {STORE_INFO.phone}</p>
-                  <p className="text-gray-500">IG: {STORE_INFO.instagram}</p>
+                  <p className="font-bold text-base">{storeInfo.name}</p>
+                  <p className="text-gray-500">{storeInfo.address}</p>
+                  {storeInfo.phone && <p className="text-gray-500">Telp: {storeInfo.phone}</p>}
+                  {storeInfo.instagram && <p className="text-gray-500">IG: {storeInfo.instagram}</p>}
                 </div>
 
                 <ReceiptDivider />
@@ -309,8 +312,8 @@ export default function TransactionDetailClient({
 
                 {/* Footer */}
                 <ReceiptDivider />
-                <p className="text-center text-gray-400 text-[10px] leading-tight">
-                  Terimakasih dan silahkan<br />datang kembali.
+                <p className="text-center text-gray-400 text-[10px] leading-tight whitespace-pre-line">
+                  {storeInfo.receiptFooter}
                 </p>
               </div>
             </div>

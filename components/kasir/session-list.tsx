@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Plus, ShoppingBag, History, RefreshCw, Receipt, Home, Landmark, Trash2 } from "lucide-react";
 import { ReceiptPreview } from "./receipt-preview";
+import type { StoreInfo } from "@/lib/settings";
 import Link from "next/link";
 
 const serviceOptions: { value: ServiceEnum | ""; label: string }[] = [
@@ -34,11 +35,13 @@ const serviceOptions: { value: ServiceEnum | ""; label: string }[] = [
 export function SessionList({
   staffId,
   staffName,
+  storeInfo,
   onOpenSession,
   onOpenPaidSession,
 }: {
   staffId: string;
   staffName: string;
+  storeInfo: StoreInfo;
   onOpenSession: (sessionId: string) => void;
   onOpenPaidSession: (sessionId: string) => void;
 }) {
@@ -252,6 +255,7 @@ export function SessionList({
           sessionId={receiptSessionId}
           mode="receipt"
           cashierName={staffName}
+          storeInfo={storeInfo}
           onClose={() => setReceiptSessionId(null)}
         />
       )}
