@@ -145,13 +145,14 @@ model Transaction {
 }
 
 model Expense {
-  id          String        @id @default(uuid())
-  description String?
-  recordedAt  DateTime      @default(now())
-  createdAt   DateTime      @default(now())
-  staffId     String?
-  staff       Staff?        @relation(fields: [staffId], references: [id])
-  items       ExpenseItem[]
+  id             String        @id @default(uuid())
+  description    String?
+  recordedAt     DateTime      @default(now())
+  createdAt      DateTime      @default(now())
+  staffId        String?
+  deductFromCash Boolean       @default(true)
+  staff          Staff?        @relation(fields: [staffId], references: [id])
+  items          ExpenseItem[]
 
   @@map("expenses")
 }

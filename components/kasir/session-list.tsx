@@ -10,6 +10,7 @@ import {
   useUnsyncedCount,
   createSession,
   eraseSession,
+  renameSession,
   retryUnsyncedTransactions,
 } from "@/hooks/use-session-store";
 import { formatRupiah, formatDateTime } from "@/lib/format";
@@ -19,7 +20,7 @@ import { ErrorBanner } from "@/components/shared/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { Plus, ShoppingBag, History, RefreshCw, Receipt, Home, Landmark, Trash2 } from "lucide-react";
+import { Plus, ShoppingBag, History, RefreshCw, Receipt, Home, Landmark, Trash2, Pencil, Check, X } from "lucide-react";
 import { ReceiptPreview } from "./receipt-preview";
 import type { StoreInfo } from "@/lib/settings";
 import Link from "next/link";
@@ -51,6 +52,7 @@ export function SessionList({
 
   const [tab, setTab] = useState<"active" | "history">("active");
   const [showForm, setShowForm] = useState(false);
+  const [tableName, setTableName] = useState("");
   const [service, setService] = useState<ServiceEnum | "">("");
   const [customerAlias, setCustomerAlias] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -58,36 +60,17 @@ export function SessionList({
   const [syncing, setSyncing] = useState(false);
   const [receiptSessionId, setReceiptSessionId] = useState<string | null>(null);
 
-  // Query ALL sessions created today (open, paid, erased) for unique table numbering
-  const todaySessions = useLiveQuery(() => {
-    const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
-    return db.table_sessions
-      .filter((s) => {
-        const created = new Date(s.createdAt);
-        return created >= startOfDay && created < endOfDay;
-      })
-      .toArray();
-  }, []);
-
-  const getNextTableNumber = () => {
-    const tableNumbers = (todaySessions ?? [])
-      .map((s) => s.name.match(/^Table (\d+)$/))
-      .filter(Boolean)
-      .map((m) => parseInt(m![1]));
-    return tableNumbers.length > 0 ? Math.max(...tableNumbers) + 1 : 1;
-  };
-
   const handleCreate = async () => {
     setError(null);
+    const name = tableName.trim() || "Meja 1";
     const id = await createSession({
-      name: `Meja ${getNextTableNumber()}`,
+      name,
       service: service || null,
       customerAlias: customerAlias.trim() || null,
       customerPhone: customerPhone.trim() || null,
       ownerId: staffId,
     });
+    setTableName("");
     setService("");
     setCustomerAlias("");
     setCustomerPhone("");
@@ -163,7 +146,7 @@ export function SessionList({
             {/* Header */}
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Sesi Aktif</h2>
-              <Button size="sm" onClick={() => setShowForm(!showForm)}>
+              <Button size="sm" onClick={() => { setTableName("Meja 1"); setShowForm((v) => !v); }}>
                 <Plus data-icon="inline-start" className="size-4" />
                 Buat Sesi
               </Button>
@@ -172,9 +155,12 @@ export function SessionList({
             {/* Create form */}
             {showForm && (
               <div className="rounded-lg border bg-card p-3 space-y-2">
-                <div className="rounded-lg bg-primary/5 px-3 py-2 text-sm font-medium text-center">
-                  Table {getNextTableNumber()}
-                </div>
+                <Input
+                  placeholder="Meja 1"
+                  value={tableName}
+                  onChange={(e) => setTableName(e.target.value)}
+                  className="text-center font-medium"
+                />
                 <select
                   value={service}
                   onChange={(e) => setService(e.target.value as ServiceEnum | "")}
@@ -224,6 +210,7 @@ export function SessionList({
                         await eraseSession(session.id);
                       }
                     }}
+                    onRename={(name) => renameSession(session.id, name)}
                   />
                 ))}
               </div>
@@ -267,26 +254,79 @@ function SessionCard({
   session,
   onClick,
   onErase,
+  onRename,
 }: {
   session: { id: string; name: string; service: ServiceEnum | null; customerAlias: string | null; customerPhone: string | null; createdAt: string };
   onClick: () => void;
   onErase: () => void;
+  onRename: (name: string) => Promise<void>;
 }) {
   const itemCount = useLiveQuery(
     () => db.order_items.where("tableSessionId").equals(session.id).count(),
     [session.id]
   );
 
+  const [isEditing, setIsEditing] = useState(false);
+  const [draftName, setDraftName] = useState(session.name);
+
+  const startEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setDraftName(session.name);
+    setIsEditing(true);
+  };
+
+  const cancelEdit = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(false);
+  };
+
+  const saveEdit = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      await onRename(draftName);
+      setIsEditing(false);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Gagal mengubah nama");
+    }
+  };
+
   return (
     <div className="rounded-lg border bg-card p-3 min-h-14">
       <button
         type="button"
-        onClick={onClick}
+        onClick={isEditing ? undefined : onClick}
         className="w-full text-left active:bg-accent transition-colors"
       >
-        <div className="flex items-center justify-between">
-          <span className="font-medium text-sm">{session.name}</span>
-          <div className="flex items-center gap-1.5">
+        <div className="flex items-center justify-between gap-2">
+          {isEditing ? (
+            <div className="flex items-center gap-1 flex-1" onClick={(e) => e.stopPropagation()}>
+              <Input
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
+                className="h-7 text-sm"
+                autoFocus
+              />
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={saveEdit}>
+                <Check className="size-4" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={cancelEdit}>
+                <X className="size-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 min-w-0">
+              <span className="font-medium text-sm truncate">{session.name}</span>
+              <button
+                type="button"
+                onClick={startEdit}
+                className="p-1 text-muted-foreground hover:text-foreground"
+                aria-label="Ubah nama meja"
+              >
+                <Pencil className="size-3" />
+              </button>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 shrink-0">
             {typeof itemCount === "number" && itemCount > 0 && (
               <Badge className="bg-primary/10 text-primary">{itemCount} item</Badge>
             )}

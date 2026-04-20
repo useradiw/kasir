@@ -117,11 +117,15 @@ export async function getInventoryData() {
   const [categories, menuItems, variants, packages, packageItems] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.menuItem.findMany({
-      orderBy: { name: "asc" },
+      orderBy: [
+        { category: { sortOrder: "asc" } },
+        { category: { name: "asc" } },
+        { name: "asc" },
+      ],
       include: { category: { select: { name: true } } },
     }),
     prisma.menuVariant.findMany({
-      orderBy: { label: "asc" },
+      orderBy: [{ menuItem: { name: "asc" } }, { label: "asc" }],
       include: { menuItem: { select: { name: true } } },
     }),
     prisma.package.findMany({ orderBy: { name: "asc" } }),
@@ -365,7 +369,7 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
         select: { cashAmount: true, paidAt: true },
       }),
       prisma.expense.findMany({
-        where: { recordedAt: { gte: minDate, lt: maxDate } },
+        where: { recordedAt: { gte: minDate, lt: maxDate }, deductFromCash: true },
         include: { items: { select: { amount: true, cost: true } } },
       }),
     ]);
@@ -506,6 +510,7 @@ export async function getExpensesData(opts: { from: string; to: string }) {
     return {
       id: e.id,
       description: e.description,
+      deductFromCash: e.deductFromCash,
       recordedAt: e.recordedAt.toISOString(),
       createdAt: e.createdAt.toISOString(),
       staffName: e.staff?.name ?? null,

@@ -234,6 +234,7 @@ function ReceiptContent({
           <span>Kasir: {cashierName}</span>
           <span className="font-medium">{serviceLabel}</span>
         </div>
+        {session?.name && <div>Meja: {session.name}</div>}
         {session?.customerAlias && (
           <div>Pelanggan: {session.customerAlias}</div>
         )}

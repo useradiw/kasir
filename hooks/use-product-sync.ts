@@ -11,16 +11,15 @@ type SyncStatus = "idle" | "syncing" | "done" | "error";
  * Runs once per browser session (stored in sessionStorage).
  */
 export function useProductSync() {
-  const [status, setStatus] = useState<SyncStatus>("idle");
+  const [status, setStatus] = useState<SyncStatus>(() =>
+    typeof window !== "undefined" && sessionStorage.getItem("products-synced") === "1"
+      ? "done"
+      : "syncing"
+  );
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (sessionStorage.getItem("products-synced") === "1") {
-      setStatus("done");
-      return;
-    }
-
-    setStatus("syncing");
+    if (sessionStorage.getItem("products-synced") === "1") return;
 
     syncProducts()
       .then(async (snapshot) => {

@@ -40,6 +40,7 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         createdAt: new Date(session.createdAt),
       },
       update: {
+        name: session.name,
         paidAt: session.paidAt ? new Date(session.paidAt) : null,
         servedAt: session.servedAt ? new Date(session.servedAt) : null,
         erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
@@ -101,6 +102,27 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
       },
     }),
   ]);
+}
+
+/** Sync a renamed (still-open) session to the server. Creates if missing, updates name otherwise. */
+export async function pushRenamedSession(session: TableSession): Promise<void> {
+  await prisma.tableSession.upsert({
+    where: { id: session.id },
+    create: {
+      id: session.id,
+      name: session.name,
+      service: session.service ?? undefined,
+      customerAlias: session.customerAlias,
+      customerPhone: session.customerPhone,
+      ownerId: session.ownerId ?? undefined,
+      orderedAt: session.orderedAt ? new Date(session.orderedAt) : null,
+      servedAt: session.servedAt ? new Date(session.servedAt) : null,
+      paidAt: session.paidAt ? new Date(session.paidAt) : null,
+      erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
+      createdAt: new Date(session.createdAt),
+    },
+    update: { name: session.name },
+  });
 }
 
 /** Sync an erased (cancelled) session to the server — no transaction needed. */

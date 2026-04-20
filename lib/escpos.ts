@@ -93,6 +93,9 @@ export function buildReceipt(
   b.push(...CMD.LEFT);
   b.push(...divider(w));
   b.push(...padLine(`Kasir: ${data.cashierName}`, data.serviceLabel, w));
+  if (data.sessionName) {
+    b.push(...line(`Meja: ${data.sessionName}`));
+  }
   if (data.customerAlias) {
     b.push(...line(`Pelanggan: ${data.customerAlias}`));
   }

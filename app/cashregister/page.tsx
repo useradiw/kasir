@@ -8,7 +8,7 @@ export default async function CashRegisterPage({
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  const staff = await requireRole("OWNER", "MANAGER", "CASHIER");
+  await requireRole("OWNER", "MANAGER", "CASHIER");
 
   const params = await searchParams;
   const from = params.from ?? "";
@@ -19,7 +19,6 @@ export default async function CashRegisterPage({
   return (
     <Container id="cashregister" className="py-6">
       <CashRegisterStaffClient
-        staffRole={staff.role}
         todayRegister={data.todayRegister}
         todayCashIncome={data.todayCashIncome}
         todayExpenses={data.todayExpenses}

@@ -11,6 +11,8 @@ export default async function SessionsPage() {
   await requireRole("OWNER", "MANAGER");
   const { users, error } = await getSessionsData();
 
+  // Server component renders once per request — Date.now() is intentional.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const threshold = ACTIVE_THRESHOLD_MINUTES * 60 * 1000;
 

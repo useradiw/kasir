@@ -1,4 +1,4 @@
-import Dexie, { type EntityTable, type Table } from "dexie";
+import Dexie, { type EntityTable } from "dexie";
 
 // ─── Product schema (synced from server, read-only locally) ───────────────────
 

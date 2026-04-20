@@ -18,6 +18,7 @@ type ExpenseItem = { id: string; description: string; amount: number; cost: numb
 type Expense = {
   id: string;
   description: string | null;
+  deductFromCash: boolean;
   recordedAt: string;
   createdAt: string;
   staffName: string | null;
@@ -123,6 +124,7 @@ export default function ExpensesClient({
                         isPending={isPending}
                         defaultValues={{
                           description: e.description ?? undefined,
+                          deductFromCash: e.deductFromCash,
                           items: e.items.map((i) => ({
                             description: i.description,
                             amount: i.amount,
@@ -147,7 +149,14 @@ export default function ExpensesClient({
                           >
                             {isExpanded ? <ChevronDown className="size-4 mt-0.5 shrink-0" /> : <ChevronRight className="size-4 mt-0.5 shrink-0" />}
                             <div className="min-w-0">
-                              <p className="text-sm font-medium">{formatRupiah(total)}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium">{formatRupiah(total)}</p>
+                                {!e.deductFromCash && (
+                                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                    Non-kas
+                                  </span>
+                                )}
+                              </div>
                               <p className="text-xs text-muted-foreground">
                                 {formatDateTime(e.recordedAt, "medium")}
                                 {e.staffName && <> &middot; {e.staffName}</>}

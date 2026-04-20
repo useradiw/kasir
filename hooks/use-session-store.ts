@@ -3,7 +3,7 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { TableSession, OrderItem, Transaction } from "@/lib/db";
-import { pushTransaction, pushErasedSession } from "@/app/actions/push-transaction";
+import { pushTransaction, pushErasedSession, pushRenamedSession } from "@/app/actions/push-transaction";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -89,6 +89,25 @@ export async function createSession(
     synced: 0,
   });
   return id;
+}
+
+/** Rename a still-open (unpaid) session. No-op + throws if session is paid. */
+export async function renameSession(sessionId: string, name: string): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("Nama meja tidak boleh kosong");
+
+  const existing = await db.table_sessions.get(sessionId);
+  if (!existing) throw new Error("Sesi tidak ditemukan");
+  if (existing.paidAt) throw new Error("Sesi sudah dibayar, tidak bisa diubah");
+
+  await db.table_sessions.update(sessionId, { name: trimmed, synced: 0 });
+
+  const updated = await db.table_sessions.get(sessionId);
+  if (updated) {
+    pushRenamedSession(updated)
+      .then(() => db.table_sessions.update(sessionId, { synced: 1 }))
+      .catch((err) => console.error("[renameSession] sync failed", err));
+  }
 }
 
 /** Erase (cancel) a session without payment. */

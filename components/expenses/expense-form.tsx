@@ -21,10 +21,12 @@ type Props = {
   isPending: boolean;
   onSubmit: (data: {
     description?: string;
+    deductFromCash: boolean;
     items: { description: string; amount: number; cost: number }[];
   }) => void;
   defaultValues?: {
     description?: string;
+    deductFromCash?: boolean;
     items: { description: string; amount: number; cost: number }[];
   };
   onCancel?: () => void;
@@ -42,6 +44,7 @@ function createRow(defaults?: { description: string; amount: number; cost: numbe
 
 export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel }: Props) {
   const [description, setDescription] = useState(defaultValues?.description ?? "");
+  const [deductFromCash, setDeductFromCash] = useState(defaultValues?.deductFromCash ?? true);
   const [items, setItems] = useState<ExpenseItemRow[]>(() =>
     defaultValues?.items?.length
       ? defaultValues.items.map((i) => createRow(i))
@@ -68,6 +71,7 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
     e.preventDefault();
     onSubmit({
       description: description || undefined,
+      deductFromCash,
       items: items.map(({ description, amount, cost }) => ({ description, amount, cost })),
     });
   }
@@ -84,6 +88,17 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
           disabled={isPending}
         />
       </div>
+
+      <label className="flex items-center gap-2 text-sm cursor-pointer">
+        <input
+          type="checkbox"
+          checked={deductFromCash}
+          onChange={(e) => setDeductFromCash(e.target.checked)}
+          disabled={isPending}
+          className="rounded"
+        />
+        Kurangi dari kas
+      </label>
 
       <div className="space-y-3">
         <Label>Item Pengeluaran</Label>

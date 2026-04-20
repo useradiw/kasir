@@ -12,7 +12,6 @@ import { DenominationInput } from "@/components/admin/denomination-input";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { openRegisterForStaff, closeRegisterForStaff } from "@/app/actions/cashregister";
-import type { RoleEnum } from "@/generated/prisma";
 import { ArrowLeft, Lock } from "lucide-react";
 
 type TodayRegister = {
@@ -55,7 +54,6 @@ function useLockState(createdAt: string | undefined, lockHours: number) {
   const [state, setState] = useState(calcRemaining);
 
   useEffect(() => {
-    setState(calcRemaining());
     const interval = setInterval(() => setState(calcRemaining()), 1000);
     return () => clearInterval(interval);
   }, [calcRemaining]);
@@ -79,7 +77,6 @@ function LockCountdown({ remaining }: { remaining: string }) {
 }
 
 export default function CashRegisterStaffClient({
-  staffRole,
   todayRegister,
   todayCashIncome,
   todayExpenses,
@@ -88,7 +85,6 @@ export default function CashRegisterStaffClient({
   registers,
   filters,
 }: {
-  staffRole: RoleEnum;
   todayRegister: TodayRegister;
   todayCashIncome: number;
   todayExpenses: number;

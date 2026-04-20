@@ -6,7 +6,7 @@ import { db, type MenuItem, type MenuVariant } from "@/lib/db";
 import { addOrderItem, useOrderItems } from "@/hooks/use-session-store";
 import { formatRupiah } from "@/lib/format";
 import { calcItemPrice, calcSubtotal } from "@/lib/kasir-utils";
-import { KasirTopBar, BottomBar, QtyControl, EmptyState, Badge } from "./ui";
+import { KasirTopBar, BottomBar, QtyControl, EmptyState } from "./ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Package } from "lucide-react";

@@ -161,8 +161,13 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
               <p className="text-sm text-muted-foreground text-center py-4">Belum ada menu item.</p>
             ) : (
               <div className="divide-y divide-foreground/5">
-                {menuItems.map((m) => (
+                {menuItems.map((m, idx) => (
                   <div key={m.id}>
+                    {(idx === 0 || menuItems[idx - 1].categoryName !== m.categoryName) && (
+                      <p className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {m.categoryName}
+                      </p>
+                    )}
                     <div className="flex items-start justify-between py-2.5 gap-2">
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{m.name}</p>
@@ -247,8 +252,13 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
               <p className="text-sm text-muted-foreground text-center py-4">Belum ada varian.</p>
             ) : (
               <div className="divide-y divide-foreground/5">
-                {variants.map((v) => (
+                {variants.map((v, idx) => (
                   <div key={v.id}>
+                    {(idx === 0 || variants[idx - 1].menuItemName !== v.menuItemName) && (
+                      <p className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {v.menuItemName}
+                      </p>
+                    )}
                     <div className="flex items-start justify-between py-2.5 gap-2">
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{v.label}</p>

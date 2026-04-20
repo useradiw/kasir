@@ -13,11 +13,13 @@ const expenseItemSchema = z.object({
 
 const expenseSchema = z.object({
   description: z.string().optional(),
+  deductFromCash: z.boolean().optional(),
   items: z.array(expenseItemSchema).min(1, "Minimal 1 item pengeluaran"),
 });
 
 export async function addExpense(data: {
   description?: string;
+  deductFromCash?: boolean;
   items: { description: string; amount: number; cost: number }[];
 }) {
   const staff = await requireRole("OWNER", "MANAGER");
@@ -28,6 +30,7 @@ export async function addExpense(data: {
   await prisma.expense.create({
     data: {
       description: parsed.data.description || null,
+      deductFromCash: parsed.data.deductFromCash ?? true,
       staffId: staff.id,
       recordedAt: new Date(),
       items: {
@@ -42,6 +45,7 @@ export async function updateExpense(
   id: string,
   data: {
     description?: string;
+    deductFromCash?: boolean;
     items: { description: string; amount: number; cost: number }[];
   },
 ) {
@@ -56,6 +60,7 @@ export async function updateExpense(
       where: { id },
       data: {
         description: parsed.data.description || null,
+        deductFromCash: parsed.data.deductFromCash ?? true,
         items: {
           create: parsed.data.items,
         },
