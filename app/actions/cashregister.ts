@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Staff } from "@/generated/prisma";
 import { getSetting } from "@/lib/settings";
+import { localDateKey } from "@/lib/format";
 
 const DEFAULT_LOCK_HOURS = 4;
 
@@ -152,28 +153,32 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
 
     const [transactions, expenses] = await Promise.all([
       prisma.transaction.findMany({
-        where: { status: "PAID", paidAt: { gte: minDate, lt: maxDate } },
-        select: { cashAmount: true, paidAt: true },
+        where: {
+          status: "PAID",
+          paymentMethod: "CASH",
+          paidAt: { gte: minDate, lt: maxDate },
+        },
+        select: { totalAmount: true, paidAt: true },
       }),
       prisma.expense.findMany({
-        where: { recordedAt: { gte: minDate, lt: maxDate } },
+        where: { recordedAt: { gte: minDate, lt: maxDate }, deductFromCash: true },
         include: { items: { select: { amount: true, cost: true } } },
       }),
     ]);
 
     for (const t of transactions) {
-      const key = t.paidAt.toISOString().slice(0, 10);
-      cashByDate[key] = (cashByDate[key] ?? 0) + t.cashAmount;
+      const key = localDateKey(t.paidAt);
+      cashByDate[key] = (cashByDate[key] ?? 0) + t.totalAmount;
     }
     for (const e of expenses) {
-      const key = e.recordedAt.toISOString().slice(0, 10);
+      const key = localDateKey(e.recordedAt);
       const total = e.items.reduce((s, i) => s + i.amount * i.cost, 0);
       expenseByDate[key] = (expenseByDate[key] ?? 0) + total;
     }
   }
 
   function reconcile(r: { openingCash: number; closingCash: number | null; date: Date }) {
-    const key = r.date.toISOString().slice(0, 10);
+    const key = localDateKey(r.date);
     const cashIncome = cashByDate[key] ?? 0;
     const totalExpenses = expenseByDate[key] ?? 0;
     const expectedClosing = r.openingCash + cashIncome - totalExpenses;

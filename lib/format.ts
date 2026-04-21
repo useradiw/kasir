@@ -23,3 +23,10 @@ export function formatDateTime(
     timeStyle: "short",
   });
 }
+
+/** YYYY-MM-DD key in the server's local timezone. Use this for day-bucketing
+ *  CashRegister.date (stored as local midnight) against transaction.paidAt /
+ *  expense.recordedAt — `.toISOString()` would bucket in UTC and split days. */
+export function localDateKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}

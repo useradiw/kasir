@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { createAdminClient } from "@/utils/supabase/admin";
+import { localDateKey } from "@/lib/format";
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
@@ -365,8 +366,12 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
 
     const [transactions, expenses] = await Promise.all([
       prisma.transaction.findMany({
-        where: { status: "PAID", paidAt: { gte: minDate, lt: maxDate } },
-        select: { cashAmount: true, paidAt: true },
+        where: {
+          status: "PAID",
+          paymentMethod: "CASH",
+          paidAt: { gte: minDate, lt: maxDate },
+        },
+        select: { totalAmount: true, paidAt: true },
       }),
       prisma.expense.findMany({
         where: { recordedAt: { gte: minDate, lt: maxDate }, deductFromCash: true },
@@ -376,18 +381,18 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
 
     // Bucket by date key
     for (const t of transactions) {
-      const key = t.paidAt.toISOString().slice(0, 10);
-      cashByDate[key] = (cashByDate[key] ?? 0) + t.cashAmount;
+      const key = localDateKey(t.paidAt);
+      cashByDate[key] = (cashByDate[key] ?? 0) + t.totalAmount;
     }
     for (const e of expenses) {
-      const key = e.recordedAt.toISOString().slice(0, 10);
+      const key = localDateKey(e.recordedAt);
       const total = e.items.reduce((s: number, i: { amount: number; cost: number }) => s + i.amount * i.cost, 0);
       expenseByDate[key] = (expenseByDate[key] ?? 0) + total;
     }
   }
 
   function reconcile(r: { openingCash: number; closingCash: number | null; date: Date }) {
-    const key = r.date.toISOString().slice(0, 10);
+    const key = localDateKey(r.date);
     const cashIncome = cashByDate[key] ?? 0;
     const totalExpenses = expenseByDate[key] ?? 0;
     const expectedClosing = r.openingCash + cashIncome - totalExpenses;
@@ -553,10 +558,6 @@ function getDateRange(period: "daily" | "weekly" | "monthly", dateStr: string) {
   return { start, end };
 }
 
-function localDateKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-}
-
 export async function getReportData(opts: {
   period: "daily" | "weekly" | "monthly";
   date: string;
@@ -677,10 +678,12 @@ export async function getReportData(opts: {
   const cashByDate: Record<string, number> = {};
   const expenseByDate: Record<string, number> = {};
   for (const t of paidTx) {
+    if (t.paymentMethod !== "CASH") continue;
     const key = localDateKey(t.paidAt);
-    cashByDate[key] = (cashByDate[key] ?? 0) + t.cashAmount;
+    cashByDate[key] = (cashByDate[key] ?? 0) + t.totalAmount;
   }
   for (const e of expenses) {
+    if (!e.deductFromCash) continue;
     const key = localDateKey(e.recordedAt);
     expenseByDate[key] = (expenseByDate[key] ?? 0) + expenseTotal(e);
   }
