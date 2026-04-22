@@ -21,6 +21,7 @@ import {
   UserPen,
   HardDrive,
   Settings,
+  Bell,
 } from "lucide-react";
 
 const allKasirLinks = [
@@ -39,6 +40,7 @@ const allAdminLinks = [
   { href: "/admin/transactions", label: "Transaksi", desc: "Riwayat transaksi", icon: Receipt },
   { href: "/admin/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Wallet },
   { href: "/admin/cash-register", label: "Kas Harian", desc: "Buka & tutup kas", icon: Landmark },
+  { href: "/admin/notifications", label: "Notifikasi", desc: "Riwayat notifikasi sistem", icon: Bell, ownerOnly: true },
   { href: "/admin/reports", label: "Laporan", desc: "Laporan & analitik", icon: Receipt, ownerOnly: true },
   { href: "/admin/backup", label: "Backup DB", desc: "Export data database", icon: HardDrive, ownerOnly: true },
   { href: "/settings", label: "Pengaturan", desc: "Konfigurasi toko & sistem", icon: Settings, ownerOnly: true },

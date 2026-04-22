@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Container } from "@/components/shared/container";
 import { requireRole } from "@/lib/admin-auth";
+import { NotificationBellServer } from "@/components/shared/notification-bell-server";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -31,6 +32,7 @@ const navItemsBase = [
     { href: "/admin/cash-register", label: "Kas Harian" },
   ]},
   { trigger: "Sistem", content: [
+    { href: "/admin/notifications", label: "Notifikasi", ownerOnly: true },
     { href: "/admin/backup", label: "Backup DB", ownerOnly: true },
     { href: "/settings", label: "Pengaturan", ownerOnly: true },
   ]},
@@ -55,7 +57,10 @@ export default async function AdminLayout({
       <Container id="nav" sectionStyle="border z-40 fixed top-0 right-0 left-0 bg-inherit shadow" className="flex flex-col">
         <div className="flex items-center justify-between">
           <span className="text-lg font-semibold">Admin Panel</span>
-          <span className="text-sm truncate text-muted-foreground max-w-45">{displayEmail}</span>
+          <div className="flex items-center gap-2">
+            <NotificationBellServer staffId={staff.id} />
+            <span className="text-sm truncate text-muted-foreground max-w-45">{displayEmail}</span>
+          </div>
         </div>
         <NavigationMenu className="mt-2" align="start">
           <NavigationMenuList className="gap-0 justify-start">

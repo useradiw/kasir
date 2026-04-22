@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, LogOut } from "lucide-react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 import { createClient } from "@/utils/supabase/client";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateProfileName } from "@/app/actions/profile";
@@ -71,7 +71,7 @@ export function ProfileClient({ name, username, role, email }: Props) {
       setPwOld("");
       setPwNew("");
       setPwConfirm("");
-      toast.success("Password berhasil diubah");
+      notify.success("Password berhasil diubah");
     } finally {
       setPwPending(false);
     }

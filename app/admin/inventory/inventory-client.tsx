@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner, StatusBadge } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah } from "@/lib/format";
 import {
   addCategory, updateCategory, deleteCategory,
@@ -43,6 +44,7 @@ const TABS = [
 export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, isOwner }: Props) {
   const router = useRouter();
   const { isPending, run, error, setError } = useAdminAction();
+  const confirm = useConfirm();
   const [editId, setEditId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [expandPackage, setExpandPackage] = useState<string | null>(null);
@@ -109,7 +111,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                         <div className="flex gap-1 shrink-0">
                           <Button size="xs" variant="outline" onClick={() => setEditId(editId === c.id ? null : c.id)}>Edit</Button>
                           <Button size="xs" variant="destructive" disabled={isPending}
-                            onClick={() => { if (confirm(`Hapus kategori "${c.name}"?`)) run(() => deleteCategory(c.id)); }}>Hapus</Button>
+                            onClick={async () => { if (await confirm({ title: `Hapus kategori "${c.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteCategory(c.id)); }}>Hapus</Button>
                         </div>
                       )}
                     </div>
@@ -185,7 +187,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                             />
                             <Button size="xs" variant="outline" onClick={() => setEditId(editId === m.id ? null : m.id)}>Edit</Button>
                             <Button size="xs" variant="destructive" disabled={isPending}
-                              onClick={() => { if (confirm(`Hapus "${m.name}"?`)) run(() => deleteMenuItem(m.id)); }}>Hapus</Button>
+                              onClick={async () => { if (await confirm({ title: `Hapus "${m.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteMenuItem(m.id)); }}>Hapus</Button>
                           </>
                         ) : (
                           <StatusBadge active={!m.isHidden} activeLabel="Tampil" inactiveLabel="Disembunyikan" />
@@ -270,7 +272,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                         <div className="flex gap-1 shrink-0">
                           <Button size="xs" variant="outline" onClick={() => setEditId(editId === v.id ? null : v.id)}>Edit</Button>
                           <Button size="xs" variant="destructive" disabled={isPending}
-                            onClick={() => { if (confirm(`Hapus varian "${v.label}"?`)) run(() => deleteVariant(v.id)); }}>Hapus</Button>
+                            onClick={async () => { if (await confirm({ title: `Hapus varian "${v.label}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteVariant(v.id)); }}>Hapus</Button>
                         </div>
                       )}
                     </div>
@@ -339,7 +341,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                           <>
                             <Button size="xs" variant="outline" onClick={() => setEditId(editId === pkg.id ? null : pkg.id)}>Edit</Button>
                             <Button size="xs" variant="destructive" disabled={isPending}
-                              onClick={() => { if (confirm(`Hapus paket "${pkg.name}"?`)) run(() => deletePackage(pkg.id)); }}>Hapus</Button>
+                              onClick={async () => { if (await confirm({ title: `Hapus paket "${pkg.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deletePackage(pkg.id)); }}>Hapus</Button>
                           </>
                         )}
                       </div>

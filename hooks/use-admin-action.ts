@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { toast } from "sonner";
+import { notify } from "@/lib/notify";
 
 interface RunOptions {
   onSuccess?: () => void;
@@ -18,13 +18,13 @@ export function useAdminAction() {
       try {
         await action();
         if (opts?.successMessage) {
-          toast.success(opts.successMessage);
+          notify.success(opts.successMessage);
         }
         opts?.onSuccess?.();
       } catch (e) {
         const message = e instanceof Error ? e.message : "Terjadi kesalahan.";
         setError(message);
-        toast.error(message);
+        notify.error(message);
       }
     });
   }

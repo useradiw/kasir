@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ErrorBanner } from "@/components/admin/ui";
 import { DenominationInput } from "@/components/admin/denomination-input";
 import { useAdminAction } from "@/hooks/use-admin-action";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { openRegister, closeRegister, editRegister, deleteRegister } from "@/app/actions/admin/cash-register";
 import type { RoleEnum } from "@/generated/prisma";
@@ -105,6 +106,7 @@ export default function CashRegisterClient({
 }) {
   const router = useRouter();
   const { isPending, run, error } = useAdminAction();
+  const confirm = useConfirm();
   const [localFilters, setLocalFilters] = useState(filters);
   const [openingAmount, setOpeningAmount] = useState(0);
   const [closingAmount, setClosingAmount] = useState(0);
@@ -284,7 +286,7 @@ export default function CashRegisterClient({
                           size="xs"
                           variant="destructive"
                           disabled={isPending}
-                          onClick={() => { if (confirm("Hapus data kas ini?")) run(() => deleteRegister(r.id)); }}
+                          onClick={async () => { if (await confirm({ title: "Hapus data kas ini?", destructive: true, confirmLabel: "Hapus" })) run(() => deleteRegister(r.id)); }}
                         >
                           Hapus
                         </Button>

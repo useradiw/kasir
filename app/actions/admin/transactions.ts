@@ -3,15 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
+import { ActionError } from "@/lib/action-error";
+import { createVoidNotification } from "@/lib/notifications";
+import { formatRupiah } from "@/lib/format";
 
 export async function voidTransaction(transactionId: string, reason: string) {
   const staff = await requireOwner();
 
-  if (!reason.trim()) throw new Error("Alasan void wajib diisi.");
+  if (!reason.trim()) throw new ActionError("Alasan void wajib diisi.");
 
   const tx = await prisma.transaction.findUnique({ where: { id: transactionId } });
-  if (!tx) throw new Error("Transaksi tidak ditemukan.");
-  if (tx.status === "VOIDED") throw new Error("Transaksi sudah di-void.");
+  if (!tx) throw new ActionError("Transaksi tidak ditemukan.");
+  if (tx.status === "VOIDED") throw new ActionError("Transaksi sudah di-void.");
 
   await prisma.transaction.update({
     where: { id: transactionId },
@@ -23,7 +26,17 @@ export async function voidTransaction(transactionId: string, reason: string) {
     },
   });
 
+  await createVoidNotification({
+    type: "TRANSACTION_VOIDED",
+    actorName: staff.name,
+    actorId: staff.id,
+    subjectLabel: `Transaksi ${formatRupiah(tx.totalAmount)}`,
+    reason: reason.trim(),
+    metadata: { transactionId, tableSessionId: tx.tableSessionId },
+  });
+
   revalidatePath("/admin/transactions");
+  revalidatePath("/admin/notifications");
 }
 
 // ─── Update Transaction (Owner Edit) ────────────────────────────────────────

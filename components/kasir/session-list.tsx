@@ -17,6 +17,8 @@ import { formatRupiah, formatDateTime } from "@/lib/format";
 import { getServiceLabel, getServiceColor } from "@/lib/kasir-utils";
 import { KasirTopBar, Badge, SyncBadge, EmptyState } from "./ui";
 import { ErrorBanner } from "@/components/shared/ui";
+import { useConfirm } from "@/components/shared/confirm-dialog";
+import { notify } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -59,6 +61,7 @@ export function SessionList({
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [receiptSessionId, setReceiptSessionId] = useState<string | null>(null);
+  const confirm = useConfirm();
 
   const handleCreate = async () => {
     setError(null);
@@ -206,9 +209,13 @@ export function SessionList({
                     session={session}
                     onClick={() => onOpenSession(session.id)}
                     onErase={async () => {
-                      if (window.confirm("Batalkan sesi ini?")) {
-                        await eraseSession(session.id);
-                      }
+                      const ok = await confirm({
+                        title: "Batalkan sesi ini?",
+                        description: "Sesi akan ditandai dibatalkan dan tidak dapat dikembalikan.",
+                        destructive: true,
+                        confirmLabel: "Batalkan sesi",
+                      });
+                      if (ok) await eraseSession(session.id);
                     }}
                     onRename={(name) => renameSession(session.id, name)}
                   />
@@ -286,7 +293,7 @@ function SessionCard({
       await onRename(draftName);
       setIsEditing(false);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Gagal mengubah nama");
+      notify.error(err, "Gagal mengubah nama");
     }
   };
 

@@ -6,6 +6,7 @@ import { createAdminClient } from "@/utils/supabase/admin";
 import { requireOwner } from "@/lib/admin-auth";
 import { z } from "zod";
 import type { RoleEnum } from "@/generated/prisma";
+import { ActionError, actionError } from "@/lib/action-error";
 
 const staffSchema = z.object({
   username: z.string().min(1, "Username tidak boleh kosong")
@@ -22,10 +23,11 @@ export async function addStaff(formData: FormData) {
     name: formData.get("name"),
     role: formData.get("role"),
   });
-  if (!parsed.success) throw new Error(parsed.error.flatten().formErrors[0]);
+  if (!parsed.success) actionError.fromZod(parsed.error);
+  const addData = parsed.data!;
 
   await prisma.staff.create({
-    data: { username: parsed.data.username, name: parsed.data.name, role: parsed.data.role as RoleEnum },
+    data: { username: addData.username, name: addData.name, role: addData.role as RoleEnum },
   });
   revalidatePath("/admin/staff");
 }
@@ -38,11 +40,12 @@ export async function updateStaff(id: string, formData: FormData) {
     name: formData.get("name"),
     role: formData.get("role"),
   });
-  if (!parsed.success) throw new Error(parsed.error.flatten().formErrors[0]);
+  if (!parsed.success) actionError.fromZod(parsed.error);
+  const updateData = parsed.data!;
 
   await prisma.staff.update({
     where: { id },
-    data: { username: parsed.data.username, name: parsed.data.name, role: parsed.data.role as RoleEnum },
+    data: { username: updateData.username, name: updateData.name, role: updateData.role as RoleEnum },
   });
   revalidatePath("/admin/staff");
 }
@@ -50,10 +53,10 @@ export async function updateStaff(id: string, formData: FormData) {
 export async function deleteStaff(id: string) {
   const owner = await requireOwner();
 
-  if (owner.id === id) throw new Error("Tidak dapat menghapus akun sendiri.");
+  if (owner.id === id) throw new ActionError("Tidak dapat menghapus akun sendiri.");
 
   const staff = await prisma.staff.findUnique({ where: { id } });
-  if (!staff) throw new Error("Staff tidak ditemukan.");
+  if (!staff) throw new ActionError("Staff tidak ditemukan.");
 
   // Clean up references before deleting
   await prisma.$transaction([
@@ -99,19 +102,19 @@ export async function linkSupabaseUser(staffId: string, email: string) {
   const { data: listData, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
 
   if (error) {
-    throw new Error("Gagal mengambil data pengguna Supabase.");
+    throw new ActionError("Gagal mengambil data pengguna Supabase.");
   }
 
   const found = listData.users.find((u) => u.email === email.trim());
   if (!found) {
-    throw new Error("Pengguna dengan email tersebut tidak ditemukan di Supabase.");
+    throw new ActionError("Pengguna dengan email tersebut tidak ditemukan di Supabase.");
   }
 
   const alreadyLinked = await prisma.staff.findUnique({
     where: { supabaseUserId: found.id },
   });
   if (alreadyLinked && alreadyLinked.id !== staffId) {
-    throw new Error("Akun Supabase ini sudah terhubung ke staff lain.");
+    throw new ActionError("Akun Supabase ini sudah terhubung ke staff lain.");
   }
 
   await prisma.staff.update({

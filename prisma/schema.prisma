@@ -215,8 +215,24 @@ model Staff {
   closedRegisters     CashRegister[]     @relation("ClosedRegisters")
   editedRegisters     CashRegister[]     @relation("EditedRegisters")
   expenses            Expense[]
+  notifications       Notification[]
 
   @@map("staff")
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  recipientId String
+  type        NotificationType
+  title       String
+  body        String
+  metadata    Json?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+  recipient   Staff            @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, readAt, createdAt])
+  @@map("notifications")
 }
 
 model AttendanceRecord {
@@ -268,4 +284,10 @@ enum RoleEnum {
 enum AttendanceStatus {
   PRESENT
   ABSENT
+}
+
+enum NotificationType {
+  TRANSACTION_VOIDED
+  SESSION_VOIDED
+  TEST
 }

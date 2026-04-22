@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorBanner } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { computeExpenseTotal } from "@/lib/expense-utils";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/admin/expenses";
@@ -38,6 +39,7 @@ export default function ExpensesClient({
 }) {
   const router = useRouter();
   const { isPending, run, error } = useAdminAction();
+  const confirm = useConfirm();
   const [localFilters, setLocalFilters] = useState(filters);
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -177,7 +179,7 @@ export default function ExpensesClient({
                                 size="xs"
                                 variant="destructive"
                                 disabled={isPending}
-                                onClick={() => { if (confirm("Hapus pengeluaran ini?")) run(() => deleteExpense(e.id), { successMessage: "Pengeluaran dihapus" }); }}
+                                onClick={async () => { if (await confirm({ title: "Hapus pengeluaran ini?", destructive: true, confirmLabel: "Hapus" })) run(() => deleteExpense(e.id), { successMessage: "Pengeluaran dihapus" }); }}
                               >
                                 Hapus
                               </Button>

@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import type { TableSession, OrderItem, Transaction } from "@/lib/db";
+import { createVoidNotification } from "@/lib/notifications";
 
 export interface TransactionPayload {
   session: TableSession;
@@ -127,6 +128,11 @@ export async function pushRenamedSession(session: TableSession): Promise<void> {
 
 /** Sync an erased (cancelled) session to the server — no transaction needed. */
 export async function pushErasedSession(session: TableSession): Promise<void> {
+  const existing = await prisma.tableSession.findUnique({
+    where: { id: session.id },
+    select: { erasedAt: true },
+  });
+
   await prisma.tableSession.upsert({
     where: { id: session.id },
     create: {
@@ -146,4 +152,22 @@ export async function pushErasedSession(session: TableSession): Promise<void> {
       erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
     },
   });
+
+  // Notify owners only on the transition from not-erased to erased.
+  if (session.erasedAt && !existing?.erasedAt) {
+    const actor = session.ownerId
+      ? await prisma.staff.findUnique({
+          where: { id: session.ownerId },
+          select: { id: true, name: true },
+        })
+      : null;
+    await createVoidNotification({
+      type: "SESSION_VOIDED",
+      actorName: actor?.name ?? "Kasir",
+      actorId: actor?.id ?? null,
+      subjectLabel: `Sesi "${session.name}"`,
+      reason: null,
+      metadata: { sessionId: session.id },
+    });
+  }
 }

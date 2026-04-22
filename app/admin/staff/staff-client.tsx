@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner, AdminPageHeader, RoleBadge, StatusBadge } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
+import { useConfirm } from "@/components/shared/confirm-dialog";
 import {
   addStaff,
   updateStaff,
@@ -32,6 +33,7 @@ const ROLES = ["OWNER", "MANAGER", "CASHIER", "STAFF"] as const;
 
 export default function StaffClient({ staffList, isOwner }: { staffList: StaffRow[]; isOwner: boolean }) {
   const { isPending, run, error } = useAdminAction();
+  const confirm = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [linkId, setLinkId] = useState<string | null>(null);
@@ -149,9 +151,14 @@ export default function StaffClient({ staffList, isOwner }: { staffList: StaffRo
                       <Button
                         size="xs"
                         variant="destructive"
-                        onClick={() => {
-                          if (confirm(`Hapus staff "${s.name}"? Aksi ini tidak bisa dibatalkan.`))
-                            run(() => deleteStaff(s.id));
+                        onClick={async () => {
+                          const ok = await confirm({
+                            title: `Hapus staff "${s.name}"?`,
+                            description: "Aksi ini tidak bisa dibatalkan.",
+                            destructive: true,
+                            confirmLabel: "Hapus",
+                          });
+                          if (ok) run(() => deleteStaff(s.id));
                         }}
                         disabled={isPending}
                       >
