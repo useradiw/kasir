@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
-import { db, type MenuItem, type MenuVariant } from "@/lib/db";
+import { db, type MenuItem, type MenuVariant, type OnlinePrice, type ServiceEnum } from "@/lib/db";
 import { addOrderItem, useOrderItems } from "@/hooks/use-session-store";
 import { formatRupiah } from "@/lib/format";
 import { calcItemPrice, calcSubtotal } from "@/lib/kasir-utils";
@@ -27,7 +27,10 @@ export function MenuBrowser({
 }) {
   const categories = useLiveQuery(() => db.categories.orderBy("sortOrder").toArray());
   const packages = useLiveQuery(() => db.packages.toArray());
+  const session = useLiveQuery(() => db.table_sessions.get(sessionId), [sessionId]);
+  const onlinePrices = useLiveQuery(() => db.online_prices.toArray());
   const orderItems = useOrderItems(sessionId);
+  const service = (session?.service ?? null) as ServiceEnum | null;
 
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
@@ -99,6 +102,8 @@ export function MenuBrowser({
             categoryId={effectiveCategoryId}
             expandedItemId={expandedItemId}
             onToggle={setExpandedItemId}
+            service={service}
+            onlinePrices={onlinePrices ?? []}
           />
         ) : (
           <EmptyState message="Belum ada kategori" />
@@ -130,11 +135,15 @@ function MenuItemGrid({
   categoryId,
   expandedItemId,
   onToggle,
+  service,
+  onlinePrices,
 }: {
   sessionId: string;
   categoryId: string;
   expandedItemId: string | null;
   onToggle: (id: string | null) => void;
+  service: ServiceEnum | null;
+  onlinePrices: OnlinePrice[];
 }) {
   const items = useLiveQuery(
     () =>
@@ -159,6 +168,8 @@ function MenuItemGrid({
           sessionId={sessionId}
           isExpanded={expandedItemId === item.id}
           onToggle={() => onToggle(expandedItemId === item.id ? null : item.id)}
+          service={service}
+          onlinePrices={onlinePrices}
         />
       ))}
     </div>
@@ -170,11 +181,15 @@ function MenuItemCard({
   sessionId,
   isExpanded,
   onToggle,
+  service,
+  onlinePrices,
 }: {
   item: MenuItem;
   sessionId: string;
   isExpanded: boolean;
   onToggle: () => void;
+  service: ServiceEnum | null;
+  onlinePrices: OnlinePrice[];
 }) {
   const variants = useLiveQuery(
     () => db.menu_variants.where("menuItemId").equals(item.id).toArray(),
@@ -186,7 +201,7 @@ function MenuItemCard({
   const [note, setNote] = useState("");
 
   const handleAdd = async () => {
-    const price = calcItemPrice(item, selectedVariant);
+    const price = calcItemPrice(item, selectedVariant, service, onlinePrices);
     const nameParts = [item.name];
     if (selectedVariant) nameParts.push(`(${selectedVariant.label})`);
 
@@ -221,7 +236,7 @@ function MenuItemCard({
         className="w-full p-3 text-left active:bg-accent transition-colors rounded-lg"
       >
         <p className="font-medium text-sm leading-tight">{item.name}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{formatRupiah(item.price)}</p>
+        <p className="text-xs text-muted-foreground mt-0.5">{formatRupiah(calcItemPrice(item, null, service, onlinePrices))}</p>
       </button>
 
       {isExpanded && (
@@ -277,7 +292,7 @@ function MenuItemCard({
           {/* Price + Add button */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">
-              {formatRupiah(calcItemPrice(item, selectedVariant) * qty)}
+              {formatRupiah(calcItemPrice(item, selectedVariant, service, onlinePrices) * qty)}
             </span>
             <Button size="sm" onClick={handleAdd}>
               Tambah

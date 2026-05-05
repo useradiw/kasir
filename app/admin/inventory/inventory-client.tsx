@@ -16,6 +16,7 @@ import {
   addVariant, updateVariant, deleteVariant,
   addPackage, updatePackage, deletePackage,
   addPackageItem, deletePackageItem,
+  setOnlinePrice, deleteOnlinePrice,
 } from "@/app/actions/admin/inventory";
 
 type Category = { id: string; name: string; sortOrder: number; createdAt: string; updatedAt: string };
@@ -23,6 +24,7 @@ type MenuItem = { id: string; name: string; categoryId: string; categoryName: st
 type Variant = { id: string; menuItemId: string; menuItemName: string; label: string; priceModifier: number };
 type Package = { id: string; name: string; bundlePrice: number; createdAt: string; updatedAt: string };
 type PackageItem = { id: string; packageId: string; menuItemId: string; variantId: string | null; nameSnapshot: string; menuItemName: string; variantLabel: string | null };
+type OnlinePrice = { id: string; menuItemId: string; variantId: string | null; service: string; price: number };
 
 type Props = {
   tab: string;
@@ -31,6 +33,7 @@ type Props = {
   variants: Variant[];
   packages: Package[];
   packageItems: PackageItem[];
+  onlinePrices: OnlinePrice[];
   isOwner: boolean;
 };
 
@@ -39,9 +42,12 @@ const TABS = [
   { key: "items", label: "Menu" },
   { key: "variants", label: "Varian" },
   { key: "packages", label: "Paket" },
+  { key: "online", label: "Harga Online" },
 ];
 
-export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, isOwner }: Props) {
+const SERVICES = ["GoFood", "ShopeeFood", "GrabFood"] as const;
+
+export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, onlinePrices, isOwner }: Props) {
   const router = useRouter();
   const { isPending, run, error, setError } = useAdminAction();
   const confirm = useConfirm();
@@ -296,6 +302,78 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
         </Card>
       )}
 
+      {/* ─── ONLINE PRICING ─── */}
+      {tab === "online" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Harga Online (GoFood, ShopeeFood, GrabFood)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-xs text-muted-foreground">
+              Atur harga khusus untuk vendor online. Jika tidak diatur, harga default menu yang digunakan.
+            </p>
+            {menuItems.filter((m) => !m.isHidden).map((m) => {
+              const itemVariants = variants.filter((v) => v.menuItemId === m.id);
+              const itemPrices = onlinePrices.filter((op) => op.menuItemId === m.id && !op.variantId);
+              return (
+                <div key={m.id} className="border border-foreground/10 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium">{m.name}</p>
+                      <p className="text-xs text-muted-foreground">Harga dasar: {formatRupiah(m.price)}</p>
+                    </div>
+                  </div>
+                  {/* Base item online prices */}
+                  <div className="flex flex-col gap-2">
+                    {SERVICES.map((svc) => {
+                      const existing = itemPrices.find((p) => p.service === svc);
+                      return (
+                        <OnlinePriceInput
+                          key={svc}
+                          service={svc}
+                          menuItemId={m.id}
+                          variantId={null}
+                          currentPrice={existing?.price ?? null}
+                          priceId={existing?.id ?? null}
+                          isPending={isPending}
+                          run={run}
+                        />
+                      );
+                    })}
+                  </div>
+                  {/* Variant online prices */}
+                  {itemVariants.map((v) => {
+                    const variantPrices = onlinePrices.filter((op) => op.menuItemId === m.id && op.variantId === v.id);
+                    return (
+                      <div key={v.id} className="ml-4 border-l-2 border-foreground/10 pl-3 space-y-1">
+                        <p className="text-xs font-medium">{v.label} ({v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)})</p>
+                        <div className="flex flex-col gap-2">
+                          {SERVICES.map((svc) => {
+                            const existing = variantPrices.find((p) => p.service === svc);
+                            return (
+                              <OnlinePriceInput
+                                key={svc}
+                                service={svc}
+                                menuItemId={m.id}
+                                variantId={v.id}
+                                currentPrice={existing?.price ?? null}
+                                priceId={existing?.id ?? null}
+                                isPending={isPending}
+                                run={run}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
+
       {/* ─── PACKAGES ─── */}
       {tab === "packages" && (
         <Card>
@@ -389,6 +467,60 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
             </div>
           </CardContent>
         </Card>
+      )}
+    </div>
+  );
+}
+
+function OnlinePriceInput({
+  service,
+  menuItemId,
+  variantId,
+  currentPrice,
+  priceId,
+  isPending,
+  run,
+}: {
+  service: string;
+  menuItemId: string;
+  variantId: string | null;
+  currentPrice: number | null;
+  priceId: string | null;
+  isPending: boolean;
+  run: (fn: () => Promise<void>, opts?: { successMessage?: string }) => void;
+}) {
+  const [value, setValue] = useState(currentPrice?.toString() ?? "");
+  const hasChanged = currentPrice !== null ? value !== currentPrice.toString() : value !== "";
+
+  return (
+    <div className="flex items-center gap-2">
+      <Label className="text-xs w-24 shrink-0 text-muted-foreground">{service}</Label>
+      <Input
+        type="number"
+        min={0}
+        placeholder="Harga default"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        className="h-8 text-sm flex-1"
+      />
+      {hasChanged && value && (
+        <Button
+          size="xs"
+          disabled={isPending}
+          onClick={() => run(() => setOnlinePrice({ menuItemId, variantId, service, price: parseInt(value) }))}
+        >
+          Simpan
+        </Button>
+      )}
+      {priceId && (
+        <Button
+          size="xs"
+          variant="ghost"
+          disabled={isPending}
+          onClick={() => { run(() => deleteOnlinePrice(priceId)); setValue(""); }}
+        >
+          Hapus
+        </Button>
       )}
     </div>
   );

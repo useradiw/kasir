@@ -26,10 +26,12 @@ const navItemsBase = [
     { href: "/admin/inventory", label: "Inventori" },
   ]},
   { trigger: "Laporan", content: [
-    { href: "/admin/reports", label: "Laporan", ownerOnly: true },
+    { href: "/admin/reports", label: "Laporan" },
     { href: "/admin/transactions", label: "Transaksi" },
     { href: "/admin/expenses", label: "Pengeluaran" },
     { href: "/admin/cash-register", label: "Kas Harian" },
+    { href: "/admin/kas-pak-har", label: "Kas Pak Har", ownerOnly: true },
+    { href: "/admin/expense-templates", label: "Template Pengeluaran" },
   ]},
   { trigger: "Sistem", content: [
     { href: "/admin/notifications", label: "Notifikasi", ownerOnly: true },

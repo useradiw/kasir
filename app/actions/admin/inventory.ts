@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
+import { ServiceEnum } from "@/generated/prisma";
 
 // ─── Category ─────────────────────────────────────────────────────────────────
 
@@ -192,5 +193,45 @@ export async function addPackageItem(formData: FormData) {
 export async function deletePackageItem(id: string) {
   await requireOwner();
   await prisma.packageItem.delete({ where: { id } });
+  revalidatePath("/admin/inventory");
+}
+
+// ─── Online Pricing ──────────────────────────────────────────────────────────
+
+const onlinePriceSchema = z.object({
+  menuItemId: z.string().min(1),
+  variantId: z.string().nullable().optional(),
+  service: z.enum(["GoFood", "ShopeeFood", "GrabFood"]),
+  price: z.coerce.number().int().min(0),
+});
+
+export async function setOnlinePrice(data: {
+  menuItemId: string;
+  variantId?: string | null;
+  service: string;
+  price: number;
+}) {
+  await requireOwner();
+  const parsed = onlinePriceSchema.safeParse(data);
+  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+
+  const { menuItemId, service, price } = parsed.data;
+  const variantId = parsed.data.variantId ?? null;
+
+  const existing = await prisma.menuItemOnlinePrice.findFirst({
+    where: { menuItemId, variantId, service: service as ServiceEnum },
+  });
+
+  if (existing) {
+    await prisma.menuItemOnlinePrice.update({ where: { id: existing.id }, data: { price } });
+  } else {
+    await prisma.menuItemOnlinePrice.create({ data: { menuItemId, variantId, service: service as ServiceEnum, price } });
+  }
+  revalidatePath("/admin/inventory");
+}
+
+export async function deleteOnlinePrice(id: string) {
+  await requireOwner();
+  await prisma.menuItemOnlinePrice.delete({ where: { id } });
   revalidatePath("/admin/inventory");
 }

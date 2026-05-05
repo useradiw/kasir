@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner, AdminPageHeader, RoleBadge, StatusBadge } from "@/components/admin/ui";
+import { formatRupiah } from "@/lib/format";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import {
@@ -23,6 +24,7 @@ type StaffRow = {
   name: string;
   role: "OWNER" | "MANAGER" | "CASHIER" | "STAFF";
   isActive: boolean;
+  salary: number | null;
   supabaseUserId: string | null;
   supabaseEmail: string | null;
   createdAt: string;
@@ -83,6 +85,10 @@ export default function StaffClient({ staffList, isOwner }: { staffList: StaffRo
                   ))}
                 </AdminSelect>
               </div>
+              <div className="grid gap-1">
+                <Label htmlFor="add-salary">Gaji (Rp)</Label>
+                <Input id="add-salary" name="salary" type="number" min={0} placeholder="0" className="w-32" />
+              </div>
               <Button type="submit" disabled={isPending} size="sm">
                 Simpan
               </Button>
@@ -106,6 +112,7 @@ export default function StaffClient({ staffList, isOwner }: { staffList: StaffRo
                       <p className="font-medium">{s.name}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {s.username ? `@${s.username}` : <span className="italic">Belum ada username</span>} · {s.supabaseEmail ?? <span className="italic">Belum terhubung</span>}
+                        {isOwner && s.salary != null && <> · Gaji: {formatRupiah(s.salary)}</>}
                       </p>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
@@ -194,6 +201,10 @@ export default function StaffClient({ staffList, isOwner }: { staffList: StaffRo
                               <option key={r} value={r}>{r}</option>
                             ))}
                           </AdminSelect>
+                        </div>
+                        <div className="grid gap-1">
+                          <Label>Gaji (Rp)</Label>
+                          <Input name="salary" type="number" min={0} defaultValue={s.salary ?? ""} className="w-32" />
                         </div>
                         <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
                         <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>

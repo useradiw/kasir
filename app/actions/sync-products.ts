@@ -7,6 +7,7 @@ import type {
   MenuVariant,
   Package,
   PackageItem,
+  OnlinePrice,
 } from "@/lib/db";
 
 export interface ProductSnapshot {
@@ -15,16 +16,18 @@ export interface ProductSnapshot {
   menuVariants: MenuVariant[];
   packages: Package[];
   packageItems: PackageItem[];
+  onlinePrices: OnlinePrice[];
 }
 
 export async function syncProducts(): Promise<ProductSnapshot> {
-  const [categories, menuItems, menuVariants, packages, packageItems] =
+  const [categories, menuItems, menuVariants, packages, packageItems, onlinePrices] =
     await Promise.all([
       prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
       prisma.menuItem.findMany(),
       prisma.menuVariant.findMany(),
       prisma.package.findMany(),
       prisma.packageItem.findMany(),
+      prisma.menuItemOnlinePrice.findMany(),
     ]);
 
   return {
@@ -63,6 +66,13 @@ export async function syncProducts(): Promise<ProductSnapshot> {
       menuItemId: pi.menuItemId,
       variantId: pi.variantId,
       nameSnapshot: pi.nameSnapshot,
+    })),
+    onlinePrices: onlinePrices.map((op) => ({
+      id: op.id,
+      menuItemId: op.menuItemId,
+      variantId: op.variantId,
+      service: op.service as OnlinePrice["service"],
+      price: op.price,
     })),
   };
 }

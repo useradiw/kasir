@@ -13,21 +13,24 @@ const staffSchema = z.object({
     .regex(/^[a-zA-Z0-9._-]+$/, "Username hanya boleh huruf, angka, titik, underscore, dan strip"),
   name: z.string().min(1, "Nama tidak boleh kosong"),
   role: z.enum(["OWNER", "MANAGER", "CASHIER", "STAFF"]),
+  salary: z.coerce.number().int().min(0).nullable().optional(),
 });
 
 export async function addStaff(formData: FormData) {
   await requireOwner();
 
+  const salaryRaw = formData.get("salary");
   const parsed = staffSchema.safeParse({
     username: formData.get("username"),
     name: formData.get("name"),
     role: formData.get("role"),
+    salary: salaryRaw ? Number(salaryRaw) : null,
   });
   if (!parsed.success) actionError.fromZod(parsed.error);
   const addData = parsed.data!;
 
   await prisma.staff.create({
-    data: { username: addData.username, name: addData.name, role: addData.role as RoleEnum },
+    data: { username: addData.username, name: addData.name, role: addData.role as RoleEnum, salary: addData.salary ?? null },
   });
   revalidatePath("/admin/staff");
 }
@@ -35,17 +38,19 @@ export async function addStaff(formData: FormData) {
 export async function updateStaff(id: string, formData: FormData) {
   await requireOwner();
 
+  const salaryRaw = formData.get("salary");
   const parsed = staffSchema.safeParse({
     username: formData.get("username"),
     name: formData.get("name"),
     role: formData.get("role"),
+    salary: salaryRaw ? Number(salaryRaw) : null,
   });
   if (!parsed.success) actionError.fromZod(parsed.error);
   const updateData = parsed.data!;
 
   await prisma.staff.update({
     where: { id },
-    data: { username: updateData.username, name: updateData.name, role: updateData.role as RoleEnum },
+    data: { username: updateData.username, name: updateData.name, role: updateData.role as RoleEnum, salary: updateData.salary ?? null },
   });
   revalidatePath("/admin/staff");
 }

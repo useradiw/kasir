@@ -1,4 +1,4 @@
-import type { OrderItem, OrderItemStatus, ServiceEnum, MenuItem, MenuVariant } from "@/lib/db";
+import type { OrderItem, OrderItemStatus, ServiceEnum, MenuItem, MenuVariant, OnlinePrice } from "@/lib/db";
 
 /** Sum price * qty for non-cancelled items. */
 export function calcSubtotal(items: OrderItem[]): number {
@@ -7,8 +7,19 @@ export function calcSubtotal(items: OrderItem[]): number {
     .reduce((sum, i) => sum + i.price * i.qty, 0);
 }
 
-/** Final item price: base + variant modifier. */
-export function calcItemPrice(item: MenuItem, variant?: MenuVariant | null): number {
+/** Final item price: online override if available, otherwise base + variant modifier. */
+export function calcItemPrice(
+  item: MenuItem,
+  variant?: MenuVariant | null,
+  service?: ServiceEnum | null,
+  onlinePrices?: OnlinePrice[],
+): number {
+  if (service && onlinePrices && (service === "GoFood" || service === "ShopeeFood" || service === "GrabFood")) {
+    const match = onlinePrices.find(
+      (op) => op.menuItemId === item.id && op.variantId === (variant?.id ?? null) && op.service === service,
+    );
+    if (match) return match.price;
+  }
   return item.price + (variant?.priceModifier ?? 0);
 }
 

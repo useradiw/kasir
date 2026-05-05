@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireOwner, requireRole } from "@/lib/admin-auth";
+import { requireRole } from "@/lib/admin-auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { localDateKey } from "@/lib/format";
 
@@ -77,6 +77,7 @@ export async function getStaffWithEmails() {
     name: s.name,
     role: s.role as "OWNER" | "MANAGER" | "CASHIER" | "STAFF",
     isActive: s.isActive,
+    salary: s.salary,
     supabaseUserId: s.supabaseUserId,
     supabaseEmail: s.supabaseUserId ? (emailMap[s.supabaseUserId] ?? null) : null,
     createdAt: s.createdAt.toISOString(),
@@ -115,7 +116,7 @@ export async function getSessionsData() {
 export async function getInventoryData() {
   await requireRole("OWNER", "MANAGER");
 
-  const [categories, menuItems, variants, packages, packageItems] = await Promise.all([
+  const [categories, menuItems, variants, packages, packageItems, onlinePrices] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
     prisma.menuItem.findMany({
       orderBy: [
@@ -135,6 +136,9 @@ export async function getInventoryData() {
         menuItem: { select: { name: true } },
         variant: { select: { label: true } },
       },
+    }),
+    prisma.menuItemOnlinePrice.findMany({
+      orderBy: [{ menuItemId: "asc" }, { service: "asc" }],
     }),
   ]);
 
@@ -178,6 +182,13 @@ export async function getInventoryData() {
       nameSnapshot: pi.nameSnapshot,
       menuItemName: pi.menuItem.name,
       variantLabel: pi.variant?.label ?? null,
+    })),
+    onlinePrices: onlinePrices.map((op) => ({
+      id: op.id,
+      menuItemId: op.menuItemId,
+      variantId: op.variantId,
+      service: op.service as string,
+      price: op.price,
     })),
   };
 }
@@ -511,11 +522,14 @@ export async function getExpensesData(opts: { from: string; to: string }) {
       description: i.description,
       amount: i.amount,
       cost: i.cost,
+      unit: i.unit,
+      templateId: i.templateId,
     }));
     return {
       id: e.id,
       description: e.description,
       deductFromCash: e.deductFromCash,
+      countToKasPakHar: e.countToKasPakHar,
       recordedAt: e.recordedAt.toISOString(),
       createdAt: e.createdAt.toISOString(),
       staffName: e.staff?.name ?? null,
@@ -561,8 +575,9 @@ function getDateRange(period: "daily" | "weekly" | "monthly", dateStr: string) {
 export async function getReportData(opts: {
   period: "daily" | "weekly" | "monthly";
   date: string;
+  isOwner?: boolean;
 }) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const { start, end } = getDateRange(opts.period, opts.date);
 
@@ -716,19 +731,21 @@ export async function getReportData(opts: {
     ...v,
   }));
 
+  const isOwner = opts.isOwner ?? false;
+
   return {
     period: opts.period,
     dateRange: { start: localDateKey(start), end: localDateKey(new Date(end.getTime() - 1)) },
     revenue: { total: totalRevenue, count: totalTransactions, average: avgTransaction },
-    totalExpenses,
-    netProfit: totalRevenue - totalExpenses,
+    totalExpenses: isOwner ? totalExpenses : 0,
+    netProfit: isOwner ? totalRevenue - totalExpenses : 0,
     revenueByDay,
     paymentMethods,
     serviceChannels,
     topItems,
-    cashRegisterSummary,
+    cashRegisterSummary: isOwner ? cashRegisterSummary : [],
     attendanceSummary,
-    expenses: expenses.map((e) => ({
+    expenses: isOwner ? expenses.map((e) => ({
       id: e.id,
       total: expenseTotal(e),
       description: e.description,
@@ -738,7 +755,7 @@ export async function getReportData(opts: {
         amount: i.amount,
         cost: i.cost,
       })),
-    })),
+    })) : [],
     transactions: paidTx.map((t) => ({
       id: t.id,
       sessionName: t.tableSession.name,

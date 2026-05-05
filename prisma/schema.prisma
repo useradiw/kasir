@@ -20,29 +20,31 @@ model Category {
 }
 
 model MenuItem {
-  id           String        @id @default(uuid())
+  id           String                @id @default(uuid())
   name         String
   categoryId   String
   price        Int
-  isHidden     Boolean       @default(false)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  category     Category      @relation(fields: [categoryId], references: [id])
+  isHidden     Boolean               @default(false)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  category     Category              @relation(fields: [categoryId], references: [id])
   variants     MenuVariant[]
   packageItems PackageItem[]
   orderItems   OrderItem[]
+  onlinePrices MenuItemOnlinePrice[]
 
   @@map("menu_items")
 }
 
 model MenuVariant {
-  id            String        @id @default(uuid())
+  id            String                @id @default(uuid())
   menuItemId    String
   label         String
-  priceModifier Int           @default(0)
-  menuItem      MenuItem      @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  priceModifier Int                   @default(0)
+  menuItem      MenuItem              @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
   orderItems    OrderItem[]
   packageItems  PackageItem[]
+  onlinePrices  MenuItemOnlinePrice[]
 
   @@map("menu_variants")
 }
@@ -145,25 +147,30 @@ model Transaction {
 }
 
 model Expense {
-  id             String        @id @default(uuid())
-  description    String?
-  recordedAt     DateTime      @default(now())
-  createdAt      DateTime      @default(now())
-  staffId        String?
-  deductFromCash Boolean       @default(true)
-  staff          Staff?        @relation(fields: [staffId], references: [id])
-  items          ExpenseItem[]
+  id               String        @id @default(uuid())
+  description      String?
+  recordedAt       DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  staffId          String?
+  deductFromCash   Boolean       @default(true)
+  countToKasPakHar Boolean       @default(false)
+  staff            Staff?        @relation(fields: [staffId], references: [id])
+  items            ExpenseItem[]
+  kasPakHarEntries KasPakHar[]
 
   @@map("expenses")
 }
 
 model ExpenseItem {
-  id          String  @id @default(uuid())
+  id          String           @id @default(uuid())
   expenseId   String
-  expense     Expense @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  expense     Expense          @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   description String
-  amount      Int
+  amount      Float
   cost        Int
+  unit        String?
+  templateId  String?
+  template    ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@map("expense_items")
 }
@@ -205,6 +212,7 @@ model Staff {
   role              RoleEnum
   isActive          Boolean            @default(true)
   supabaseUserId    String?            @unique
+  salary            Int?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
   attendanceRecords   AttendanceRecord[]
@@ -216,6 +224,7 @@ model Staff {
   editedRegisters     CashRegister[]     @relation("EditedRegisters")
   expenses            Expense[]
   notifications       Notification[]
+  kasPakHarEntries    KasPakHar[]
 
   @@map("staff")
 }
@@ -245,6 +254,52 @@ model AttendanceRecord {
 
   @@unique([staffId, date])
   @@map("attendance_records")
+}
+
+// --- KAS PAK HAR ---
+
+model KasPakHar {
+  id          String        @id @default(uuid())
+  date        DateTime      @default(now())
+  type        KasPakHarType
+  amount      Int
+  description String?
+  expenseId   String?
+  expense     Expense?      @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   Staff?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+
+  @@map("kas_pak_har")
+}
+
+// --- ONLINE PRICING ---
+
+model MenuItemOnlinePrice {
+  id         String       @id @default(uuid())
+  menuItemId String
+  variantId  String?
+  service    ServiceEnum
+  price      Int
+  menuItem   MenuItem     @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  variant    MenuVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([menuItemId, variantId, service])
+  @@map("menu_item_online_prices")
+}
+
+// --- EXPENSE TEMPLATES ---
+
+model ExpenseTemplate {
+  id           String        @id @default(uuid())
+  name         String        @unique
+  defaultUnit  String?
+  defaultCost  Int?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  expenseItems ExpenseItem[]
+
+  @@map("expense_templates")
 }
 
 // --- ENUMS ---
@@ -290,4 +345,10 @@ enum NotificationType {
   TRANSACTION_VOIDED
   SESSION_VOIDED
   TEST
+}
+
+enum KasPakHarType {
+  DEPOSIT
+  WITHDRAWAL
+  EXPENSE_DEDUCTION
 }

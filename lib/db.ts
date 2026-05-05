@@ -43,6 +43,14 @@ export interface PackageItem {
   nameSnapshot: string;
 }
 
+export interface OnlinePrice {
+  id: string;
+  menuItemId: string;
+  variantId: string | null;
+  service: ServiceEnum;
+  price: number;
+}
+
 // ─── Transaction schema (local-first, synced to server on payment) ────────────
 
 export type ServiceEnum =
@@ -117,6 +125,7 @@ export class KasirDB extends Dexie {
   menu_variants!: EntityTable<MenuVariant, "id">;
   packages!: EntityTable<Package, "id">;
   package_items!: EntityTable<PackageItem, "id">;
+  online_prices!: EntityTable<OnlinePrice, "id">;
   table_sessions!: EntityTable<TableSession, "id">;
   order_items!: EntityTable<OrderItem, "id">;
   transactions!: EntityTable<Transaction, "id">;
@@ -143,6 +152,9 @@ export class KasirDB extends Dexie {
         if (session.customerPhone === undefined) session.customerPhone = null;
         if (session.erasedAt === undefined) session.erasedAt = null;
       });
+    });
+    this.version(4).stores({
+      online_prices: "id, [menuItemId+variantId+service]",
     });
   }
 }

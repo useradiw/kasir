@@ -45,10 +45,12 @@ export function ReportClient({
   data,
   currentPeriod,
   currentDate,
+  isOwner = true,
 }: {
   data: ReportData;
   currentPeriod: string;
   currentDate: string;
+  isOwner?: boolean;
 }) {
   const router = useRouter();
   const [showTransactions, setShowTransactions] = useState(false);
@@ -207,12 +209,16 @@ export function ReportClient({
             &rarr;
           </Button>
         </div>
-        <Button variant="outline" size="sm" onClick={handleCSV}>
-          CSV
-        </Button>
-        <Button variant="outline" size="sm" onClick={handlePDF}>
-          PDF
-        </Button>
+        {isOwner && (
+          <>
+            <Button variant="outline" size="sm" onClick={handleCSV}>
+              CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={handlePDF}>
+              PDF
+            </Button>
+          </>
+        )}
       </div>
 
       {/* Period Label */}
@@ -224,12 +230,14 @@ export function ReportClient({
       <div className="grid grid-cols-2 gap-3">
         <SummaryCard label="Total Pendapatan" value={formatRupiah(data.revenue.total)} />
         <SummaryCard label="Transaksi" value={`${data.revenue.count} (avg ${formatRupiah(data.revenue.average)})`} />
-        <SummaryCard label="Pengeluaran" value={formatRupiah(data.totalExpenses)} />
-        <SummaryCard
-          label="Laba Bersih"
-          value={formatRupiah(data.netProfit)}
-          className={data.netProfit < 0 ? "text-destructive" : "text-primary"}
-        />
+        {isOwner && <SummaryCard label="Pengeluaran" value={formatRupiah(data.totalExpenses)} />}
+        {isOwner && (
+          <SummaryCard
+            label="Laba Bersih"
+            value={formatRupiah(data.netProfit)}
+            className={data.netProfit < 0 ? "text-destructive" : "text-primary"}
+          />
+        )}
       </div>
 
       {/* Charts Row 1: Revenue + Payment Methods */}
@@ -349,34 +357,36 @@ export function ReportClient({
         </Card>
       </div>
 
-      {/* Cash Register */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Kas Harian</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.cashRegisterSummary.length > 0 ? (
-            <div className="divide-y divide-foreground/5">
-              {data.cashRegisterSummary.map((c, i) => (
-                <div key={i} className="py-2 space-y-0.5">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{shortDate(c.date)}</span>
-                    <span className={c.difference !== null && c.difference < 0 ? "text-destructive" : ""}>
-                      {c.difference !== null ? formatRupiah(c.difference) : "—"}
-                    </span>
+      {/* Cash Register (owner only) */}
+      {isOwner && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Kas Harian</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {data.cashRegisterSummary.length > 0 ? (
+              <div className="divide-y divide-foreground/5">
+                {data.cashRegisterSummary.map((c, i) => (
+                  <div key={i} className="py-2 space-y-0.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium">{shortDate(c.date)}</span>
+                      <span className={c.difference !== null && c.difference < 0 ? "text-destructive" : ""}>
+                        {c.difference !== null ? formatRupiah(c.difference) : "—"}
+                      </span>
+                    </div>
+                    <div className="flex gap-3 text-xs text-muted-foreground">
+                      <span>Awal: {formatRupiah(c.openingCash)}</span>
+                      <span>Akhir: {c.closingCash !== null ? formatRupiah(c.closingCash) : "—"}</span>
+                    </div>
                   </div>
-                  <div className="flex gap-3 text-xs text-muted-foreground">
-                    <span>Awal: {formatRupiah(c.openingCash)}</span>
-                    <span>Akhir: {c.closingCash !== null ? formatRupiah(c.closingCash) : "—"}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada kas terdaftar.</p>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada kas terdaftar.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Attendance Summary (if available) */}
       {data.attendanceSummary.length > 0 && (
@@ -400,49 +410,51 @@ export function ReportClient({
         </Card>
       )}
 
-      {/* Transaction Details (Collapsible) */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm">Detail Transaksi ({data.transactions.length})</CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => setShowTransactions(!showTransactions)}>
-              {showTransactions ? "Sembunyikan" : "Tampilkan"}
-            </Button>
-          </div>
-        </CardHeader>
-        {showTransactions && (
-          <CardContent>
-            {data.transactions.length > 0 ? (
-              <div className="divide-y divide-foreground/5">
-                {data.transactions.map((t) => (
-                  <div key={t.id} className="py-2 space-y-0.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate">{t.sessionName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(t.paidAt).toLocaleString("id-ID", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
-                          {t.processedBy && <> · {t.processedBy}</>}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        <p className="text-sm font-medium">{formatRupiah(t.totalAmount)}</p>
-                        <span className="rounded-full px-2 py-0.5 text-xs bg-primary/10 text-primary">
-                          {METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod}
-                        </span>
+      {/* Transaction Details (Collapsible) — owner only */}
+      {isOwner && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm">Detail Transaksi ({data.transactions.length})</CardTitle>
+              <Button variant="ghost" size="sm" onClick={() => setShowTransactions(!showTransactions)}>
+                {showTransactions ? "Sembunyikan" : "Tampilkan"}
+              </Button>
+            </div>
+          </CardHeader>
+          {showTransactions && (
+            <CardContent>
+              {data.transactions.length > 0 ? (
+                <div className="divide-y divide-foreground/5">
+                  {data.transactions.map((t) => (
+                    <div key={t.id} className="py-2 space-y-0.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{t.sessionName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(t.paidAt).toLocaleString("id-ID", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
+                            {t.processedBy && <> · {t.processedBy}</>}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-medium">{formatRupiah(t.totalAmount)}</p>
+                          <span className="rounded-full px-2 py-0.5 text-xs bg-primary/10 text-primary">
+                            {METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod}
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">Tidak ada transaksi.</p>
-            )}
-          </CardContent>
-        )}
-      </Card>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground py-4 text-center">Tidak ada transaksi.</p>
+              )}
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Voided indicator */}
-      {data.voidedCount > 0 && (
+      {isOwner && data.voidedCount > 0 && (
         <p className="text-xs text-muted-foreground text-center">
           {data.voidedCount} transaksi void tidak termasuk dalam perhitungan.
         </p>

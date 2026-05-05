@@ -15,11 +15,12 @@ import { computeExpenseTotal } from "@/lib/expense-utils";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/admin/expenses";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 
-type ExpenseItem = { id: string; description: string; amount: number; cost: number };
+type ExpenseItem = { id: string; description: string; amount: number; cost: number; unit?: string | null; templateId?: string | null };
 type Expense = {
   id: string;
   description: string | null;
   deductFromCash: boolean;
+  countToKasPakHar: boolean;
   recordedAt: string;
   createdAt: string;
   staffName: string | null;
@@ -127,10 +128,13 @@ export default function ExpensesClient({
                         defaultValues={{
                           description: e.description ?? undefined,
                           deductFromCash: e.deductFromCash,
+                          countToKasPakHar: e.countToKasPakHar,
                           items: e.items.map((i) => ({
                             description: i.description,
                             amount: i.amount,
                             cost: i.cost,
+                            unit: i.unit ?? undefined,
+                            templateId: i.templateId ?? null,
                           })),
                         }}
                         onSubmit={(data) =>
@@ -151,11 +155,16 @@ export default function ExpensesClient({
                           >
                             {isExpanded ? <ChevronDown className="size-4 mt-0.5 shrink-0" /> : <ChevronRight className="size-4 mt-0.5 shrink-0" />}
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <p className="text-sm font-medium">{formatRupiah(total)}</p>
-                                {!e.deductFromCash && (
+                                {!e.deductFromCash && !e.countToKasPakHar && (
                                   <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                                     Non-kas
+                                  </span>
+                                )}
+                                {e.countToKasPakHar && (
+                                  <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                                    Kas Pak Har
                                   </span>
                                 )}
                               </div>
@@ -192,7 +201,9 @@ export default function ExpensesClient({
                             {e.items.map((item) => (
                               <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>{item.description}</span>
-                                <span>{item.amount} &times; {formatRupiah(item.cost)} = {formatRupiah(item.amount * item.cost)}</span>
+                                <span>
+                                  {item.amount}{item.unit ? ` ${item.unit}` : ""} &times; {formatRupiah(item.cost)} = {formatRupiah(item.amount * item.cost)}
+                                </span>
                               </div>
                             ))}
                           </div>
