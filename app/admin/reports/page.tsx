@@ -11,9 +11,9 @@ export default async function ReportsPage({
   const staff = await requireRole("OWNER", "MANAGER");
   const isOwner = staff.role === "OWNER";
   const params = await searchParams;
-  const period = (["daily", "weekly", "monthly"].includes(params.period ?? "")
+  const period = (["daily", "weekly", "monthly", "yearly"].includes(params.period ?? "")
     ? params.period
-    : "daily") as "daily" | "weekly" | "monthly";
+    : "daily") as "daily" | "weekly" | "monthly" | "yearly";
 
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;

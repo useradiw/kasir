@@ -547,7 +547,7 @@ export async function getExpensesData(opts: { from: string; to: string }) {
 
 // ─── Reports ──────────────────────────────────────────────────────────────────
 
-function getDateRange(period: "daily" | "weekly" | "monthly", dateStr: string) {
+function getDateRange(period: "daily" | "weekly" | "monthly" | "yearly", dateStr: string) {
   const [y, m, d] = dateStr.split("-").map(Number);
   const base = new Date(y, m - 1, d);
 
@@ -566,6 +566,13 @@ function getDateRange(period: "daily" | "weekly" | "monthly", dateStr: string) {
     return { start: monday, end: nextMonday };
   }
 
+  if (period === "yearly") {
+    // Jan 1 – Dec 31 of the selected year (end is exclusive upper bound)
+    const start = new Date(y, 0, 1);
+    const end = new Date(y + 1, 0, 1);
+    return { start, end };
+  }
+
   // monthly
   const start = new Date(y, m - 1, 1);
   const end = new Date(y, m, 1);
@@ -573,7 +580,7 @@ function getDateRange(period: "daily" | "weekly" | "monthly", dateStr: string) {
 }
 
 export async function getReportData(opts: {
-  period: "daily" | "weekly" | "monthly";
+  period: "daily" | "weekly" | "monthly" | "yearly";
   date: string;
   isOwner?: boolean;
 }) {
@@ -581,11 +588,13 @@ export async function getReportData(opts: {
 
   const { start, end } = getDateRange(opts.period, opts.date);
 
+  // Load commission settings for online vendors
   const [
     transactions,
     expenses,
     cashRegisters,
     attendanceRecords,
+    settings,
   ] = await Promise.all([
     prisma.transaction.findMany({
       where: { paidAt: { gte: start, lt: end } },
@@ -616,7 +625,37 @@ export async function getReportData(opts: {
       where: { date: { gte: start, lt: end } },
       include: { staff: { select: { name: true } } },
     }),
+    prisma.setting.findMany({
+      where: {
+        key: {
+          in: [
+            "gofood_commission_pct", "gofood_commission_flat",
+            "shopeefood_commission_pct", "shopeefood_commission_flat",
+            "grabfood_commission_pct", "grabfood_commission_flat",
+          ],
+        },
+      },
+    }),
   ]);
+
+  // Parse commission settings
+  const settingMap: Record<string, string> = {};
+  for (const s of settings) settingMap[s.key] = s.value;
+  function num(v: string | undefined, isFloat = true): number {
+    if (!v) return 0;
+    const n = isFloat ? parseFloat(v) : parseInt(v, 10);
+    return Number.isFinite(n) ? n : 0;
+  }
+  const commissionBySvc: Record<string, { pct: number; flat: number }> = {
+    GoFood:     { pct: num(settingMap.gofood_commission_pct),     flat: num(settingMap.gofood_commission_flat, false) },
+    ShopeeFood: { pct: num(settingMap.shopeefood_commission_pct), flat: num(settingMap.shopeefood_commission_flat, false) },
+    GrabFood:   { pct: num(settingMap.grabfood_commission_pct),   flat: num(settingMap.grabfood_commission_flat, false) },
+  };
+  function calcCommission(amount: number, svc: string): number {
+    const c = commissionBySvc[svc];
+    if (!c || (c.pct === 0 && c.flat === 0)) return 0;
+    return Math.round(amount * c.pct / 100) + c.flat;
+  }
 
   // --- Revenue summary ---
   const paidTx = transactions.filter((t) => t.status === "PAID");
@@ -624,21 +663,39 @@ export async function getReportData(opts: {
   const totalTransactions = paidTx.length;
   const avgTransaction = totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 0;
 
-  // --- Revenue by day ---
-  const revenueByDayMap: Record<string, { revenue: number; count: number }> = {};
-  for (const t of paidTx) {
-    const key = localDateKey(t.paidAt);
-    if (!revenueByDayMap[key]) revenueByDayMap[key] = { revenue: 0, count: 0 };
-    revenueByDayMap[key].revenue += t.totalAmount;
-    revenueByDayMap[key].count += 1;
-  }
-  // Fill all days in range
+  // --- Revenue by day (or by month for yearly) ---
   const revenueByDay: { date: string; revenue: number; count: number }[] = [];
-  const cursor = new Date(start);
-  while (cursor < end) {
-    const key = localDateKey(cursor);
-    revenueByDay.push({ date: key, ...(revenueByDayMap[key] ?? { revenue: 0, count: 0 }) });
-    cursor.setDate(cursor.getDate() + 1);
+  if (opts.period === "yearly") {
+    // Group by month: keys are "YYYY-MM"
+    const byMonth: Record<string, { revenue: number; count: number }> = {};
+    for (const t of paidTx) {
+      const d = t.paidAt;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      if (!byMonth[key]) byMonth[key] = { revenue: 0, count: 0 };
+      byMonth[key].revenue += t.totalAmount;
+      byMonth[key].count += 1;
+    }
+    // Fill all 12 months in the year
+    const year = start.getFullYear();
+    for (let mo = 0; mo < 12; mo++) {
+      const key = `${year}-${String(mo + 1).padStart(2, "0")}`;
+      revenueByDay.push({ date: key, ...(byMonth[key] ?? { revenue: 0, count: 0 }) });
+    }
+  } else {
+    const revenueByDayMap: Record<string, { revenue: number; count: number }> = {};
+    for (const t of paidTx) {
+      const key = localDateKey(t.paidAt);
+      if (!revenueByDayMap[key]) revenueByDayMap[key] = { revenue: 0, count: 0 };
+      revenueByDayMap[key].revenue += t.totalAmount;
+      revenueByDayMap[key].count += 1;
+    }
+    // Fill all days in range
+    const cursor = new Date(start);
+    while (cursor < end) {
+      const key = localDateKey(cursor);
+      revenueByDay.push({ date: key, ...(revenueByDayMap[key] ?? { revenue: 0, count: 0 }) });
+      cursor.setDate(cursor.getDate() + 1);
+    }
   }
 
   // --- Payment method breakdown ---
@@ -654,12 +711,15 @@ export async function getReportData(opts: {
     ...v,
   }));
 
-  // --- Service channel breakdown ---
-  const serviceMap: Record<string, { amount: number; count: number }> = {};
+  // --- Service channel breakdown (with commission) ---
+  const serviceMap: Record<string, { amount: number; commission: number; netAmount: number; count: number }> = {};
   for (const t of paidTx) {
     const svc = (t.tableSession.service as string) ?? "Dine In";
-    if (!serviceMap[svc]) serviceMap[svc] = { amount: 0, count: 0 };
+    if (!serviceMap[svc]) serviceMap[svc] = { amount: 0, commission: 0, netAmount: 0, count: 0 };
+    const commission = calcCommission(t.totalAmount, svc);
     serviceMap[svc].amount += t.totalAmount;
+    serviceMap[svc].commission += commission;
+    serviceMap[svc].netAmount += t.totalAmount - commission;
     serviceMap[svc].count += 1;
   }
   const serviceChannels = Object.entries(serviceMap).map(([service, v]) => ({
@@ -773,3 +833,59 @@ export async function getReportData(opts: {
 }
 
 export type ReportData = Awaited<ReturnType<typeof getReportData>>;
+
+// ─── Recipes ──────────────────────────────────────────────────────────────────
+
+export async function getRecipeData() {
+  await requireRole("OWNER", "MANAGER");
+
+  const [templates, recipes] = await Promise.all([
+    prisma.expenseTemplate.findMany({
+      where: { isActive: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, defaultUnit: true, defaultCost: true },
+    }),
+    prisma.recipe.findMany({
+      include: {
+        menuItem: { select: { id: true, name: true } },
+        variant:  { select: { id: true, label: true, priceModifier: true } },
+        ingredients: {
+          include: {
+            template: { select: { name: true, defaultUnit: true, defaultCost: true } },
+          },
+          orderBy: { id: "asc" },
+        },
+      },
+      orderBy: [{ menuItem: { name: "asc" } }],
+    }),
+  ]);
+
+  return {
+    templates: templates.map((t) => ({
+      id: t.id,
+      name: t.name,
+      defaultUnit: t.defaultUnit,
+      defaultCost: t.defaultCost,
+    })),
+    recipes: recipes.map((r) => ({
+      id: r.id,
+      menuItemId: r.menuItemId,
+      menuItemName: r.menuItem.name,
+      variantId: r.variantId,
+      variantLabel: r.variant?.label ?? null,
+      notes: r.notes,
+      ingredients: r.ingredients.map((i) => ({
+        id: i.id,
+        templateId: i.templateId,
+        templateName: i.template?.name ?? null,
+        templateUnit: i.template?.defaultUnit ?? null,
+        templateCost: i.template?.defaultCost ?? null,
+        customName: i.customName,
+        customUnit: i.customUnit,
+        quantity: i.quantity,
+      })),
+    })),
+  };
+}
+
+export type RecipeData = Awaited<ReturnType<typeof getRecipeData>>;

@@ -18,6 +18,8 @@ import {
   addPackageItem, deletePackageItem,
   setOnlinePrice, deleteOnlinePrice,
 } from "@/app/actions/admin/inventory";
+import RecipeTab from "./recipe-tab";
+import type { RecipeData } from "@/app/actions/admin/queries";
 
 type Category = { id: string; name: string; sortOrder: number; createdAt: string; updatedAt: string };
 type MenuItem = { id: string; name: string; categoryId: string; categoryName: string; price: number; isHidden: boolean; createdAt: string; updatedAt: string };
@@ -34,6 +36,8 @@ type Props = {
   packages: Package[];
   packageItems: PackageItem[];
   onlinePrices: OnlinePrice[];
+  templates: RecipeData["templates"];
+  recipes: RecipeData["recipes"];
   isOwner: boolean;
 };
 
@@ -43,11 +47,12 @@ const TABS = [
   { key: "variants", label: "Varian" },
   { key: "packages", label: "Paket" },
   { key: "online", label: "Harga Online" },
+  { key: "recipes", label: "Resep" },
 ];
 
 const SERVICES = ["GoFood", "ShopeeFood", "GrabFood"] as const;
 
-export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, onlinePrices, isOwner }: Props) {
+export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, onlinePrices, templates, recipes, isOwner }: Props) {
   const router = useRouter();
   const { isPending, run, error, setError } = useAdminAction();
   const confirm = useConfirm();
@@ -467,6 +472,17 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* ─── RECIPES ─── */}
+      {tab === "recipes" && (
+        <RecipeTab
+          templates={templates}
+          recipes={recipes}
+          menuItems={menuItems}
+          variants={variants}
+          isOwner={isOwner}
+        />
       )}
     </div>
   );

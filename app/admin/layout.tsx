@@ -1,16 +1,7 @@
-import Link from "next/link";
 import { Container } from "@/components/shared/container";
 import { requireRole } from "@/lib/admin-auth";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-  navigationMenuTriggerStyle,
-} from "@/components/ui/navigation-menu"
+import { DevNav } from "@/components/admin/dev-nav";
 
 const navItemsBase = [
   { trigger: "Navigasi", content: [
@@ -25,13 +16,15 @@ const navItemsBase = [
   { trigger: "Barang", content: [
     { href: "/admin/inventory", label: "Inventori" },
   ]},
+  { trigger: "Keuangan", content: [
+    { href: "/admin/cash-register", label: "Kas Harian" },
+    { href: "/admin/kas-pak-har", label: "Kas Pak Har", ownerOnly: true },
+    { href: "/admin/expense-templates", label: "Template Pengeluaran" },
+  ]},
   { trigger: "Laporan", content: [
     { href: "/admin/reports", label: "Laporan" },
     { href: "/admin/transactions", label: "Transaksi" },
     { href: "/admin/expenses", label: "Pengeluaran" },
-    { href: "/admin/cash-register", label: "Kas Harian" },
-    { href: "/admin/kas-pak-har", label: "Kas Pak Har", ownerOnly: true },
-    { href: "/admin/expense-templates", label: "Template Pengeluaran" },
   ]},
   { trigger: "Sistem", content: [
     { href: "/admin/notifications", label: "Notifikasi", ownerOnly: true },
@@ -64,27 +57,7 @@ export default async function AdminLayout({
             <span className="text-sm truncate text-muted-foreground max-w-45">{displayEmail}</span>
           </div>
         </div>
-        <NavigationMenu className="mt-2" align="start">
-          <NavigationMenuList className="gap-0 justify-start">
-              {navItems.map((item) => (
-                <NavigationMenuItem key={item.trigger}>
-                  <NavigationMenuTrigger className="text-xs sm:text-sm px-2.5 sm:px-4">
-                    {item.trigger}
-                  </NavigationMenuTrigger>
-                  {item.content.map((item) => (
-                    <NavigationMenuContent key={item.label}>
-                      <NavigationMenuLink
-                        render={<Link href={item.href} className="cursor-pointer" />}
-                        className={navigationMenuTriggerStyle()}
-                      >
-                        {item.label}
-                      </NavigationMenuLink>
-                    </NavigationMenuContent>
-                  ))}
-                </NavigationMenuItem>
-              ))}
-          </NavigationMenuList>
-        </NavigationMenu>
+        <DevNav navItems={navItems} />
       </Container>
       <main className="mt-24 sm:mt-28">
         {children}

@@ -9,6 +9,13 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   lock_hours: "4",
   default_tax_pct: "0",
   default_service_pct: "0",
+  // Online vendor commissions
+  gofood_commission_pct: "0",
+  gofood_commission_flat: "0",
+  shopeefood_commission_pct: "0",
+  shopeefood_commission_flat: "0",
+  grabfood_commission_pct: "0",
+  grabfood_commission_flat: "0",
 };
 
 export type StoreInfo = {

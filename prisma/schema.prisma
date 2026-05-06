@@ -32,6 +32,7 @@ model MenuItem {
   packageItems PackageItem[]
   orderItems   OrderItem[]
   onlinePrices MenuItemOnlinePrice[]
+  recipes      Recipe[]
 
   @@map("menu_items")
 }
@@ -45,6 +46,7 @@ model MenuVariant {
   orderItems    OrderItem[]
   packageItems  PackageItem[]
   onlinePrices  MenuItemOnlinePrice[]
+  recipes       Recipe[]
 
   @@map("menu_variants")
 }
@@ -291,15 +293,46 @@ model MenuItemOnlinePrice {
 // --- EXPENSE TEMPLATES ---
 
 model ExpenseTemplate {
-  id           String        @id @default(uuid())
-  name         String        @unique
-  defaultUnit  String?
-  defaultCost  Int?
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  expenseItems ExpenseItem[]
+  id                String             @id @default(uuid())
+  name              String             @unique
+  defaultUnit       String?
+  defaultCost       Int?
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
+  expenseItems      ExpenseItem[]
+  recipeIngredients RecipeIngredient[]
 
   @@map("expense_templates")
+}
+
+// --- RECIPES ---
+
+model Recipe {
+  id          String             @id @default(uuid())
+  menuItemId  String
+  variantId   String?            // null = base item; non-null = specific variant
+  notes       String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  menuItem    MenuItem           @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  variant     MenuVariant?       @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  ingredients RecipeIngredient[]
+
+  @@unique([menuItemId, variantId])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id           String           @id @default(uuid())
+  recipeId     String
+  templateId   String?          // FK to ExpenseTemplate; null = standalone ingredient
+  customName   String?          // required when templateId is null
+  customUnit   String?
+  quantity     Float
+  recipe       Recipe           @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  @@map("recipe_ingredients")
 }
 
 // --- ENUMS ---

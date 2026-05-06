@@ -20,7 +20,10 @@ const PERIOD_LABEL: Record<string, string> = {
   daily: "Harian",
   weekly: "Mingguan",
   monthly: "Bulanan",
+  yearly: "Tahunan",
 };
+
+const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
 
 const METHOD_LABEL: Record<string, string> = {
   CASH: "Tunai",
@@ -65,15 +68,31 @@ export function ReportClient({
 
     if (currentPeriod === "daily") base.setDate(base.getDate() + direction);
     else if (currentPeriod === "weekly") base.setDate(base.getDate() + direction * 7);
+    else if (currentPeriod === "yearly") base.setFullYear(base.getFullYear() + direction);
     else base.setMonth(base.getMonth() + direction);
 
     const newDate = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
     navigate(currentPeriod, newDate);
   }
 
-  const dateRangeLabel = data.dateRange.start === data.dateRange.end
-    ? shortDate(data.dateRange.start)
-    : `${shortDate(data.dateRange.start)} – ${shortDate(data.dateRange.end)}`;
+  // Format bar chart x-axis labels based on period
+  function xAxisFormatter(val: string) {
+    if (currentPeriod === "yearly") {
+      // val is "YYYY-MM"
+      const mo = parseInt(val.split("-")[1], 10) - 1;
+      return MONTH_NAMES[mo] ?? val;
+    }
+    return shortDate(val);
+  }
+
+  // Chart/section title for revenue-over-time chart
+  const revenueChartTitle = currentPeriod === "yearly" ? "Pendapatan per Bulan" : "Pendapatan per Hari";
+
+  const dateRangeLabel = currentPeriod === "yearly"
+    ? String(currentDate.split("-")[0]) // show just the year
+    : data.dateRange.start === data.dateRange.end
+      ? shortDate(data.dateRange.start)
+      : `${shortDate(data.dateRange.start)} – ${shortDate(data.dateRange.end)}`;
 
   // --- Export handlers ---
   function handleCSV() {
@@ -91,8 +110,8 @@ export function ReportClient({
         ],
       },
       {
-        title: "Pendapatan per Hari",
-        headers: ["Tanggal", "Pendapatan", "Jumlah Transaksi"],
+        title: currentPeriod === "yearly" ? "Pendapatan per Bulan" : "Pendapatan per Hari",
+        headers: [currentPeriod === "yearly" ? "Bulan" : "Tanggal", "Pendapatan", "Jumlah Transaksi"],
         rows: data.revenueByDay.map((r) => [r.date, r.revenue, r.count]),
       },
       {
@@ -141,8 +160,8 @@ export function ReportClient({
     ];
     const sections = [
       {
-        title: "Pendapatan per Hari",
-        headers: ["Tanggal", "Pendapatan", "Jumlah Transaksi"],
+        title: currentPeriod === "yearly" ? "Pendapatan per Bulan" : "Pendapatan per Hari",
+        headers: [currentPeriod === "yearly" ? "Bulan" : "Tanggal", "Pendapatan", "Jumlah Transaksi"],
         rows: data.revenueByDay.map((r) => [r.date, fmtRp(r.revenue), r.count]),
       },
       {
@@ -194,6 +213,7 @@ export function ReportClient({
           <option value="daily">Harian</option>
           <option value="weekly">Mingguan</option>
           <option value="monthly">Bulanan</option>
+          <option value="yearly">Tahunan</option>
         </AdminSelect>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="sm" onClick={() => shiftDate(-1)}>
@@ -244,18 +264,18 @@ export function ReportClient({
       <div className="grid gap-4">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Pendapatan per Hari</CardTitle>
+            <CardTitle className="text-sm">{revenueChartTitle}</CardTitle>
           </CardHeader>
           <CardContent>
             {data.revenueByDay.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={data.revenueByDay}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickFormatter={shortDate} fontSize={11} />
+                  <XAxis dataKey="date" tickFormatter={xAxisFormatter} fontSize={11} />
                   <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} fontSize={11} />
                   <Tooltip
                     formatter={(value) => formatRupiah(value as number)}
-                    labelFormatter={(label) => shortDate(String(label))}
+                    labelFormatter={(label) => xAxisFormatter(String(label))}
                   />
                   <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} name="Pendapatan" />
                 </BarChart>
@@ -328,28 +348,47 @@ export function ReportClient({
           <CardHeader>
             <CardTitle className="text-sm">Channel Layanan</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             {data.serviceChannels.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={data.serviceChannels}
-                    dataKey="amount"
-                    nameKey="service"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    label={(props) => { const p = props as unknown as Record<string, string>; return SERVICE_LABEL[p.service] ?? p.service; }}
-                    fontSize={11}
-                  >
-                    {data.serviceChannels.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatRupiah(value as number)} />
-                </PieChart>
-              </ResponsiveContainer>
+              <>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={data.serviceChannels}
+                      dataKey="netAmount"
+                      nameKey="service"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      label={(props) => { const p = props as unknown as Record<string, string>; return SERVICE_LABEL[p.service] ?? p.service; }}
+                      fontSize={11}
+                    >
+                      {data.serviceChannels.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => formatRupiah(value as number)} labelFormatter={(l) => SERVICE_LABEL[l] ?? l} />
+                  </PieChart>
+                </ResponsiveContainer>
+                {/* Commission breakdown table */}
+                <div className="divide-y divide-foreground/5">
+                  {data.serviceChannels.map((ch, i) => (
+                    <div key={i} className="py-2 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{SERVICE_LABEL[ch.service] ?? ch.service}</span>
+                        <span>{formatRupiah(ch.netAmount)}</span>
+                      </div>
+                      {ch.commission > 0 && (
+                        <div className="flex items-center justify-between text-xs text-muted-foreground mt-0.5">
+                          <span>Kotor: {formatRupiah(ch.amount)}</span>
+                          <span className="text-destructive">−{formatRupiah(ch.commission)} komisi</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </>
             ) : (
               <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>
             )}

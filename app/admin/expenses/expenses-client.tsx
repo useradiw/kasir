@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { computeExpenseTotal } from "@/lib/expense-utils";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/admin/expenses";
+import { exportPDF, fmtRp } from "@/lib/export-pdf";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 
 type ExpenseItem = { id: string; description: string; amount: number; cost: number; unit?: string | null; templateId?: string | null };
@@ -54,13 +55,52 @@ export default function ExpensesClient({
     router.push(`/admin/expenses?${params.toString()}`);
   }
 
+  function handleExportPdf() {
+    const subtitle = filters.from && filters.to ? `${filters.from} – ${filters.to}` : "Semua periode";
+    const summaryCards = [
+      { label: "Total Pengeluaran", value: fmtRp(totalAmount) },
+      { label: "Jumlah Entri", value: String(expenses.length) },
+    ];
+    const rows = expenses.map((e) => [
+      formatDateTime(e.recordedAt),
+      e.description ?? "-",
+      e.staffName ?? "-",
+      fmtRp(computeExpenseTotal(e.items)),
+    ]);
+    const detail = expenses.flatMap((e) =>
+      e.items.map((i) => [
+        formatDateTime(e.recordedAt),
+        i.description,
+        `${i.amount} ${i.unit ?? ""}`.trim(),
+        fmtRp(i.cost),
+        fmtRp(i.amount * i.cost),
+      ])
+    );
+    exportPDF(
+      "Laporan Pengeluaran",
+      subtitle,
+      summaryCards,
+      [
+        { title: "Ringkasan", headers: ["Tanggal", "Deskripsi", "Staff", "Total"], rows },
+        { title: "Detail Item", headers: ["Tanggal", "Item", "Jumlah", "Harga Satuan", "Total"], rows: detail },
+      ]
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Pengeluaran</h1>
-        <Button size="sm" onClick={() => { setShowAdd((v) => !v); setEditId(null); }}>
-          {showAdd ? "Batal" : "+ Tambah"}
-        </Button>
+        <div className="flex items-center gap-2">
+          {isOwner && (
+            <Button size="sm" variant="outline" onClick={handleExportPdf}>
+              <Download className="size-4 mr-1" /> PDF
+            </Button>
+          )}
+          <Button size="sm" onClick={() => { setShowAdd((v) => !v); setEditId(null); }}>
+            {showAdd ? "Batal" : "+ Tambah"}
+          </Button>
+        </div>
       </div>
 
       <ErrorBanner error={error} />
