@@ -25,7 +25,7 @@ export async function addCategory(formData: FormData) {
 }
 
 export async function updateCategory(id: string, formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = categorySchema.safeParse({
     name: formData.get("name"),
     sortOrder: formData.get("sortOrder") || 0,
@@ -58,20 +58,26 @@ export async function addMenuItem(formData: FormData) {
     price: formData.get("price"),
     isHidden: formData.get("isHidden") === "true",
   });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+  if (!parsed.success)
+    throw new Error(
+      Object.values(parsed.error.flatten().fieldErrors).flat()[0],
+    );
   await prisma.menuItem.create({ data: parsed.data });
   revalidatePath("/admin/inventory");
 }
 
 export async function updateMenuItem(id: string, formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = menuItemSchema.safeParse({
     name: formData.get("name"),
     categoryId: formData.get("categoryId"),
     price: formData.get("price"),
     isHidden: formData.get("isHidden") === "true",
   });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+  if (!parsed.success)
+    throw new Error(
+      Object.values(parsed.error.flatten().fieldErrors).flat()[0],
+    );
   await prisma.menuItem.update({ where: { id }, data: parsed.data });
   revalidatePath("/admin/inventory");
 }
@@ -83,7 +89,7 @@ export async function deleteMenuItem(id: string) {
 }
 
 export async function toggleMenuItemVisibility(id: string, current: boolean) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   await prisma.menuItem.update({ where: { id }, data: { isHidden: !current } });
   revalidatePath("/admin/inventory");
 }
@@ -97,25 +103,31 @@ const variantSchema = z.object({
 });
 
 export async function addVariant(formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = variantSchema.safeParse({
     menuItemId: formData.get("menuItemId"),
     label: formData.get("label"),
     priceModifier: formData.get("priceModifier") || 0,
   });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+  if (!parsed.success)
+    throw new Error(
+      Object.values(parsed.error.flatten().fieldErrors).flat()[0],
+    );
   await prisma.menuVariant.create({ data: parsed.data });
   revalidatePath("/admin/inventory");
 }
 
 export async function updateVariant(id: string, formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = variantSchema.safeParse({
     menuItemId: formData.get("menuItemId"),
     label: formData.get("label"),
     priceModifier: formData.get("priceModifier") || 0,
   });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+  if (!parsed.success)
+    throw new Error(
+      Object.values(parsed.error.flatten().fieldErrors).flat()[0],
+    );
   await prisma.menuVariant.update({ where: { id }, data: parsed.data });
   revalidatePath("/admin/inventory");
 }
@@ -134,23 +146,29 @@ const packageSchema = z.object({
 });
 
 export async function addPackage(formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = packageSchema.safeParse({
     name: formData.get("name"),
     bundlePrice: formData.get("bundlePrice"),
   });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+  if (!parsed.success)
+    throw new Error(
+      Object.values(parsed.error.flatten().fieldErrors).flat()[0],
+    );
   await prisma.package.create({ data: parsed.data });
   revalidatePath("/admin/inventory");
 }
 
 export async function updatePackage(id: string, formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = packageSchema.safeParse({
     name: formData.get("name"),
     bundlePrice: formData.get("bundlePrice"),
   });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+  if (!parsed.success)
+    throw new Error(
+      Object.values(parsed.error.flatten().fieldErrors).flat()[0],
+    );
   await prisma.package.update({ where: { id }, data: parsed.data });
   revalidatePath("/admin/inventory");
 }
@@ -162,7 +180,7 @@ export async function deletePackage(id: string) {
 }
 
 export async function addPackageItem(formData: FormData) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const packageId = formData.get("packageId") as string;
   const menuItemId = formData.get("menuItemId") as string;
   const variantId = (formData.get("variantId") as string) || null;
@@ -211,9 +229,12 @@ export async function setOnlinePrice(data: {
   service: string;
   price: number;
 }) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   const parsed = onlinePriceSchema.safeParse(data);
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+  if (!parsed.success)
+    throw new Error(
+      Object.values(parsed.error.flatten().fieldErrors).flat()[0],
+    );
 
   const { menuItemId, service, price } = parsed.data;
   const variantId = parsed.data.variantId ?? null;
@@ -223,15 +244,20 @@ export async function setOnlinePrice(data: {
   });
 
   if (existing) {
-    await prisma.menuItemOnlinePrice.update({ where: { id: existing.id }, data: { price } });
+    await prisma.menuItemOnlinePrice.update({
+      where: { id: existing.id },
+      data: { price },
+    });
   } else {
-    await prisma.menuItemOnlinePrice.create({ data: { menuItemId, variantId, service: service as ServiceEnum, price } });
+    await prisma.menuItemOnlinePrice.create({
+      data: { menuItemId, variantId, service: service as ServiceEnum, price },
+    });
   }
   revalidatePath("/admin/inventory");
 }
 
 export async function deleteOnlinePrice(id: string) {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
   await prisma.menuItemOnlinePrice.delete({ where: { id } });
   revalidatePath("/admin/inventory");
 }

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 
 const entrySchema = z.object({
@@ -16,7 +16,7 @@ export async function addKasPakHarEntry(data: {
   amount: number;
   description?: string;
 }) {
-  const staff = await requireOwner();
+  const staff = await requireRole("OWNER", "MANAGER");
   const parsed = entrySchema.safeParse(data);
   if (!parsed.success) throw new Error(parsed.error.issues[0].message);
 
