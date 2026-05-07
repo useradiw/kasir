@@ -81,11 +81,12 @@ export function PaymentScreen({
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [sessionFinalized, setSessionFinalized] = useState(false);
 
   // QRIS flow state
   const [qrisStep, setQrisStep] = useState<"idle" | "confirming">("idle");
 
-  if (splitGroup !== undefined && existingGroupTx) {
+  if (splitGroup !== undefined && existingGroupTx && !done) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12">
         <CheckCircle className="size-16 text-primary" />
@@ -158,7 +159,8 @@ export function PaymentScreen({
         skipSessionPaidMark: isPayFirstMode || !isLastSplitGroup,
       });
       if (isPayFirstMode) {
-        await checkAndFinalizeSession(sessionId);
+        const finalized = await checkAndFinalizeSession(sessionId);
+        if (finalized) setSessionFinalized(true);
       }
       setDone(true);
       setProcessing(false);
@@ -211,7 +213,7 @@ export function PaymentScreen({
           <Button variant="outline" onClick={() => setShowReceipt(true)}>
             Lihat Struk
           </Button>
-          <Button onClick={onDone}>
+          <Button onClick={sessionFinalized && onHome ? onHome : onDone}>
             Selesai
           </Button>
         </div>

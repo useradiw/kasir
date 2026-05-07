@@ -61,6 +61,7 @@ export function SplitItemsScreen({
   // Check all items are assigned
   const unassigned = activeItems.filter((i) => i.splitGroup === 0);
   const allAssigned = unassigned.length === 0 && activeItems.length > 0;
+  const allGroupsPaid = allAssigned && [...Array(groupCount)].every((_, i) => paidGroups.has(i + 1));
 
   // Per-group subtotals
   function groupSubtotal(group: number) {
@@ -162,34 +163,39 @@ export function SplitItemsScreen({
 
       <BottomBar>
         <div className="w-full space-y-2">
-          {/* Pay single group button */}
-          {onPaySingleGroup && selectedGroup > 0 && !paidGroups.has(selectedGroup) && groupSubtotal(selectedGroup) > 0 && (
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full"
-              onClick={() => onPaySingleGroup(selectedGroup)}
-            >
-              Bayar Orang {selectedGroup} — {formatRupiah(groupSubtotal(selectedGroup))}
-            </Button>
-          )}
-          {/* Pay all sequentially button */}
-          {allAssigned ? (
-            <Button
-              size="lg"
-              className="w-full"
-              onClick={() => {
-                const firstUnpaid = Array.from({ length: groupCount }, (_, i) => i + 1).find((g) => !paidGroups.has(g));
-                if (firstUnpaid) onStartPayment(firstUnpaid, groupCount);
-              }}
-              disabled={[...Array(groupCount)].every((_, i) => paidGroups.has(i + 1))}
-            >
-              Bayar Semua — Orang 1/{groupCount}
+          {allGroupsPaid ? (
+            <Button size="lg" className="w-full" onClick={onHome}>
+              Selesai — Semua Lunas
             </Button>
           ) : (
-            <Button size="lg" className="w-full" disabled>
-              Tugaskan semua item terlebih dahulu ({unassigned.length} belum)
-            </Button>
+            <>
+              {onPaySingleGroup && selectedGroup > 0 && !paidGroups.has(selectedGroup) && groupSubtotal(selectedGroup) > 0 && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => onPaySingleGroup(selectedGroup)}
+                >
+                  Bayar Orang {selectedGroup} — {formatRupiah(groupSubtotal(selectedGroup))}
+                </Button>
+              )}
+              {allAssigned ? (
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => {
+                    const firstUnpaid = Array.from({ length: groupCount }, (_, i) => i + 1).find((g) => !paidGroups.has(g));
+                    if (firstUnpaid) onStartPayment(firstUnpaid, groupCount);
+                  }}
+                >
+                  Bayar Semua — Orang 1/{groupCount}
+                </Button>
+              ) : (
+                <Button size="lg" className="w-full" disabled>
+                  Tugaskan semua item terlebih dahulu ({unassigned.length} belum)
+                </Button>
+              )}
+            </>
           )}
         </div>
       </BottomBar>
