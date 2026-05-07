@@ -96,12 +96,14 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         cashAmount: transaction.cashAmount,
         qrisAmount: transaction.qrisAmount,
         paymentMethod: transaction.paymentMethod,
+        splitGroup: transaction.splitGroup ?? 0,
         status: transaction.status,
         paidAt: new Date(transaction.paidAt),
         createdAt: new Date(transaction.createdAt),
       },
       update: {
         status: transaction.status,
+        splitGroup: transaction.splitGroup ?? 0,
       },
     }),
   ]);

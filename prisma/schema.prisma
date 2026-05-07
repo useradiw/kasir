@@ -136,6 +136,7 @@ model Transaction {
   cashAmount     Int               @default(0)
   qrisAmount     Int               @default(0)
   paymentMethod  PaymentMethod
+  splitGroup     Int               @default(0)
   status         TransactionStatus @default(PAID)
   voidedById     String?
   voidedAt       DateTime?

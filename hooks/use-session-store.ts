@@ -51,7 +51,7 @@ export function useOrderItems(tableSessionId: string) {
   );
 }
 
-/** Transaction for a given session. */
+/** Transaction for a given session (first one — use useTransactions for split bills). */
 export function useTransaction(tableSessionId: string | null) {
   return useLiveQuery(
     () =>
@@ -60,6 +60,65 @@ export function useTransaction(tableSessionId: string | null) {
         : undefined,
     [tableSessionId]
   );
+}
+
+/** All transactions for a given session. */
+export function useTransactions(tableSessionId: string | null): Transaction[] | undefined {
+  return useLiveQuery(
+    () =>
+      tableSessionId
+        ? db.transactions.where("tableSessionId").equals(tableSessionId).toArray()
+        : ([] as Transaction[]),
+    [tableSessionId]
+  );
+}
+
+/** Transaction for a specific split group within a session. */
+export function useTransactionForGroup(tableSessionId: string | null, splitGroup: number) {
+  const txs = useTransactions(tableSessionId);
+  return txs?.find((t) => t.splitGroup === splitGroup);
+}
+
+/** Aggregates multiple transactions into a single virtual transaction object for unified receipt. */
+export function aggregateTransactions(txs: Transaction[]) {
+  if (txs.length === 0) return undefined;
+  if (txs.length === 1) return txs[0];
+  return {
+    subtotal: txs.reduce((s, t) => s + t.subtotal, 0),
+    taxAmount: txs.reduce((s, t) => s + t.taxAmount, 0),
+    serviceCharge: txs.reduce((s, t) => s + t.serviceCharge, 0),
+    discountAmount: txs.reduce((s, t) => s + t.discountAmount, 0),
+    totalAmount: txs.reduce((s, t) => s + t.totalAmount, 0),
+    cashAmount: txs.reduce((s, t) => s + t.cashAmount, 0),
+    qrisAmount: txs.reduce((s, t) => s + t.qrisAmount, 0),
+    paymentMethod: "SPLIT" as const,
+    paidAt: txs[txs.length - 1].paidAt,
+    cashierName: txs[0].cashierName,
+    status: txs.every((t) => t.status === "PAID") ? ("PAID" as const) : ("VOIDED" as const),
+    splitGroup: 0,
+  };
+}
+
+/** Computes split payment status for a session. */
+export function useSessionSplitStatus(sessionId: string) {
+  const items = useOrderItems(sessionId);
+  const txs = useTransactions(sessionId);
+
+  const activeItems = (items ?? []).filter((i) => i.status !== "CANCELLED");
+  const unassigned = activeItems.filter((i) => i.splitGroup === 0);
+  const paidGroups = new Set((txs ?? []).map((t) => t.splitGroup).filter((g) => g > 0));
+  const assignedGroups = new Set(activeItems.map((i) => i.splitGroup).filter((g) => g > 0));
+  const unpaidGroups = [...assignedGroups].filter((g) => !paidGroups.has(g));
+
+  return {
+    activeItems,
+    unassigned,
+    paidGroups,
+    assignedGroups,
+    unpaidGroups,
+    allAssigned: unassigned.length === 0 && activeItems.length > 0,
+    allPaid: unassigned.length === 0 && unpaidGroups.length === 0 && activeItems.length > 0,
+  };
 }
 
 /** Count of unsynced transactions. */
@@ -236,6 +295,8 @@ export interface PaymentInput {
   cashAmount: number;
   qrisAmount: number;
   paymentMethod: Transaction["paymentMethod"];
+  /** Which split group this payment covers (0 = non-split). */
+  splitGroup?: number;
   /** If true, does not mark the session as paidAt (used for intermediate split group payments). */
   skipSessionPaidMark?: boolean;
 }
@@ -261,6 +322,7 @@ export async function recordPayment(input: PaymentInput): Promise<string> {
     cashAmount: input.cashAmount,
     qrisAmount: input.qrisAmount,
     paymentMethod: input.paymentMethod,
+    splitGroup: input.splitGroup ?? 0,
     status: "PAID",
     paidAt,
     createdAt: nowISO(),
@@ -302,6 +364,28 @@ export async function recordPayment(input: PaymentInput): Promise<string> {
   }
 
   return txId;
+}
+
+/**
+ * After a "pay first" single-group payment, checks if all items are assigned
+ * and all assigned groups are paid — if so, marks the session as paid.
+ */
+export async function checkAndFinalizeSession(sessionId: string): Promise<boolean> {
+  const allItems = await db.order_items.where("tableSessionId").equals(sessionId).toArray();
+  const activeItems = allItems.filter((i) => i.status !== "CANCELLED");
+  const unassigned = activeItems.filter((i) => i.splitGroup === 0);
+  if (unassigned.length > 0 || activeItems.length === 0) return false;
+
+  const allTxs = await db.transactions.where("tableSessionId").equals(sessionId).toArray();
+  const paidGroups = new Set(allTxs.map((t) => t.splitGroup).filter((g) => g > 0));
+  const assignedGroups = new Set(activeItems.map((i) => i.splitGroup).filter((g) => g > 0));
+  const allGroupsPaid = [...assignedGroups].every((g) => paidGroups.has(g));
+
+  if (allGroupsPaid) {
+    await db.table_sessions.update(sessionId, { paidAt: nowISO(), synced: 0 });
+    return true;
+  }
+  return false;
 }
 
 // ─── Retry unsynced transactions on app start ─────────────────────────────────

@@ -1,14 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useOrderItems } from "@/hooks/use-session-store";
-import { assignSplitGroup } from "@/hooks/use-session-store";
+import { useOrderItems, useSessionSplitStatus, assignSplitGroup } from "@/hooks/use-session-store";
 import { calcSubtotal } from "@/lib/kasir-utils";
 import { formatRupiah } from "@/lib/format";
 import { KasirTopBar, BottomBar } from "./ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Users, Plus, Trash2 } from "lucide-react";
+import { Users, Plus, Trash2, CheckCircle } from "lucide-react";
 import type { OrderItem } from "@/lib/db";
 
 const GROUP_COLORS = [
@@ -22,15 +21,18 @@ export function SplitItemsScreen({
   sessionId,
   onBack,
   onStartPayment,
+  onPaySingleGroup,
   onHome,
 }: {
   sessionId: string;
   onBack: () => void;
   onStartPayment: (group: number, totalGroups: number) => void;
+  onPaySingleGroup?: (group: number) => void;
   onHome?: () => void;
 }) {
   const items = useOrderItems(sessionId);
   const activeItems = (items ?? []).filter((i) => i.status !== "CANCELLED");
+  const { paidGroups } = useSessionSplitStatus(sessionId);
 
   const [groupCount, setGroupCount] = useState(2);
   const [selectedGroup, setSelectedGroup] = useState<number>(1);
@@ -50,6 +52,8 @@ export function SplitItemsScreen({
   }
 
   async function handleItemTap(item: OrderItem) {
+    if (paidGroups.has(item.splitGroup) && item.splitGroup !== 0) return;
+    if (paidGroups.has(selectedGroup)) return;
     const nextGroup = item.splitGroup === selectedGroup ? 0 : selectedGroup;
     await assignSplitGroup(item.id, nextGroup);
   }
@@ -83,28 +87,37 @@ export function SplitItemsScreen({
           </div>
 
           <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${groupCount}, 1fr)` }}>
-            {Array.from({ length: groupCount }, (_, i) => i + 1).map((g) => (
-              <button
-                key={g}
-                type="button"
-                onClick={() => setSelectedGroup(g)}
-                className={cn(
-                  "rounded-lg border p-2 text-xs font-medium transition-colors",
-                  selectedGroup === g
-                    ? GROUP_COLORS[(g - 1) % GROUP_COLORS.length]
-                    : "bg-card text-muted-foreground border-border"
-                )}
-              >
-                <div className="flex items-center justify-center gap-1 mb-1">
-                  <Users className="size-3" />
-                  <span>Orang {g}</span>
-                </div>
-                <p className="font-bold">{formatRupiah(groupSubtotal(g))}</p>
-                <p className="text-[10px] opacity-70">
-                  {activeItems.filter((i) => i.splitGroup === g).length} item
-                </p>
-              </button>
-            ))}
+            {Array.from({ length: groupCount }, (_, i) => i + 1).map((g) => {
+              const isPaid = paidGroups.has(g);
+              return (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => !isPaid && setSelectedGroup(g)}
+                  className={cn(
+                    "rounded-lg border p-2 text-xs font-medium transition-colors",
+                    isPaid
+                      ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-300 opacity-70"
+                      : selectedGroup === g
+                        ? GROUP_COLORS[(g - 1) % GROUP_COLORS.length]
+                        : "bg-card text-muted-foreground border-border"
+                  )}
+                >
+                  <div className="flex items-center justify-center gap-1 mb-1">
+                    {isPaid ? <CheckCircle className="size-3" /> : <Users className="size-3" />}
+                    <span>Orang {g}</span>
+                  </div>
+                  {isPaid ? (
+                    <p className="font-bold text-green-600 dark:text-green-400">LUNAS</p>
+                  ) : (
+                    <p className="font-bold">{formatRupiah(groupSubtotal(g))}</p>
+                  )}
+                  <p className="text-[10px] opacity-70">
+                    {activeItems.filter((i) => i.splitGroup === g).length} item
+                  </p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -148,19 +161,37 @@ export function SplitItemsScreen({
       </div>
 
       <BottomBar>
-        {allAssigned ? (
-          <Button
-            size="lg"
-            className="w-full"
-            onClick={() => onStartPayment(1, groupCount)}
-          >
-            Mulai Bayar — Orang 1/{groupCount}
-          </Button>
-        ) : (
-          <Button size="lg" className="w-full" disabled>
-            Tugaskan semua item terlebih dahulu ({unassigned.length} belum)
-          </Button>
-        )}
+        <div className="w-full space-y-2">
+          {/* Pay single group button */}
+          {onPaySingleGroup && selectedGroup > 0 && !paidGroups.has(selectedGroup) && groupSubtotal(selectedGroup) > 0 && (
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full"
+              onClick={() => onPaySingleGroup(selectedGroup)}
+            >
+              Bayar Orang {selectedGroup} — {formatRupiah(groupSubtotal(selectedGroup))}
+            </Button>
+          )}
+          {/* Pay all sequentially button */}
+          {allAssigned ? (
+            <Button
+              size="lg"
+              className="w-full"
+              onClick={() => {
+                const firstUnpaid = Array.from({ length: groupCount }, (_, i) => i + 1).find((g) => !paidGroups.has(g));
+                if (firstUnpaid) onStartPayment(firstUnpaid, groupCount);
+              }}
+              disabled={[...Array(groupCount)].every((_, i) => paidGroups.has(i + 1))}
+            >
+              Bayar Semua — Orang 1/{groupCount}
+            </Button>
+          ) : (
+            <Button size="lg" className="w-full" disabled>
+              Tugaskan semua item terlebih dahulu ({unassigned.length} belum)
+            </Button>
+          )}
+        </div>
       </BottomBar>
     </>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useOrderItems, recordPayment } from "@/hooks/use-session-store";
+import { useOrderItems, recordPayment, checkAndFinalizeSession, useTransactionForGroup } from "@/hooks/use-session-store";
 import { formatRupiah } from "@/lib/format";
 import {
   calcSubtotal,
@@ -55,6 +55,7 @@ export function PaymentScreen({
   onHome?: () => void;
 }) {
   const items = useOrderItems(sessionId);
+  const existingGroupTx = useTransactionForGroup(sessionId, splitGroup ?? 0);
   const activeItems = (items ?? []).filter((i) => {
     if (i.status === "CANCELLED") return false;
     if (splitGroup !== undefined) return i.splitGroup === splitGroup;
@@ -63,6 +64,17 @@ export function PaymentScreen({
   const subtotal = calcSubtotal(activeItems);
 
   const canEditCharges = staffRole === "OWNER" || staffRole === "MANAGER";
+
+  if (splitGroup !== undefined && existingGroupTx) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12">
+        <CheckCircle className="size-16 text-primary" />
+        <p className="text-lg font-semibold">Sudah Dibayar</p>
+        <p className="text-sm text-muted-foreground">Orang {splitGroup} sudah membayar {formatRupiah(existingGroupTx.totalAmount)}</p>
+        <Button onClick={onDone}>Kembali</Button>
+      </div>
+    );
+  }
 
   const [method, setMethod] = useState<PaymentMethod>("CASH");
 
@@ -126,8 +138,10 @@ export function PaymentScreen({
   const doRecordPayment = async () => {
     setProcessing(true);
     try {
-      const isLastSplitGroup =
-        splitGroup === undefined || splitTotalGroups === undefined || splitGroup >= splitTotalGroups;
+      const isPayFirstMode = splitGroup !== undefined && splitTotalGroups === 0;
+      const isLastSplitGroup = !isPayFirstMode && (
+        splitGroup === undefined || splitTotalGroups === undefined || splitGroup >= splitTotalGroups
+      );
       await recordPayment({
         tableSessionId: sessionId,
         processedById: staffId,
@@ -140,8 +154,12 @@ export function PaymentScreen({
         cashAmount: method === "CASH" ? cashAmount : method === "SPLIT" ? cashAmount : 0,
         qrisAmount: method === "QRIS" ? total : method === "SPLIT" ? qrisAmount : 0,
         paymentMethod: method,
-        skipSessionPaidMark: !isLastSplitGroup,
+        splitGroup: splitGroup ?? 0,
+        skipSessionPaidMark: isPayFirstMode || !isLastSplitGroup,
       });
+      if (isPayFirstMode) {
+        await checkAndFinalizeSession(sessionId);
+      }
       setDone(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memproses pembayaran.");
@@ -202,6 +220,7 @@ export function PaymentScreen({
             cashierName={staffName}
             storeInfo={storeInfo}
             splitGroup={splitGroup}
+            splitTotalGroups={splitTotalGroups}
             onClose={() => setShowReceipt(false)}
           />
         )}

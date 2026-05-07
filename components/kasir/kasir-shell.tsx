@@ -55,6 +55,12 @@ export function KasirShell() {
     setView("split-payment");
   }, []);
 
+  const startSingleGroupPayment = useCallback((group: number) => {
+    setSplitPayingGroup(group);
+    setSplitTotalGroups(0);
+    setView("split-payment");
+  }, []);
+
   // Loading state
   if (staff.isLoading || sync.isLoading || config.isLoading) {
     return (
@@ -120,6 +126,7 @@ export function KasirShell() {
           sessionId={activeSessionId}
           onBack={goToReview}
           onStartPayment={startSplitPayment}
+          onPaySingleGroup={startSingleGroupPayment}
           onHome={goToSessions}
         />
       )}
@@ -136,7 +143,9 @@ export function KasirShell() {
           splitGroup={splitPayingGroup}
           splitTotalGroups={splitTotalGroups}
           onDone={() => {
-            if (splitPayingGroup < splitTotalGroups) {
+            if (splitTotalGroups === 0) {
+              setView("split-items");
+            } else if (splitPayingGroup < splitTotalGroups) {
               startSplitPayment(splitPayingGroup + 1, splitTotalGroups);
             } else {
               goToSessions();

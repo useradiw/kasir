@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import { useOrderItems, useTransaction } from "@/hooks/use-session-store";
+import { useOrderItems, useTransactions, aggregateTransactions } from "@/hooks/use-session-store";
 import { useBluetoothPrinter } from "@/hooks/use-bluetooth-printer";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
@@ -19,6 +19,7 @@ export function ReceiptPreview({
   cashierName,
   storeInfo,
   splitGroup,
+  splitTotalGroups,
   onClose,
 }: {
   sessionId: string;
@@ -27,11 +28,18 @@ export function ReceiptPreview({
   storeInfo: StoreInfo;
   /** When set, only show items belonging to this split group. */
   splitGroup?: number;
+  /** Total number of groups (for label display). */
+  splitTotalGroups?: number;
   onClose: () => void;
 }) {
   const receiptRef = useRef<HTMLDivElement>(null);
   const items = useOrderItems(sessionId);
-  const tx = useTransaction(sessionId);
+  const txs = useTransactions(sessionId);
+  const tx = splitGroup !== undefined
+    ? txs?.find((t) => t.splitGroup === splitGroup)
+    : txs && txs.length > 0
+      ? aggregateTransactions(txs)
+      : undefined;
   const session = useLiveQuery(
     () => db.table_sessions.get(sessionId),
     [sessionId]
@@ -49,6 +57,12 @@ export function ReceiptPreview({
   const resolvedCashierName = tx?.cashierName ?? cashierName ?? "-";
   const serviceLabel = getServiceLabel((session?.service as ServiceEnum) ?? null);
   const isPaid = tx?.status === "PAID";
+
+  const splitGroupLabel = splitGroup !== undefined && splitTotalGroups
+    ? `Orang ${splitGroup}/${splitTotalGroups}`
+    : txs && txs.length > 1 && splitGroup === undefined
+      ? "GABUNGAN"
+      : undefined;
 
   async function handlePrint() {
     if (!isConnected) await connect();
@@ -76,6 +90,7 @@ export function ReceiptPreview({
             cashAmount: tx?.cashAmount ?? 0,
             qrisAmount: tx?.qrisAmount ?? 0,
             isPaid,
+            splitGroupLabel,
           }, storeInfo);
     await print(data);
   }
@@ -122,6 +137,13 @@ export function ReceiptPreview({
               serviceLabel={serviceLabel}
               isPaid={isPaid}
               storeInfo={storeInfo}
+              splitGroupLabel={
+                splitGroup !== undefined && splitTotalGroups
+                  ? `Orang ${splitGroup}/${splitTotalGroups}`
+                  : txs && txs.length > 1 && splitGroup === undefined
+                    ? "GABUNGAN"
+                    : undefined
+              }
             />
           )}
         </div>
@@ -214,6 +236,7 @@ function ReceiptContent({
   serviceLabel,
   isPaid,
   storeInfo,
+  splitGroupLabel,
 }: {
   session: { name: string; paidAt: string | null; service: ServiceEnum | null; customerAlias: string | null } | undefined;
   activeItems: { nameSnapshot: string; qty: number; price: number }[];
@@ -223,6 +246,7 @@ function ReceiptContent({
   serviceLabel: string;
   isPaid: boolean;
   storeInfo: StoreInfo;
+  splitGroupLabel?: string;
 }) {
   return (
     <div className="font-mono text-xs space-y-2">
@@ -232,6 +256,9 @@ function ReceiptContent({
         <p className="text-gray-500">{storeInfo.address}</p>
         {storeInfo.phone && <p className="text-gray-500">Telp: {storeInfo.phone}</p>}
         {storeInfo.instagram && <p className="text-gray-500">IG: {storeInfo.instagram}</p>}
+        {splitGroupLabel && (
+          <p className="font-bold text-sm mt-1">[{splitGroupLabel}]</p>
+        )}
       </div>
 
       <Divider />

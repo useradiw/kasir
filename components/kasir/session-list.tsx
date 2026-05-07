@@ -6,13 +6,14 @@ import { db, type ServiceEnum, type TableSession } from "@/lib/db";
 import {
   useOpenSessions,
   usePaidSessions,
-  useTransaction,
+  useTransactions,
   useUnsyncedCount,
   createSession,
   eraseSession,
   renameSession,
   updateSessionService,
   retryUnsyncedTransactions,
+  aggregateTransactions,
 } from "@/hooks/use-session-store";
 import { formatRupiah, formatDateTime, formatPaymentMethod } from "@/lib/format";
 import { getServiceLabel, getServiceColor } from "@/lib/kasir-utils";
@@ -62,6 +63,9 @@ export function SessionList({
   const [error, setError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [receiptSessionId, setReceiptSessionId] = useState<string | null>(null);
+  const [receiptSplitGroup, setReceiptSplitGroup] = useState<number | undefined>(undefined);
+  const [receiptSplitTotal, setReceiptSplitTotal] = useState<number | undefined>(undefined);
+  const [pickerSessionId, setPickerSessionId] = useState<string | null>(null);
   const confirm = useConfirm();
 
   const handleCreate = async () => {
@@ -238,6 +242,12 @@ export function SessionList({
                     session={session}
                     onClick={() => onOpenPaidSession(session.id)}
                     onReceipt={() => setReceiptSessionId(session.id)}
+                    onSplitReceipt={(group, total) => {
+                      setReceiptSessionId(session.id);
+                      setReceiptSplitGroup(group);
+                      setReceiptSplitTotal(total);
+                    }}
+                    onShowPicker={() => setPickerSessionId(session.id)}
                   />
                 ))}
               </div>
@@ -252,7 +262,27 @@ export function SessionList({
           mode="receipt"
           cashierName={staffName}
           storeInfo={storeInfo}
-          onClose={() => setReceiptSessionId(null)}
+          splitGroup={receiptSplitGroup}
+          splitTotalGroups={receiptSplitTotal}
+          onClose={() => { setReceiptSessionId(null); setReceiptSplitGroup(undefined); setReceiptSplitTotal(undefined); }}
+        />
+      )}
+      {pickerSessionId && (
+        <SplitReceiptPicker
+          sessionId={pickerSessionId}
+          onSelect={(group, total) => {
+            setPickerSessionId(null);
+            setReceiptSessionId(pickerSessionId);
+            setReceiptSplitGroup(group);
+            setReceiptSplitTotal(total);
+          }}
+          onUnified={() => {
+            setPickerSessionId(null);
+            setReceiptSessionId(pickerSessionId);
+            setReceiptSplitGroup(undefined);
+            setReceiptSplitTotal(undefined);
+          }}
+          onClose={() => setPickerSessionId(null)}
         />
       )}
     </>
@@ -411,13 +441,20 @@ function PaidSessionCard({
   session,
   onClick,
   onReceipt,
+  onSplitReceipt,
+  onShowPicker,
 }: {
   session: TableSession;
   onClick: () => void;
   onReceipt: () => void;
+  onSplitReceipt: (group: number, total: number) => void;
+  onShowPicker: () => void;
 }) {
-  const tx = useTransaction(session.id);
+  const txs = useTransactions(session.id);
   const isErased = !!session.erasedAt && !session.paidAt;
+  const isSplit = (txs ?? []).length > 1;
+  const totalAmount = (txs ?? []).reduce((sum, t) => sum + t.totalAmount, 0);
+  const firstTx = txs?.[0];
 
   return (
     <div
@@ -433,17 +470,20 @@ function PaidSessionCard({
           <SyncBadge synced={session.synced} />
           {isErased ? (
             <Badge className="bg-destructive/10 text-destructive">Dibatalkan</Badge>
-          ) : tx ? (
-            <Badge className="bg-primary/10 text-primary">
-              {formatRupiah(tx.totalAmount)}
-            </Badge>
+          ) : firstTx ? (
+            <>
+              {isSplit && <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">Split</Badge>}
+              <Badge className="bg-primary/10 text-primary">
+                {formatRupiah(totalAmount)}
+              </Badge>
+            </>
           ) : null}
         </div>
       </div>
       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
         {session.customerAlias && <span>{session.customerAlias}</span>}
         {session.customerPhone && <span>{session.customerPhone}</span>}
-        {!isErased && tx && <span>{formatPaymentMethod(tx.paymentMethod)}</span>}
+        {!isErased && firstTx && <span>{isSplit ? "Split" : formatPaymentMethod(firstTx.paymentMethod)}</span>}
         {isErased && session.erasedAt && <span>{formatDateTime(session.erasedAt, "short")}</span>}
         {!isErased && session.paidAt && <span>{formatDateTime(session.paidAt, "short")}</span>}
       </div>
@@ -453,13 +493,56 @@ function PaidSessionCard({
             size="sm"
             variant="outline"
             className="h-7 text-xs"
-            onClick={onReceipt}
+            onClick={isSplit ? onShowPicker : onReceipt}
           >
             <Receipt className="size-3 mr-1" />
             Struk
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+function SplitReceiptPicker({
+  sessionId,
+  onSelect,
+  onUnified,
+  onClose,
+}: {
+  sessionId: string;
+  onSelect: (group: number, total: number) => void;
+  onUnified: () => void;
+  onClose: () => void;
+}) {
+  const txs = useTransactions(sessionId);
+  const sortedTxs = (txs ?? []).filter((t) => t.splitGroup > 0).sort((a, b) => a.splitGroup - b.splitGroup);
+  const totalGroups = sortedTxs.length;
+  const totalAmount = (txs ?? []).reduce((sum, t) => sum + t.totalAmount, 0);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-72 rounded-lg bg-background p-4 space-y-3">
+        <p className="text-sm font-semibold text-center">Pilih Struk</p>
+        {sortedTxs.map((tx) => (
+          <Button
+            key={tx.splitGroup}
+            variant="outline"
+            className="w-full justify-between"
+            onClick={() => onSelect(tx.splitGroup, totalGroups)}
+          >
+            <span>Orang {tx.splitGroup}</span>
+            <span className="font-bold">{formatRupiah(tx.totalAmount)}</span>
+          </Button>
+        ))}
+        <Button variant="outline" className="w-full justify-between" onClick={onUnified}>
+          <span>Gabungan</span>
+          <span className="font-bold">{formatRupiah(totalAmount)}</span>
+        </Button>
+        <Button variant="ghost" className="w-full" onClick={onClose}>
+          Tutup
+        </Button>
+      </div>
     </div>
   );
 }

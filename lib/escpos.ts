@@ -20,6 +20,7 @@ export interface PrintReceiptData {
   cashAmount: number;
   qrisAmount?: number;
   isPaid: boolean;
+  splitGroupLabel?: string;
 }
 
 export interface PrintChecklistData {
@@ -89,6 +90,11 @@ export function buildReceipt(
   b.push(...line(storeInfo.address));
   if (storeInfo.phone) b.push(...line(`Telp: ${storeInfo.phone}`));
   if (storeInfo.instagram) b.push(...line(`IG: ${storeInfo.instagram}`));
+  if (data.splitGroupLabel) {
+    b.push(...CMD.BOLD_ON);
+    b.push(...line(`[${data.splitGroupLabel}]`));
+    b.push(...CMD.BOLD_OFF);
+  }
 
   // Cashier / customer / time / service
   b.push(...CMD.LEFT);

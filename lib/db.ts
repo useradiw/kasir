@@ -113,6 +113,7 @@ export interface Transaction {
   qrisAmount: number;
   paymentMethod: PaymentMethod;
   status: TransactionStatus;
+  splitGroup: number;
   paidAt: string;
   createdAt: string;
   synced: 0 | 1;
@@ -160,6 +161,11 @@ export class KasirDB extends Dexie {
     this.version(5).stores({}).upgrade((tx) => {
       return tx.table("order_items").toCollection().modify((item) => {
         if (item.splitGroup === undefined) item.splitGroup = 0;
+      });
+    });
+    this.version(6).stores({}).upgrade((tx) => {
+      return tx.table("transactions").toCollection().modify((t) => {
+        if (t.splitGroup === undefined) t.splitGroup = 0;
       });
     });
   }
