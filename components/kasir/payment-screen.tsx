@@ -65,17 +65,6 @@ export function PaymentScreen({
 
   const canEditCharges = staffRole === "OWNER" || staffRole === "MANAGER";
 
-  if (splitGroup !== undefined && existingGroupTx) {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12">
-        <CheckCircle className="size-16 text-primary" />
-        <p className="text-lg font-semibold">Sudah Dibayar</p>
-        <p className="text-sm text-muted-foreground">Orang {splitGroup} sudah membayar {formatRupiah(existingGroupTx.totalAmount)}</p>
-        <Button onClick={onDone}>Kembali</Button>
-      </div>
-    );
-  }
-
   const [method, setMethod] = useState<PaymentMethod>("CASH");
 
   // Charge fields with mode toggle
@@ -95,6 +84,17 @@ export function PaymentScreen({
 
   // QRIS flow state
   const [qrisStep, setQrisStep] = useState<"idle" | "confirming">("idle");
+
+  if (splitGroup !== undefined && existingGroupTx) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 py-12">
+        <CheckCircle className="size-16 text-primary" />
+        <p className="text-lg font-semibold">Sudah Dibayar</p>
+        <p className="text-sm text-muted-foreground">Orang {splitGroup} sudah membayar {formatRupiah(existingGroupTx.totalAmount)}</p>
+        <Button onClick={onDone}>Kembali</Button>
+      </div>
+    );
+  }
 
   // Build charge inputs
   const taxCharge: ChargeInput = { value: parseFloat(taxInput) || 0, mode: taxMode };
@@ -161,6 +161,8 @@ export function PaymentScreen({
         await checkAndFinalizeSession(sessionId);
       }
       setDone(true);
+      setProcessing(false);
+      setQrisStep("idle");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal memproses pembayaran.");
       setProcessing(false);
