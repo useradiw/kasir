@@ -155,10 +155,13 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
       prisma.transaction.findMany({
         where: {
           status: "PAID",
-          paymentMethod: "CASH",
+          OR: [
+            { paymentMethod: "CASH" },
+            { paymentMethod: "SPLIT", cashAmount: { gt: 0 } },
+          ],
           paidAt: { gte: minDate, lt: maxDate },
         },
-        select: { totalAmount: true, paidAt: true },
+        select: { totalAmount: true, cashAmount: true, paymentMethod: true, paidAt: true },
       }),
       prisma.expense.findMany({
         where: { recordedAt: { gte: minDate, lt: maxDate }, deductFromCash: true },
@@ -168,7 +171,8 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
 
     for (const t of transactions) {
       const key = localDateKey(t.paidAt);
-      cashByDate[key] = (cashByDate[key] ?? 0) + t.totalAmount;
+      const cashIn = t.paymentMethod === "SPLIT" ? t.cashAmount : t.totalAmount;
+      cashByDate[key] = (cashByDate[key] ?? 0) + cashIn;
     }
     for (const e of expenses) {
       const key = localDateKey(e.recordedAt);

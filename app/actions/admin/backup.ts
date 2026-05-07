@@ -3,26 +3,37 @@
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
 
+const ALL_TABLES = [
+  "categories",
+  "menuItems",
+  "menuVariants",
+  "packages",
+  "packageItems",
+  "menuItemOnlinePrices",
+  "staff",
+  "expenses",
+  "expenseItems",
+  "expenseTemplates",
+  "tableSessions",
+  "orderItems",
+  "transactions",
+  "cashRegisters",
+  "recipes",
+  "recipeIngredients",
+  "kasPakHar",
+  "attendanceRecords",
+  "notifications",
+  "settings",
+] as const;
+
+export type BackupTableKey = (typeof ALL_TABLES)[number];
+
 export async function exportDatabase(tables: string[]) {
   await requireOwner();
 
-  const allTables = [
-    "categories",
-    "menuItems",
-    "menuVariants",
-    "packages",
-    "packageItems",
-    "staff",
-    "expenses",
-    "expenseItems",
-    "tableSessions",
-    "orderItems",
-    "transactions",
-    "cashRegisters",
-    "attendanceRecords",
-  ];
-
-  const selected = tables.length > 0 ? tables.filter((t) => allTables.includes(t)) : allTables;
+  const selected = tables.length > 0
+    ? tables.filter((t): t is BackupTableKey => (ALL_TABLES as readonly string[]).includes(t))
+    : [...ALL_TABLES];
 
   const result: Record<string, unknown[]> = {};
 
@@ -43,14 +54,20 @@ export async function exportDatabase(tables: string[]) {
       case "packageItems":
         result.packageItems = await prisma.packageItem.findMany();
         break;
+      case "menuItemOnlinePrices":
+        result.menuItemOnlinePrices = await prisma.menuItemOnlinePrice.findMany();
+        break;
       case "staff":
         result.staff = await prisma.staff.findMany();
         break;
       case "expenses":
-        result.expenses = await prisma.expense.findMany({ include: { items: true } });
+        result.expenses = await prisma.expense.findMany();
         break;
       case "expenseItems":
-        // Included via expenses.items, skip standalone
+        result.expenseItems = await prisma.expenseItem.findMany();
+        break;
+      case "expenseTemplates":
+        result.expenseTemplates = await prisma.expenseTemplate.findMany();
         break;
       case "tableSessions":
         result.tableSessions = await prisma.tableSession.findMany();
@@ -64,13 +81,29 @@ export async function exportDatabase(tables: string[]) {
       case "cashRegisters":
         result.cashRegisters = await prisma.cashRegister.findMany();
         break;
+      case "recipes":
+        result.recipes = await prisma.recipe.findMany();
+        break;
+      case "recipeIngredients":
+        result.recipeIngredients = await prisma.recipeIngredient.findMany();
+        break;
+      case "kasPakHar":
+        result.kasPakHar = await prisma.kasPakHar.findMany();
+        break;
       case "attendanceRecords":
         result.attendanceRecords = await prisma.attendanceRecord.findMany();
+        break;
+      case "notifications":
+        result.notifications = await prisma.notification.findMany();
+        break;
+      case "settings":
+        result.settings = await prisma.setting.findMany();
         break;
     }
   }
 
   return {
+    version: 2,
     exportedAt: new Date().toISOString(),
     tables: result,
   };

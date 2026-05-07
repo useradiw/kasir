@@ -56,7 +56,7 @@ export default async function NotificationsAdminPage({
   }));
 
   return (
-    <Container id="notifications" className="!max-w-4xl py-6">
+    <Container id="notifications" sectionStyle="" className="py-6">
       <NotificationsClient
         notifications={rows}
         staffList={staffList}

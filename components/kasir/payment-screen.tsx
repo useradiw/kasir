@@ -23,6 +23,7 @@ import type { StoreInfo } from "@/lib/settings";
 const paymentMethods: { value: PaymentMethod; label: string }[] = [
   { value: "CASH", label: "Tunai" },
   { value: "QRIS", label: "QRIS" },
+  { value: "SPLIT", label: "Split" },
 ];
 
 export function PaymentScreen({
@@ -33,6 +34,8 @@ export function PaymentScreen({
   storeInfo,
   defaultTaxPct = 0,
   defaultServicePct = 0,
+  splitGroup,
+  splitTotalGroups,
   onDone,
   onBack,
   onHome,
@@ -44,13 +47,20 @@ export function PaymentScreen({
   storeInfo: StoreInfo;
   defaultTaxPct?: number;
   defaultServicePct?: number;
+  /** When set, only pays for items in this splitGroup (1-based). */
+  splitGroup?: number;
+  splitTotalGroups?: number;
   onDone: () => void;
   onBack: () => void;
   onHome?: () => void;
 }) {
   const items = useOrderItems(sessionId);
-  const activeItems = (items ?? []).filter((i) => i.status !== "CANCELLED");
-  const subtotal = calcSubtotal(items ?? []);
+  const activeItems = (items ?? []).filter((i) => {
+    if (i.status === "CANCELLED") return false;
+    if (splitGroup !== undefined) return i.splitGroup === splitGroup;
+    return true;
+  });
+  const subtotal = calcSubtotal(activeItems);
 
   const canEditCharges = staffRole === "OWNER" || staffRole === "MANAGER";
 
@@ -84,13 +94,14 @@ export function PaymentScreen({
   const discountAmount = canEditCharges ? calcChargeAmount(subtotal, discountCharge) : 0;
   const total = subtotal + taxAmount + serviceAmount - discountAmount;
 
-  const cashAmount = method === "CASH" ? parseInt(cashInput) || 0 : 0;
+  const cashAmount = (method === "CASH" || method === "SPLIT") ? parseInt(cashInput) || 0 : 0;
+  const qrisAmount = method === "SPLIT" ? Math.max(0, total - cashAmount) : 0;
   const change = method === "CASH" ? calcChange(cashAmount, total) : 0;
 
   const isValid =
     total > 0 &&
     activeItems.length > 0 &&
-    (method !== "CASH" || cashAmount >= total);
+    (method === "QRIS" || (method === "CASH" && cashAmount >= total) || (method === "SPLIT" && cashAmount > 0 && cashAmount < total));
 
   // Quick cash amounts
   const quickAmounts = (() => {
@@ -115,6 +126,8 @@ export function PaymentScreen({
   const doRecordPayment = async () => {
     setProcessing(true);
     try {
+      const isLastSplitGroup =
+        splitGroup === undefined || splitTotalGroups === undefined || splitGroup >= splitTotalGroups;
       await recordPayment({
         tableSessionId: sessionId,
         processedById: staffId,
@@ -124,9 +137,10 @@ export function PaymentScreen({
         serviceCharge: serviceAmount,
         discountAmount,
         totalAmount: total,
-        cashAmount: method === "CASH" ? cashAmount : 0,
-        qrisAmount: method !== "CASH" ? total : 0,
+        cashAmount: method === "CASH" ? cashAmount : method === "SPLIT" ? cashAmount : 0,
+        qrisAmount: method === "QRIS" ? total : method === "SPLIT" ? qrisAmount : 0,
         paymentMethod: method,
+        skipSessionPaidMark: !isLastSplitGroup,
       });
       setDone(true);
     } catch (err) {
@@ -140,11 +154,11 @@ export function PaymentScreen({
     if (processing) return;
     setError(null);
 
+    if (!isValid && method !== "QRIS") return;
     if (method === "CASH") {
-      if (!isValid) return;
       await doRecordPayment();
     } else {
-      // QRIS: show instruction page
+      // QRIS or SPLIT: show QRIS confirmation page
       setQrisStep("confirming");
     }
   };
@@ -167,6 +181,12 @@ export function PaymentScreen({
         {method === "CASH" && change > 0 && (
           <p className="text-sm">Kembalian: <span className="font-bold text-primary">{formatRupiah(change)}</span></p>
         )}
+        {method === "SPLIT" && (
+          <div className="text-sm text-center space-y-0.5">
+            <p>Tunai: <span className="font-bold">{formatRupiah(cashAmount)}</span></p>
+            <p>QRIS: <span className="font-bold">{formatRupiah(qrisAmount)}</span></p>
+          </div>
+        )}
         <div className="flex gap-2 mt-4">
           <Button variant="outline" onClick={() => setShowReceipt(true)}>
             Lihat Struk
@@ -181,6 +201,7 @@ export function PaymentScreen({
             mode="receipt"
             cashierName={staffName}
             storeInfo={storeInfo}
+            splitGroup={splitGroup}
             onClose={() => setShowReceipt(false)}
           />
         )}
@@ -190,9 +211,10 @@ export function PaymentScreen({
 
   // QRIS instruction & confirmation page
   if (qrisStep === "confirming") {
+    const qrisPayAmount = method === "SPLIT" ? qrisAmount : total;
     return (
       <>
-        <KasirTopBar title="Pembayaran QRIS" onBack={handleQrisCancel} />
+        <KasirTopBar title={method === "SPLIT" ? "Pembayaran QRIS (Split)" : "Pembayaran QRIS"} onBack={handleQrisCancel} />
         <div className="flex flex-1 flex-col items-center gap-6 px-4 py-8">
           <div className="flex size-20 items-center justify-center rounded-full bg-primary/10">
             <Smartphone className="size-10 text-primary" />
@@ -203,15 +225,18 @@ export function PaymentScreen({
           </div>
 
           <div className="w-full max-w-xs rounded-xl bg-primary/5 px-4 py-3 text-center">
-            <p className="text-xs text-muted-foreground">Total Pembayaran</p>
-            <p className="text-2xl font-bold">{formatRupiah(total)}</p>
+            {method === "SPLIT" && (
+              <p className="text-xs text-muted-foreground mb-1">Tunai: {formatRupiah(cashAmount)}</p>
+            )}
+            <p className="text-xs text-muted-foreground">{method === "SPLIT" ? "Sisa via QRIS" : "Total Pembayaran"}</p>
+            <p className="text-2xl font-bold">{formatRupiah(qrisPayAmount)}</p>
           </div>
 
           <div className="w-full max-w-xs space-y-3 text-sm">
             <p className="font-medium">Langkah:</p>
             <ol className="list-decimal list-inside space-y-2 text-muted-foreground">
               <li>Buka aplikasi QRIS Anda</li>
-              <li>Pastikan jumlah pembayaran sesuai: <span className="font-semibold text-foreground">{formatRupiah(total)}</span></li>
+              <li>Pastikan jumlah pembayaran sesuai: <span className="font-semibold text-foreground">{formatRupiah(qrisPayAmount)}</span></li>
               <li>Proses pembayaran di aplikasi</li>
               <li>Verifikasi pembayaran berhasil sebelum menekan tombol di bawah</li>
             </ol>
@@ -238,7 +263,11 @@ export function PaymentScreen({
 
   return (
     <>
-      <KasirTopBar title="Pembayaran" onBack={onBack} onHome={onHome} />
+      <KasirTopBar
+        title={splitGroup !== undefined ? `Pembayaran — Orang ${splitGroup}${splitTotalGroups ? `/${splitTotalGroups}` : ""}` : "Pembayaran"}
+        onBack={onBack}
+        onHome={onHome}
+      />
 
       <div className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
         {/* Total (BIG) at top */}
@@ -314,7 +343,7 @@ export function PaymentScreen({
         {/* Payment method */}
         <div className="space-y-2">
           <Label className="text-xs">Metode Pembayaran</Label>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {paymentMethods.map((pm) => (
               <button
                 key={pm.value}
@@ -336,6 +365,61 @@ export function PaymentScreen({
             ))}
           </div>
         </div>
+
+        {/* Split: cash portion + QRIS remainder */}
+        {method === "SPLIT" && (
+          <div className="space-y-3">
+            <Label className="text-xs">Bagian Tunai</Label>
+            <div className="grid grid-cols-3 gap-2">
+              {quickAmounts.slice(0, 6).filter((qa) => qa.value < total).map((qa) => (
+                <button
+                  key={qa.value}
+                  type="button"
+                  onClick={() => { setCashInput(qa.value.toString()); setShowKeypad(false); }}
+                  className={cn(
+                    "h-11 rounded-lg border text-xs font-medium transition-colors",
+                    cashAmount === qa.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "bg-card text-muted-foreground"
+                  )}
+                >
+                  {qa.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowKeypad(!showKeypad)}
+              className="flex w-full items-center justify-center gap-1 text-xs text-muted-foreground py-1"
+            >
+              Jumlah lain
+              <ChevronDown className={cn("size-3 transition-transform", showKeypad && "rotate-180")} />
+            </button>
+            {showKeypad && (
+              <div className="space-y-2">
+                <div className="rounded-lg border bg-card px-3 py-2 text-center text-lg font-bold">
+                  {formatRupiah(parseInt(cashInput) || 0)}
+                </div>
+                <NumericKeypad value={cashInput} onChange={setCashInput} />
+              </div>
+            )}
+            {cashAmount > 0 && cashAmount < total && (
+              <div className="rounded-lg bg-primary/5 p-3 space-y-1">
+                <div className="flex justify-between text-sm">
+                  <span>Tunai</span>
+                  <span className="font-bold">{formatRupiah(cashAmount)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>QRIS</span>
+                  <span className="font-bold text-primary">{formatRupiah(qrisAmount)}</span>
+                </div>
+              </div>
+            )}
+            {cashAmount >= total && (
+              <p className="text-xs text-destructive">Jumlah tunai melebihi total. Kurangi jumlah tunai.</p>
+            )}
+          </div>
+        )}
 
         {/* Cash: Quick amount buttons */}
         {method === "CASH" && (
@@ -408,7 +492,7 @@ export function PaymentScreen({
           size="lg"
           className="w-full"
           onClick={handlePay}
-          disabled={method === "CASH" ? (!isValid || processing) : (total <= 0 || activeItems.length === 0 || processing)}
+          disabled={!isValid || processing}
         >
           {processing ? (
             <>

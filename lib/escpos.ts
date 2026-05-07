@@ -1,4 +1,4 @@
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { formatRupiah, formatDateTime, formatPaymentMethod } from "@/lib/format";
 import type { StoreInfo } from "@/lib/settings";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -16,8 +16,9 @@ export interface PrintReceiptData {
   serviceCharge: number;
   discountAmount: number;
   totalAmount: number;
-  paymentMethod: "CASH" | "QRIS";
+  paymentMethod: "CASH" | "QRIS" | "SPLIT";
   cashAmount: number;
+  qrisAmount?: number;
   isPaid: boolean;
 }
 
@@ -138,13 +139,14 @@ export function buildReceipt(
 
   // Payment info
   b.push(...divider(w));
-  b.push(
-    ...padLine("Metode", data.paymentMethod === "CASH" ? "Tunai" : "QRIS", w),
-  );
+  b.push(...padLine("Metode", formatPaymentMethod(data.paymentMethod), w));
   if (data.paymentMethod === "CASH") {
     b.push(...padLine("Dibayar", formatRupiah(data.cashAmount), w));
     const change = data.cashAmount - data.totalAmount;
     if (change > 0) b.push(...padLine("Kembalian", formatRupiah(change), w));
+  } else if (data.paymentMethod === "SPLIT") {
+    b.push(...padLine("Tunai", formatRupiah(data.cashAmount), w));
+    if (data.qrisAmount) b.push(...padLine("QRIS", formatRupiah(data.qrisAmount), w));
   }
 
   // Payment status

@@ -6,7 +6,7 @@ import { useBluetoothPrinter } from "@/hooks/use-bluetooth-printer";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { ServiceEnum } from "@/lib/db";
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { formatRupiah, formatDateTime, formatPaymentMethod } from "@/lib/format";
 import type { StoreInfo } from "@/lib/settings";
 import { calcSubtotal, getServiceLabel } from "@/lib/kasir-utils";
 import { buildReceipt, buildChecklist } from "@/lib/escpos";
@@ -18,12 +18,15 @@ export function ReceiptPreview({
   mode,
   cashierName,
   storeInfo,
+  splitGroup,
   onClose,
 }: {
   sessionId: string;
   mode: "checklist" | "receipt";
   cashierName?: string;
   storeInfo: StoreInfo;
+  /** When set, only show items belonging to this split group. */
+  splitGroup?: number;
   onClose: () => void;
 }) {
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -36,7 +39,11 @@ export function ReceiptPreview({
 
   const { isConnected, isSupported, connect, print, printing, error: printError } = useBluetoothPrinter();
 
-  const activeItems = items?.filter((i) => i.status !== "CANCELLED") ?? [];
+  const activeItems = (items ?? []).filter((i) => {
+    if (i.status === "CANCELLED") return false;
+    if (splitGroup !== undefined) return i.splitGroup === splitGroup;
+    return true;
+  });
   const subtotal = calcSubtotal(items ?? []);
 
   const resolvedCashierName = tx?.cashierName ?? cashierName ?? "-";
@@ -65,8 +72,9 @@ export function ReceiptPreview({
             serviceCharge: tx?.serviceCharge ?? 0,
             discountAmount: tx?.discountAmount ?? 0,
             totalAmount: tx?.totalAmount ?? 0,
-            paymentMethod: (tx?.paymentMethod as "CASH" | "QRIS") ?? "CASH",
+            paymentMethod: (tx?.paymentMethod as "CASH" | "QRIS" | "SPLIT") ?? "CASH",
             cashAmount: tx?.cashAmount ?? 0,
+            qrisAmount: tx?.qrisAmount ?? 0,
             isPaid,
           }, storeInfo);
     await print(data);
@@ -295,7 +303,7 @@ function ReceiptContent({
 
           <div className="flex justify-between">
             <span>Metode</span>
-            <span>{tx.paymentMethod === "CASH" ? "Tunai" : "QRIS"}</span>
+            <span>{formatPaymentMethod(tx.paymentMethod)}</span>
           </div>
           {tx.paymentMethod === "CASH" && (
             <>
@@ -309,6 +317,18 @@ function ReceiptContent({
                   <span>{formatRupiah(tx.cashAmount - tx.totalAmount)}</span>
                 </div>
               )}
+            </>
+          )}
+          {tx.paymentMethod === "SPLIT" && (
+            <>
+              <div className="flex justify-between">
+                <span>Tunai</span>
+                <span>{formatRupiah(tx.cashAmount)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>QRIS</span>
+                <span>{formatRupiah(tx.qrisAmount)}</span>
+              </div>
             </>
           )}
         </>

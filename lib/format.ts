@@ -24,6 +24,13 @@ export function formatDateTime(
   });
 }
 
+export function formatPaymentMethod(method: string): string {
+  if (method === "CASH") return "Tunai";
+  if (method === "QRIS") return "QRIS";
+  if (method === "SPLIT") return "Split";
+  return method;
+}
+
 /** YYYY-MM-DD key in the server's local timezone. Use this for day-bucketing
  *  CashRegister.date (stored as local midnight) against transaction.paidAt /
  *  expense.recordedAt — `.toISOString()` would bucket in UTC and split days. */

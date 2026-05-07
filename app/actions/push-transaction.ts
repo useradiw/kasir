@@ -63,6 +63,7 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
           status: item.status,
           nameSnapshot: item.nameSnapshot,
           price: item.price,
+          splitGroup: item.splitGroup ?? 0,
           preparedAt: item.preparedAt ? new Date(item.preparedAt) : null,
           servedAt: item.servedAt ? new Date(item.servedAt) : null,
           cancelledAt: item.cancelledAt ? new Date(item.cancelledAt) : null,
@@ -72,6 +73,7 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
           qty: item.qty,
           note: item.note,
           status: item.status,
+          splitGroup: item.splitGroup ?? 0,
           preparedAt: item.preparedAt ? new Date(item.preparedAt) : null,
           servedAt: item.servedAt ? new Date(item.servedAt) : null,
           cancelledAt: item.cancelledAt ? new Date(item.cancelledAt) : null,
@@ -105,8 +107,8 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
   ]);
 }
 
-/** Sync a renamed (still-open) session to the server. Creates if missing, updates name otherwise. */
-export async function pushRenamedSession(session: TableSession): Promise<void> {
+/** Sync a session's mutable fields (name, service) to the server. Creates if missing. */
+export async function pushSessionUpdate(session: TableSession): Promise<void> {
   await prisma.tableSession.upsert({
     where: { id: session.id },
     create: {
@@ -122,7 +124,7 @@ export async function pushRenamedSession(session: TableSession): Promise<void> {
       erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
       createdAt: new Date(session.createdAt),
     },
-    update: { name: session.name },
+    update: { name: session.name, service: session.service ?? null },
   });
 }
 

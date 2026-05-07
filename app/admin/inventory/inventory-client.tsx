@@ -72,12 +72,12 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
       <ErrorBanner error={error} />
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-foreground/10 pb-0">
+      <div className="flex gap-2 border-b border-foreground/10 pb-0 overflow-x-auto -mx-3 px-3 scrollbar-hide">
         {TABS.map((t) => (
           <button
             key={t.key}
             onClick={() => switchTab(t.key)}
-            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`whitespace-nowrap shrink-0 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
               tab === t.key
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"

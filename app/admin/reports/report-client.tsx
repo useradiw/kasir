@@ -28,6 +28,7 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Se
 const METHOD_LABEL: Record<string, string> = {
   CASH: "Tunai",
   QRIS: "QRIS",
+  SPLIT: "Split",
 };
 
 const SERVICE_LABEL: Record<string, string> = {

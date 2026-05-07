@@ -8,7 +8,7 @@ import {
   updateOrderItemStatus,
   updateOrderItemQty,
 } from "@/hooks/use-session-store";
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { formatRupiah, formatDateTime, formatPaymentMethod } from "@/lib/format";
 import { calcSubtotal, getStatusColor, getStatusLabel } from "@/lib/kasir-utils";
 import { KasirTopBar, BottomBar, Badge, QtyControl, EmptyState } from "./ui";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,7 @@ export function OrderReview({
   sessionId,
   onBack,
   onPay,
+  onSplitItems,
   onHome,
   readOnly,
   storeInfo,
@@ -34,6 +35,7 @@ export function OrderReview({
   sessionId: string;
   onBack: () => void;
   onPay?: () => void;
+  onSplitItems?: () => void;
   onHome?: () => void;
   readOnly?: boolean;
   storeInfo: StoreInfo;
@@ -61,7 +63,7 @@ export function OrderReview({
             <span className="font-bold">{formatRupiah(tx.totalAmount)}</span>
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
-            <span>{tx.paymentMethod === "CASH" ? "Tunai" : "QRIS"}</span>
+            <span>{formatPaymentMethod(tx.paymentMethod)}</span>
             <span>{formatDateTime(tx.paidAt, "short")}</span>
           </div>
         </div>
@@ -94,9 +96,16 @@ export function OrderReview({
             <span className="text-sm text-muted-foreground">Subtotal</span>
             <span className="text-lg font-bold">{formatRupiah(subtotal)}</span>
           </div>
-          <Button size="lg" className="w-full" onClick={onPay}>
-            Bayar
-          </Button>
+          <div className="flex gap-2">
+            {onSplitItems && (
+              <Button size="lg" variant="outline" className="flex-1" onClick={onSplitItems}>
+                Split
+              </Button>
+            )}
+            <Button size="lg" className="flex-1" onClick={onPay}>
+              Bayar
+            </Button>
+          </div>
         </BottomBar>
       )}
 

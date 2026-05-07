@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { formatRupiah, formatDateTime, formatPaymentMethod } from "@/lib/format";
 import type { StoreInfo } from "@/lib/settings";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateTransaction } from "@/app/actions/admin/transactions";
@@ -120,8 +120,9 @@ export default function TransactionDetailClient({
       serviceCharge: data.serviceCharge,
       discountAmount: data.discountAmount,
       totalAmount: data.totalAmount,
-      paymentMethod: data.paymentMethod as "CASH" | "QRIS",
+      paymentMethod: data.paymentMethod as "CASH" | "QRIS" | "SPLIT",
       cashAmount: data.cashAmount,
+      qrisAmount: data.qrisAmount,
       isPaid: data.status === "PAID",
     }, storeInfo);
     if (!isConnected) await connect();
@@ -136,12 +137,10 @@ export default function TransactionDetailClient({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Link href="/admin/transactions">
-            <Button variant="outline" size="sm">
-              <ArrowLeft className="size-4 mr-1" />
-              Kembali
-            </Button>
-          </Link>
+          <Button variant="outline" size="sm" render={<Link href="/admin/transactions" />}>
+            <ArrowLeft className="size-4 mr-1" />
+            Kembali
+          </Button>
           <h1 className="text-2xl font-bold">{data.session.name}</h1>
         </div>
         {isOwner && (
@@ -287,15 +286,21 @@ export default function TransactionDetailClient({
                 {/* Payment method */}
                 <div className="flex justify-between">
                   <span>Metode</span>
-                  <span>{data.paymentMethod === "CASH" ? "Tunai" : "QRIS"}</span>
+                  <span>{formatPaymentMethod(data.paymentMethod)}</span>
                 </div>
-                {data.paymentMethod === "CASH" && (
+                {(data.paymentMethod === "CASH" || data.paymentMethod === "SPLIT") && (
                   <>
                     <div className="flex justify-between">
-                      <span>Dibayar</span>
+                      <span>Tunai</span>
                       <span>{formatRupiah(data.cashAmount)}</span>
                     </div>
-                    {data.cashAmount > (editing ? totalAmount : data.totalAmount) && (
+                    {data.paymentMethod === "SPLIT" && (
+                      <div className="flex justify-between">
+                        <span>QRIS</span>
+                        <span>{formatRupiah(data.qrisAmount)}</span>
+                      </div>
+                    )}
+                    {data.paymentMethod === "CASH" && data.cashAmount > (editing ? totalAmount : data.totalAmount) && (
                       <div className="flex justify-between">
                         <span>Kembalian</span>
                         <span>{formatRupiah(data.cashAmount - (editing ? totalAmount : data.totalAmount))}</span>

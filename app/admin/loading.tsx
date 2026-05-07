@@ -6,7 +6,7 @@ function Skeleton({ className }: { className?: string }) {
 
 export default function AdminLoading() {
   return (
-    <Container id="admin-loading" sectionStyle="" className="!max-w-4xl py-6 space-y-6">
+    <Container id="admin-loading" sectionStyle="" className="py-6 space-y-6">
       <Skeleton className="h-8 w-56" />
       <div className="grid grid-cols-2 gap-3">
         <Skeleton className="h-24" />

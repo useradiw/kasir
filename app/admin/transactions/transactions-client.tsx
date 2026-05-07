@@ -38,6 +38,7 @@ type Filters = { method: string; status: string; from: string; to: string };
 const methodLabel: Record<string, string> = {
   CASH: "Tunai",
   QRIS: "QRIS",
+  SPLIT: "Split",
 };
 
 const statusBadge: Record<string, string> = {
@@ -103,6 +104,7 @@ export default function TransactionsClient({
                 <option value="">Semua</option>
                 <option value="CASH">Tunai</option>
                 <option value="QRIS">QRIS</option>
+                <option value="SPLIT">Split</option>
               </AdminSelect>
             </div>
             <div className="grid gap-1">
@@ -165,9 +167,7 @@ export default function TransactionsClient({
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-muted-foreground">{formatDateTime(r.paidAt)}</span>
                   <div className="flex gap-1">
-                    <Link href={`/admin/transactions/${r.id}`}>
-                      <Button size="xs" variant="outline">Lihat</Button>
-                    </Link>
+                    <Button size="xs" variant="outline" render={<Link href={`/admin/transactions/${r.id}`} />}>Lihat</Button>
                     <Button size="xs" variant="outline" onClick={() => { setExpandId(expandId === r.id ? null : r.id); setVoidReason(""); }}>
                       {expandId === r.id ? "Tutup" : "Detail"}
                     </Button>

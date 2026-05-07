@@ -9,12 +9,16 @@ import { SessionList } from "./session-list";
 import { MenuBrowser } from "./menu-browser";
 import { OrderReview } from "./order-review";
 import { PaymentScreen } from "./payment-screen";
+import { SplitItemsScreen } from "./split-items-screen";
 
-type View = "sessions" | "menu" | "review" | "payment" | "history-review";
+type View = "sessions" | "menu" | "review" | "split-items" | "split-payment" | "payment" | "history-review";
 
 export function KasirShell() {
   const [view, setView] = useState<View>("sessions");
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  // For split-by-items: which group is currently being paid (1-based)
+  const [splitPayingGroup, setSplitPayingGroup] = useState<number>(1);
+  const [splitTotalGroups, setSplitTotalGroups] = useState<number>(1);
 
   const staff = useStaffId();
   const sync = useProductSyncQuery();
@@ -43,6 +47,13 @@ export function KasirShell() {
   const goToMenu = useCallback(() => setView("menu"), []);
   const goToReview = useCallback(() => setView("review"), []);
   const goToPayment = useCallback(() => setView("payment"), []);
+  const goToSplitItems = useCallback(() => setView("split-items"), []);
+
+  const startSplitPayment = useCallback((group: number, totalGroups: number) => {
+    setSplitPayingGroup(group);
+    setSplitTotalGroups(totalGroups);
+    setView("split-payment");
+  }, []);
 
   // Loading state
   if (staff.isLoading || sync.isLoading || config.isLoading) {
@@ -100,6 +111,38 @@ export function KasirShell() {
           storeInfo={storeConfig.storeInfo}
           onBack={goToMenu}
           onPay={goToPayment}
+          onSplitItems={goToSplitItems}
+          onHome={goToSessions}
+        />
+      )}
+      {view === "split-items" && activeSessionId && (
+        <SplitItemsScreen
+          sessionId={activeSessionId}
+          onBack={goToReview}
+          onStartPayment={startSplitPayment}
+          onHome={goToSessions}
+        />
+      )}
+      {view === "split-payment" && activeSessionId && (
+        <PaymentScreen
+          key={`split-${splitPayingGroup}`}
+          sessionId={activeSessionId}
+          staffId={staffData.staffId}
+          staffName={staffData.staffName}
+          staffRole={staffData.staffRole}
+          storeInfo={storeConfig.storeInfo}
+          defaultTaxPct={storeConfig.defaultTaxPct}
+          defaultServicePct={storeConfig.defaultServicePct}
+          splitGroup={splitPayingGroup}
+          splitTotalGroups={splitTotalGroups}
+          onDone={() => {
+            if (splitPayingGroup < splitTotalGroups) {
+              startSplitPayment(splitPayingGroup + 1, splitTotalGroups);
+            } else {
+              goToSessions();
+            }
+          }}
+          onBack={() => setView("split-items")}
           onHome={goToSessions}
         />
       )}

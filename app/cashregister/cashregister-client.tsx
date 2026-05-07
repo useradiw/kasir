@@ -115,12 +115,10 @@ export default function CashRegisterStaffClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/kasir">
-          <Button size="sm" variant="ghost">
-            <ArrowLeft className="size-4 mr-1" />
-            Kasir
-          </Button>
-        </Link>
+        <Button size="sm" variant="ghost" render={<Link href="/kasir" />}>
+          <ArrowLeft className="size-4 mr-1" />
+          Kasir
+        </Button>
         <h1 className="text-2xl font-bold">Kas Harian</h1>
       </div>
 

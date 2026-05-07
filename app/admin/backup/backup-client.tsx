@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,13 +15,21 @@ const TABLE_OPTIONS = [
   { key: "menuVariants", label: "Varian Menu" },
   { key: "packages", label: "Paket" },
   { key: "packageItems", label: "Item Paket" },
+  { key: "menuItemOnlinePrices", label: "Harga Online" },
   { key: "staff", label: "Staff" },
   { key: "expenses", label: "Pengeluaran" },
+  { key: "expenseItems", label: "Item Pengeluaran" },
+  { key: "expenseTemplates", label: "Template Pengeluaran" },
   { key: "tableSessions", label: "Sesi Meja" },
   { key: "orderItems", label: "Item Order" },
   { key: "transactions", label: "Transaksi" },
   { key: "cashRegisters", label: "Kas Harian" },
+  { key: "recipes", label: "Resep" },
+  { key: "recipeIngredients", label: "Bahan Resep" },
+  { key: "kasPakHar", label: "Kas Pak Har" },
   { key: "attendanceRecords", label: "Absensi" },
+  { key: "notifications", label: "Notifikasi" },
+  { key: "settings", label: "Pengaturan" },
 ] as const;
 
 function downloadJson(data: unknown, filename: string) {
@@ -37,10 +45,11 @@ function downloadJson(data: unknown, filename: string) {
 export default function BackupClient() {
   const { isPending, run, error } = useAdminAction();
   const [selected, setSelected] = useState<Set<string>>(new Set(TABLE_OPTIONS.map((t) => t.key)));
-  const [lastBackup, setLastBackup] = useState<string | null>(() => {
-    if (typeof window !== "undefined") return localStorage.getItem("lastBackupDate");
-    return null;
-  });
+  const [lastBackup, setLastBackup] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLastBackup(localStorage.getItem("lastBackupDate"));
+  }, []);
 
   function toggleTable(key: string) {
     setSelected((prev) => {
@@ -75,8 +84,6 @@ export default function BackupClient() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Backup Database</h1>
-
       <ErrorBanner error={error} />
 
       <Card>

@@ -109,6 +109,7 @@ model OrderItem {
   status         OrderItemStatus @default(PENDING)
   nameSnapshot   String
   price          Int
+  splitGroup     Int             @default(0)
   preparedAt     DateTime?
   servedAt       DateTime?
   cancelledAt    DateTime?
@@ -355,6 +356,7 @@ enum OrderItemStatus {
 enum PaymentMethod {
   CASH
   QRIS
+  SPLIT
 }
 
 enum TransactionStatus {

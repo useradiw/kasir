@@ -3,7 +3,9 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { TableSession, OrderItem, Transaction } from "@/lib/db";
-import { pushTransaction, pushErasedSession, pushRenamedSession } from "@/app/actions/push-transaction";
+import { pushTransaction, pushErasedSession, pushSessionUpdate } from "@/app/actions/push-transaction";
+import { calcItemPrice } from "@/lib/kasir-utils";
+import type { ServiceEnum } from "@/lib/db";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -104,7 +106,7 @@ export async function renameSession(sessionId: string, name: string): Promise<vo
 
   const updated = await db.table_sessions.get(sessionId);
   if (updated) {
-    pushRenamedSession(updated)
+    pushSessionUpdate(updated)
       .then(() => db.table_sessions.update(sessionId, { synced: 1 }))
       .catch((err) => console.error("[renameSession] sync failed", err));
   }
@@ -124,15 +126,63 @@ export async function eraseSession(sessionId: string): Promise<void> {
   }
 }
 
+/**
+ * Update the service type of an open session and auto-recalculate item prices.
+ * Returns the number of items whose prices changed.
+ */
+export async function updateSessionService(
+  sessionId: string,
+  service: ServiceEnum | null,
+): Promise<number> {
+  const existing = await db.table_sessions.get(sessionId);
+  if (!existing) throw new Error("Sesi tidak ditemukan");
+  if (existing.paidAt) throw new Error("Sesi sudah dibayar, tidak bisa diubah");
+
+  await db.table_sessions.update(sessionId, { service, synced: 0 });
+
+  // Recalculate prices for all non-cancelled items in this session
+  let updatedCount = 0;
+  const items = await db.order_items.where("tableSessionId").equals(sessionId).toArray();
+  if (items.length > 0) {
+    const [onlinePrices, menuItems, menuVariants] = await Promise.all([
+      db.online_prices.toArray(),
+      db.menu_items.toArray(),
+      db.menu_variants.toArray(),
+    ]);
+    for (const item of items) {
+      if (item.status === "CANCELLED" || !item.menuItemId) continue;
+      const menuItem = menuItems.find((m) => m.id === item.menuItemId);
+      if (!menuItem) continue;
+      const variant = item.variantId ? menuVariants.find((v) => v.id === item.variantId) ?? null : null;
+      const newPrice = calcItemPrice(menuItem, variant, service, onlinePrices);
+      if (newPrice !== item.price) {
+        await db.order_items.update(item.id, { price: newPrice });
+        updatedCount++;
+      }
+    }
+  }
+
+  // Fire-and-forget sync
+  const updated = await db.table_sessions.get(sessionId);
+  if (updated) {
+    pushSessionUpdate(updated)
+      .then(() => db.table_sessions.update(sessionId, { synced: 1 }))
+      .catch((err) => console.error("[updateSessionService] sync failed", err));
+  }
+
+  return updatedCount;
+}
+
 // ─── Order item actions ───────────────────────────────────────────────────────
 
 export async function addOrderItem(
-  item: Omit<OrderItem, "id" | "createdAt" | "status" | "preparedAt" | "servedAt" | "cancelledAt">
+  item: Omit<OrderItem, "id" | "createdAt" | "status" | "preparedAt" | "servedAt" | "cancelledAt" | "splitGroup"> & { splitGroup?: number }
 ): Promise<string> {
   const id = newId();
   await db.order_items.add({
     ...item,
     id,
+    splitGroup: item.splitGroup ?? 0,
     status: "PENDING",
     preparedAt: null,
     servedAt: null,
@@ -168,6 +218,10 @@ export async function updateOrderItemQty(id: string, qty: number): Promise<void>
   await db.order_items.update(id, { qty });
 }
 
+export async function assignSplitGroup(itemId: string, group: number): Promise<void> {
+  await db.order_items.update(itemId, { splitGroup: group });
+}
+
 // ─── Payment & sync ───────────────────────────────────────────────────────────
 
 export interface PaymentInput {
@@ -182,6 +236,8 @@ export interface PaymentInput {
   cashAmount: number;
   qrisAmount: number;
   paymentMethod: Transaction["paymentMethod"];
+  /** If true, does not mark the session as paidAt (used for intermediate split group payments). */
+  skipSessionPaidMark?: boolean;
 }
 
 /**
@@ -213,10 +269,12 @@ export async function recordPayment(input: PaymentInput): Promise<string> {
 
   await db.transaction("rw", [db.transactions, db.table_sessions], async () => {
     await db.transactions.add(transaction);
-    await db.table_sessions.update(input.tableSessionId, {
-      paidAt,
-      synced: 0,
-    });
+    if (!input.skipSessionPaidMark) {
+      await db.table_sessions.update(input.tableSessionId, {
+        paidAt,
+        synced: 0,
+      });
+    }
   });
 
   // Fire-and-forget server sync

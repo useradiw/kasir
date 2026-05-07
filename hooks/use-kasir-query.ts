@@ -34,7 +34,7 @@ export function useProductSyncQuery() {
       const snapshot = await syncProducts();
       await db.transaction(
         "rw",
-        [db.categories, db.menu_items, db.menu_variants, db.packages, db.package_items],
+        [db.categories, db.menu_items, db.menu_variants, db.packages, db.package_items, db.online_prices],
         async () => {
           await Promise.all([
             db.categories.clear(),
@@ -42,6 +42,7 @@ export function useProductSyncQuery() {
             db.menu_variants.clear(),
             db.packages.clear(),
             db.package_items.clear(),
+            db.online_prices.clear(),
           ]);
           await Promise.all([
             db.categories.bulkAdd(snapshot.categories),
@@ -49,6 +50,7 @@ export function useProductSyncQuery() {
             db.menu_variants.bulkAdd(snapshot.menuVariants),
             db.packages.bulkAdd(snapshot.packages),
             db.package_items.bulkAdd(snapshot.packageItems),
+            db.online_prices.bulkAdd(snapshot.onlinePrices),
           ]);
         }
       );

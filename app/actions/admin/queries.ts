@@ -206,12 +206,12 @@ export async function getTransactionsData(opts: {
 
   const PAGE_SIZE = 20;
   const where: {
-    paymentMethod?: "CASH" | "QRIS";
+    paymentMethod?: "CASH" | "QRIS" | "SPLIT";
     status?: "PAID" | "VOIDED";
     paidAt?: { gte?: Date; lt?: Date };
   } = {};
 
-  if (opts.method) where.paymentMethod = opts.method as "CASH" | "QRIS";
+  if (opts.method) where.paymentMethod = opts.method as "CASH" | "QRIS" | "SPLIT";
   if (opts.status) where.status = opts.status as "PAID" | "VOIDED";
   if (opts.from || opts.to) {
     where.paidAt = {};

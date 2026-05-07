@@ -39,12 +39,10 @@ export default function SettingsClient({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link href="/">
-          <Button size="sm" variant="ghost">
-            <ArrowLeft className="size-4 mr-1" />
-            Kembali
-          </Button>
-        </Link>
+        <Button size="sm" variant="ghost" render={<Link href="/" />}>
+          <ArrowLeft className="size-4 mr-1" />
+          Kembali
+        </Button>
         <h1 className="text-2xl font-bold">Pengaturan</h1>
       </div>
 
