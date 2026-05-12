@@ -13,10 +13,12 @@ export {
   getExpensesData,
   getReportData,
   getRecipeData,
+  getSettlementData,
 } from "./queries/index";
 
 export type {
   TransactionDetail,
   ReportData,
   RecipeData,
+  SettlementData,
 } from "./queries/index";

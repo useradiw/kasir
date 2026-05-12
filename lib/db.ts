@@ -62,7 +62,7 @@ export type ServiceEnum =
 
 export type OrderItemStatus = "PENDING" | "PREPARING" | "SERVED" | "CANCELLED";
 
-export type PaymentMethod = "CASH" | "QRIS" | "SPLIT";
+export type PaymentMethod = "CASH" | "QRIS" | "SPLIT" | "PENDING";
 
 export type TransactionStatus = "PAID" | "VOIDED";
 
@@ -70,6 +70,7 @@ export interface TableSession {
   id: string;
   name: string;
   service: ServiceEnum | null;
+  externalOrderId: string | null;
   customerAlias: string | null;
   customerPhone: string | null;
   ownerId: string | null;
@@ -166,6 +167,11 @@ export class KasirDB extends Dexie {
     this.version(6).stores({}).upgrade((tx) => {
       return tx.table("transactions").toCollection().modify((t) => {
         if (t.splitGroup === undefined) t.splitGroup = 0;
+      });
+    });
+    this.version(7).stores({}).upgrade((tx) => {
+      return tx.table("table_sessions").toCollection().modify((session) => {
+        if (session.externalOrderId === undefined) session.externalOrderId = null;
       });
     });
   }

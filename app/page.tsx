@@ -17,6 +17,7 @@ import {
   Receipt,
   Wallet,
   Landmark,
+  Banknote,
   LogOut,
   UserPen,
   HardDrive,
@@ -28,6 +29,7 @@ const allKasirLinks = [
   { href: "/kasir", label: "Kasir", desc: "Buka halaman kasir (POS)", icon: ShoppingCart, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
   { href: "/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Landmark, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
   { href: "/cashregister", label: "Kas Kecil", desc: "Buka & tutup kas", icon: Wallet, roles: ["OWNER", "MANAGER", "CASHIER"] },
+  { href: "/settlement", label: "Pencairan Online", desc: "Catat pencairan GoFood/Shopee/Grab", icon: Banknote, roles: ["OWNER", "MANAGER", "CASHIER"] },
   { href: "/profile", label: "Profil", desc: "Profil pengguna", icon: UserPen, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
 ] as const;
 

@@ -118,17 +118,23 @@ export async function getReportData(opts: {
     return Math.round(amount * c.pct / 100) + c.flat;
   }
 
-  // --- Revenue summary ---
+  const ONLINE_SERVICES = ["GoFood", "ShopeeFood", "GrabFood"];
+
+  // --- Split paid transactions into offline and online ---
   const paidTx = transactions.filter((t) => t.status === "PAID");
-  const totalRevenue = paidTx.reduce((s, t) => s + t.totalAmount, 0);
-  const totalTransactions = paidTx.length;
+  const offlineTx = paidTx.filter((t) => !ONLINE_SERVICES.includes(t.tableSession.service as string));
+  const onlineTx = paidTx.filter((t) => ONLINE_SERVICES.includes(t.tableSession.service as string));
+
+  // --- Revenue summary (offline only) ---
+  const totalRevenue = offlineTx.reduce((s, t) => s + t.totalAmount, 0);
+  const totalTransactions = offlineTx.length;
   const avgTransaction = totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 0;
 
-  // --- Revenue by day (or by month for yearly) ---
+  // --- Revenue by day (or by month for yearly) — offline only ---
   const revenueByDay: { date: string; revenue: number; count: number }[] = [];
   if (opts.period === "yearly") {
     const byMonth: Record<string, { revenue: number; count: number }> = {};
-    for (const t of paidTx) {
+    for (const t of offlineTx) {
       const d = t.paidAt;
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
       if (!byMonth[key]) byMonth[key] = { revenue: 0, count: 0 };
@@ -142,7 +148,7 @@ export async function getReportData(opts: {
     }
   } else {
     const revenueByDayMap: Record<string, { revenue: number; count: number }> = {};
-    for (const t of paidTx) {
+    for (const t of offlineTx) {
       const key = localDateKey(t.paidAt);
       if (!revenueByDayMap[key]) revenueByDayMap[key] = { revenue: 0, count: 0 };
       revenueByDayMap[key].revenue += t.totalAmount;
@@ -156,9 +162,9 @@ export async function getReportData(opts: {
     }
   }
 
-  // --- Payment method breakdown ---
+  // --- Payment method breakdown (offline only) ---
   const paymentMethodMap: Record<string, { amount: number; count: number }> = {};
-  for (const t of paidTx) {
+  for (const t of offlineTx) {
     const m = t.paymentMethod as string;
     if (!paymentMethodMap[m]) paymentMethodMap[m] = { amount: 0, count: 0 };
     paymentMethodMap[m].amount += t.totalAmount;
@@ -185,9 +191,9 @@ export async function getReportData(opts: {
     ...v,
   }));
 
-  // --- Top selling items ---
+  // --- Top selling items (offline only) ---
   const itemMap: Record<string, { name: string; qty: number; revenue: number }> = {};
-  for (const t of paidTx) {
+  for (const t of offlineTx) {
     for (const oi of t.tableSession.orderItems) {
       if (oi.status === "CANCELLED") continue;
       const key = oi.nameSnapshot;
@@ -203,10 +209,10 @@ export async function getReportData(opts: {
   // --- Expense summary ---
   const totalExpenses = expenses.reduce((s, e) => s + computeExpenseTotal(e.items), 0);
 
-  // --- Cash register summary ---
+  // --- Cash register summary (offline only) ---
   const cashByDate: Record<string, number> = {};
   const expenseByDate: Record<string, number> = {};
-  for (const t of paidTx) {
+  for (const t of offlineTx) {
     if (t.paymentMethod !== "CASH") continue;
     const key = localDateKey(t.paidAt);
     cashByDate[key] = (cashByDate[key] ?? 0) + t.totalAmount;
@@ -245,14 +251,80 @@ export async function getReportData(opts: {
     ...v,
   }));
 
+  // --- Online orders summary ---
+  const onlineGross = onlineTx.reduce((s, t) => s + t.totalAmount, 0);
+  const onlineCommission = onlineTx.reduce((s, t) => s + calcCommission(t.totalAmount, t.tableSession.service as string), 0);
+
+  const onlineTxIds = onlineTx.map((t) => t.id);
+  const settlementItems = onlineTxIds.length > 0
+    ? await prisma.settlementItem.findMany({
+        where: { transactionId: { in: onlineTxIds } },
+        include: {
+          settlement: {
+            include: { deductions: true },
+          },
+        },
+      })
+    : [];
+  const settledTxIds = new Set(settlementItems.map((si) => si.transactionId));
+  const settledSettlementIds = new Set(settlementItems.map((si) => si.settlementId));
+
+  const uniqueSettlements = [...settledSettlementIds].map((sid) => {
+    const item = settlementItems.find((si) => si.settlementId === sid)!;
+    return item.settlement;
+  });
+
+  const disbursedRevenue = uniqueSettlements.reduce((s, st) => s + st.finalAmount, 0);
+  const totalSettlementCommission = uniqueSettlements.reduce((s, st) => s + st.commissionAmount, 0);
+  const totalDeductions = uniqueSettlements.reduce(
+    (s, st) => s + st.deductions.reduce((ds, d) => ds + d.amount, 0),
+    0,
+  );
+
+  const onlineByService: Record<string, { count: number; gross: number; disbursed: number }> = {};
+  for (const t of onlineTx) {
+    const svc = t.tableSession.service as string;
+    if (!onlineByService[svc]) onlineByService[svc] = { count: 0, gross: 0, disbursed: 0 };
+    onlineByService[svc].count += 1;
+    onlineByService[svc].gross += t.totalAmount;
+  }
+  for (const si of settlementItems) {
+    const svc = si.settlement.service;
+    if (onlineByService[svc]) {
+      const itemShare = si.settlement.finalAmount / Math.max(1, settlementItems.filter((x) => x.settlementId === si.settlementId).length);
+      onlineByService[svc].disbursed += Math.round(itemShare);
+    }
+  }
+
+  const onlineOrdersSummary = {
+    count: onlineTx.length,
+    gross: onlineGross,
+    commission: totalSettlementCommission || onlineCommission,
+    deductions: totalDeductions,
+    disbursedRevenue,
+    settledCount: settledTxIds.size,
+    unsettledCount: onlineTx.length - settledTxIds.size,
+    unsettledAmount: onlineTx.filter((t) => !settledTxIds.has(t.id)).reduce((s, t) => s + t.totalAmount, 0),
+    byService: Object.entries(onlineByService).map(([service, v]) => ({ service, ...v })),
+  };
+
   const isOwner = opts.isOwner ?? false;
 
   return {
     period: opts.period,
     dateRange: { start: localDateKey(start), end: localDateKey(new Date(end.getTime() - 1)) },
-    revenue: { total: totalRevenue, count: totalTransactions, average: avgTransaction },
+    revenue: {
+      total: totalRevenue + disbursedRevenue,
+      offlineTotal: totalRevenue,
+      onlineDisbursed: disbursedRevenue,
+      count: totalTransactions + onlineTx.length,
+      average: (totalTransactions + onlineTx.length) > 0
+        ? Math.round((totalRevenue + disbursedRevenue) / (totalTransactions + onlineTx.length))
+        : 0,
+    },
     totalExpenses: isOwner ? totalExpenses : 0,
-    netProfit: isOwner ? totalRevenue - totalExpenses : 0,
+    netProfit: isOwner ? (totalRevenue + disbursedRevenue) - totalExpenses : 0,
+    onlineOrdersSummary,
     revenueByDay,
     paymentMethods,
     serviceChannels,

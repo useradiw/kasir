@@ -20,6 +20,7 @@ export function formatPaymentMethod(method: string): string {
   if (method === "CASH") return "Tunai";
   if (method === "QRIS") return "QRIS";
   if (method === "SPLIT") return "Split";
+  if (method === "PENDING") return "Unsettled";
   return method;
 }
 

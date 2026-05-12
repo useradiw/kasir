@@ -80,20 +80,21 @@ model PackageItem {
 // --- ORDERING & SESSIONS ---
 
 model TableSession {
-  id            String        @id @default(uuid())
-  name          String
-  service       ServiceEnum?
-  customerAlias String?
-  customerPhone String?
-  ownerId       String?
-  orderedAt     DateTime?
-  servedAt      DateTime?
-  paidAt        DateTime?
-  erasedAt      DateTime?
-  createdAt     DateTime      @default(now())
-  owner         Staff?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-  orderItems    OrderItem[]
-  transactions  Transaction[]
+  id              String        @id @default(uuid())
+  name            String
+  service         ServiceEnum?
+  externalOrderId String?
+  customerAlias   String?
+  customerPhone   String?
+  ownerId         String?
+  orderedAt       DateTime?
+  servedAt        DateTime?
+  paidAt          DateTime?
+  erasedAt        DateTime?
+  createdAt       DateTime      @default(now())
+  owner           Staff?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  orderItems      OrderItem[]
+  transactions    Transaction[]
 
   @@map("table_sessions")
 }
@@ -146,6 +147,7 @@ model Transaction {
   tableSession   TableSession      @relation(fields: [tableSessionId], references: [id])
   processedBy    Staff             @relation("ProcessedTransactions", fields: [processedById], references: [id])
   voidedBy       Staff?            @relation("VoidedTransactions", fields: [voidedById], references: [id], onDelete: SetNull)
+  settlementItem SettlementItem?
 
   @@map("transactions")
 }
@@ -229,6 +231,7 @@ model Staff {
   expenses            Expense[]
   notifications       Notification[]
   kasPakHarEntries    KasPakHar[]
+  onlineSettlements   OnlineSettlement[] @relation("SettledOnlineOrders")
 
   @@map("staff")
 }
@@ -290,6 +293,46 @@ model MenuItemOnlinePrice {
 
   @@unique([menuItemId, variantId, service])
   @@map("menu_item_online_prices")
+}
+
+// --- ONLINE SETTLEMENT ---
+
+model OnlineSettlement {
+  id               String                @id @default(uuid())
+  service          ServiceEnum
+  settlementDate   DateTime              @default(now())
+  totalGross       Int
+  commissionAmount Int
+  finalAmount      Int
+  settledById      String
+  notes            String?
+  createdAt        DateTime              @default(now())
+  settledBy        Staff                 @relation("SettledOnlineOrders", fields: [settledById], references: [id])
+  items            SettlementItem[]
+  deductions       SettlementDeduction[]
+
+  @@index([service, settlementDate])
+  @@map("online_settlements")
+}
+
+model SettlementItem {
+  id            String           @id @default(uuid())
+  settlementId  String
+  transactionId String           @unique
+  settlement    OnlineSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  transaction   Transaction      @relation(fields: [transactionId], references: [id])
+
+  @@map("settlement_items")
+}
+
+model SettlementDeduction {
+  id           String           @id @default(uuid())
+  settlementId String
+  label        String
+  amount       Int
+  settlement   OnlineSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+
+  @@map("settlement_deductions")
 }
 
 // --- EXPENSE TEMPLATES ---
@@ -358,6 +401,7 @@ enum PaymentMethod {
   CASH
   QRIS
   SPLIT
+  PENDING
 }
 
 enum TransactionStatus {

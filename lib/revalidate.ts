@@ -57,3 +57,9 @@ export function revalidateProfile() {
   revalidatePath("/profile");
   revalidatePath("/");
 }
+
+/** Revalidate settlement and report pages. */
+export function revalidateSettlement() {
+  revalidatePath("/settlement");
+  revalidatePath("/admin/reports");
+}

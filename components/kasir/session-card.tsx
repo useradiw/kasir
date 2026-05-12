@@ -26,12 +26,14 @@ export function SessionCard({
   onErase,
   onRename,
   onServiceChange,
+  onExternalOrderIdChange,
 }: {
-  session: { id: string; name: string; service: ServiceEnum | null; customerAlias: string | null; customerPhone: string | null; createdAt: string };
+  session: { id: string; name: string; service: ServiceEnum | null; externalOrderId: string | null; customerAlias: string | null; customerPhone: string | null; createdAt: string };
   onClick: () => void;
   onErase: () => void;
   onRename: (name: string) => Promise<void>;
   onServiceChange: (service: ServiceEnum | null) => Promise<number>;
+  onExternalOrderIdChange: (orderId: string) => Promise<void>;
 }) {
   const itemCount = useLiveQuery(
     () => db.order_items.where("tableSessionId").equals(session.id).count(),
@@ -41,6 +43,10 @@ export function SessionCard({
   const [isEditing, setIsEditing] = useState(false);
   const [draftName, setDraftName] = useState(session.name);
   const [isEditingService, setIsEditingService] = useState(false);
+  const [isEditingOrderId, setIsEditingOrderId] = useState(false);
+  const [draftOrderId, setDraftOrderId] = useState(session.externalOrderId ?? "");
+
+  const isOnlineService = session.service === "GoFood" || session.service === "ShopeeFood" || session.service === "GrabFood";
 
   const startEdit = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -146,6 +152,46 @@ export function SessionCard({
           )}
         </div>
       </div>
+      {isOnlineService && (
+        <div className="mt-1 flex items-center gap-1 text-xs" onClick={(e) => e.stopPropagation()}>
+          {isEditingOrderId ? (
+            <>
+              <Input
+                value={draftOrderId}
+                onChange={(e) => setDraftOrderId(e.target.value)}
+                className="h-6 text-xs flex-1"
+                placeholder="ID Pesanan"
+                autoFocus
+              />
+              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  await onExternalOrderIdChange(draftOrderId);
+                  setIsEditingOrderId(false);
+                } catch (err) {
+                  notify.error(err, "Gagal mengubah ID pesanan");
+                }
+              }}>
+                <Check className="size-3" />
+              </Button>
+              <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={(e) => { e.stopPropagation(); setIsEditingOrderId(false); }}>
+                <X className="size-3" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <span className="text-muted-foreground">ID: {session.externalOrderId ?? "-"}</span>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); setDraftOrderId(session.externalOrderId ?? ""); setIsEditingOrderId(true); }}
+                className="p-0.5 text-muted-foreground hover:text-foreground"
+              >
+                <Pencil className="size-3" />
+              </button>
+            </>
+          )}
+        </div>
+      )}
       {(session.customerAlias || session.customerPhone || session.createdAt) && (
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           {session.customerAlias && <span>{session.customerAlias}</span>}

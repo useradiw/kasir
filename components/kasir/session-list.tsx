@@ -10,6 +10,7 @@ import {
   eraseSession,
   renameSession,
   updateSessionService,
+  updateExternalOrderId,
   retryUnsyncedTransactions,
 } from "@/hooks/use-session-store";
 import { KasirTopBar, EmptyState } from "./ui";
@@ -49,6 +50,7 @@ export function SessionList({
   const [showForm, setShowForm] = useState(false);
   const [tableName, setTableName] = useState("");
   const [service, setService] = useState<ServiceEnum | "">("");
+  const [externalOrderId, setExternalOrderId] = useState("");
   const [customerAlias, setCustomerAlias] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -59,18 +61,26 @@ export function SessionList({
   const [pickerSessionId, setPickerSessionId] = useState<string | null>(null);
   const confirm = useConfirm();
 
+  const isOnlineService = service === "GoFood" || service === "ShopeeFood" || service === "GrabFood";
+
   const handleCreate = async () => {
     setError(null);
+    if (isOnlineService && !externalOrderId.trim()) {
+      setError("ID pesanan wajib diisi untuk pesanan online");
+      return;
+    }
     const name = tableName.trim() || "Meja 1";
     const id = await createSession({
       name,
       service: service || null,
+      externalOrderId: isOnlineService ? externalOrderId.trim() : null,
       customerAlias: customerAlias.trim() || null,
       customerPhone: customerPhone.trim() || null,
       ownerId: staffId,
     });
     setTableName("");
     setService("");
+    setExternalOrderId("");
     setCustomerAlias("");
     setCustomerPhone("");
     setShowForm(false);
@@ -171,6 +181,13 @@ export function SessionList({
                     </option>
                   ))}
                 </select>
+                {isOnlineService && (
+                  <Input
+                    placeholder="ID Pesanan"
+                    value={externalOrderId}
+                    onChange={(e) => setExternalOrderId(e.target.value)}
+                  />
+                )}
                 <Input
                   placeholder="Nama pelanggan (opsional)"
                   value={customerAlias}
@@ -215,6 +232,7 @@ export function SessionList({
                     }}
                     onRename={(name) => renameSession(session.id, name)}
                     onServiceChange={(service) => updateSessionService(session.id, service)}
+                    onExternalOrderIdChange={(orderId) => updateExternalOrderId(session.id, orderId)}
                   />
                 ))}
               </div>

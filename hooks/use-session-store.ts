@@ -132,13 +132,14 @@ export function useUnsyncedCount() {
 // ─── Session actions ──────────────────────────────────────────────────────────
 
 export async function createSession(
-  data: Pick<TableSession, "name" | "service" | "customerAlias" | "customerPhone" | "ownerId">
+  data: Pick<TableSession, "name" | "service" | "externalOrderId" | "customerAlias" | "customerPhone" | "ownerId">
 ): Promise<string> {
   const id = newId();
   await db.table_sessions.add({
     id,
     name: data.name,
     service: data.service,
+    externalOrderId: data.externalOrderId,
     customerAlias: data.customerAlias,
     customerPhone: data.customerPhone,
     ownerId: data.ownerId,
@@ -168,6 +169,25 @@ export async function renameSession(sessionId: string, name: string): Promise<vo
     pushSessionUpdate(updated)
       .then(() => db.table_sessions.update(sessionId, { synced: 1 }))
       .catch((err) => console.error("[renameSession] sync failed", err));
+  }
+}
+
+/** Update the external order ID (vendor order ID) for an open session. */
+export async function updateExternalOrderId(sessionId: string, externalOrderId: string): Promise<void> {
+  const trimmed = externalOrderId.trim();
+  if (!trimmed) throw new Error("ID pesanan tidak boleh kosong");
+
+  const existing = await db.table_sessions.get(sessionId);
+  if (!existing) throw new Error("Sesi tidak ditemukan");
+  if (existing.paidAt) throw new Error("Sesi sudah dibayar, tidak bisa diubah");
+
+  await db.table_sessions.update(sessionId, { externalOrderId: trimmed, synced: 0 });
+
+  const updated = await db.table_sessions.get(sessionId);
+  if (updated) {
+    pushSessionUpdate(updated)
+      .then(() => db.table_sessions.update(sessionId, { synced: 1 }))
+      .catch((err) => console.error("[updateExternalOrderId] sync failed", err));
   }
 }
 

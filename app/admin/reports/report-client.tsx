@@ -29,6 +29,7 @@ const METHOD_LABEL: Record<string, string> = {
   CASH: "Tunai",
   QRIS: "QRIS",
   SPLIT: "Split",
+  PENDING: "Unsettled",
 };
 
 const SERVICE_LABEL: Record<string, string> = {
@@ -260,6 +261,58 @@ export function ReportClient({
           />
         )}
       </div>
+
+      {/* Online Orders Section */}
+      {data.onlineOrdersSummary.count > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Pesanan Online</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <div>
+                <p className="text-xs text-muted-foreground">Penjualan Kotor</p>
+                <p className="font-medium">{formatRupiah(data.onlineOrdersSummary.gross)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Komisi</p>
+                <p className="font-medium text-destructive">-{formatRupiah(data.onlineOrdersSummary.commission)}</p>
+              </div>
+              {data.onlineOrdersSummary.deductions > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Potongan Lain</p>
+                  <p className="font-medium text-destructive">-{formatRupiah(data.onlineOrdersSummary.deductions)}</p>
+                </div>
+              )}
+              <div>
+                <p className="text-xs text-muted-foreground">Pencairan Diterima</p>
+                <p className="font-medium text-primary">{formatRupiah(data.onlineOrdersSummary.disbursedRevenue)}</p>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {data.onlineOrdersSummary.settledCount} sudah cair / {data.onlineOrdersSummary.unsettledCount} belum cair
+              {data.onlineOrdersSummary.unsettledAmount > 0 && (
+                <span> ({formatRupiah(data.onlineOrdersSummary.unsettledAmount)})</span>
+              )}
+            </div>
+            {data.onlineOrdersSummary.byService.length > 0 && (
+              <div className="divide-y divide-foreground/5">
+                {data.onlineOrdersSummary.byService.map((svc, i) => (
+                  <div key={i} className="flex items-center justify-between py-1.5 text-sm">
+                    <span>{SERVICE_LABEL[svc.service] ?? svc.service} ({svc.count})</span>
+                    <div className="text-right">
+                      <span className="text-muted-foreground">{formatRupiah(svc.gross)}</span>
+                      {svc.disbursed > 0 && (
+                        <span className="ml-2 text-primary">{formatRupiah(svc.disbursed)}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Charts Row 1: Revenue + Payment Methods */}
       <div className="grid gap-4">

@@ -31,6 +31,7 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         id: session.id,
         name: session.name,
         service: session.service ?? undefined,
+        externalOrderId: session.externalOrderId ?? null,
         customerAlias: session.customerAlias,
         customerPhone: session.customerPhone,
         ownerId: session.ownerId ?? undefined,
@@ -42,6 +43,7 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
       },
       update: {
         name: session.name,
+        externalOrderId: session.externalOrderId ?? null,
         paidAt: session.paidAt ? new Date(session.paidAt) : null,
         servedAt: session.servedAt ? new Date(session.servedAt) : null,
         erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
@@ -109,7 +111,7 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
   ]);
 }
 
-/** Sync a session's mutable fields (name, service) to the server. Creates if missing. */
+/** Sync a session's mutable fields (name, service, externalOrderId) to the server. Creates if missing. */
 export async function pushSessionUpdate(session: TableSession): Promise<void> {
   await prisma.tableSession.upsert({
     where: { id: session.id },
@@ -117,6 +119,7 @@ export async function pushSessionUpdate(session: TableSession): Promise<void> {
       id: session.id,
       name: session.name,
       service: session.service ?? undefined,
+      externalOrderId: session.externalOrderId ?? null,
       customerAlias: session.customerAlias,
       customerPhone: session.customerPhone,
       ownerId: session.ownerId ?? undefined,
@@ -126,7 +129,7 @@ export async function pushSessionUpdate(session: TableSession): Promise<void> {
       erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
       createdAt: new Date(session.createdAt),
     },
-    update: { name: session.name, service: session.service ?? null },
+    update: { name: session.name, service: session.service ?? null, externalOrderId: session.externalOrderId ?? null },
   });
 }
 
@@ -143,6 +146,7 @@ export async function pushErasedSession(session: TableSession): Promise<void> {
       id: session.id,
       name: session.name,
       service: session.service ?? undefined,
+      externalOrderId: session.externalOrderId ?? null,
       customerAlias: session.customerAlias,
       customerPhone: session.customerPhone,
       ownerId: session.ownerId ?? undefined,

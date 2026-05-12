@@ -10,3 +10,5 @@ export { getReportData } from "./report-queries";
 export type { ReportData } from "./report-queries";
 export { getRecipeData } from "./recipe-queries";
 export type { RecipeData } from "./recipe-queries";
+export { getSettlementData } from "./settlement-queries";
+export type { SettlementData } from "./settlement-queries";

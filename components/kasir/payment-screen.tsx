@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useOrderItems, recordPayment, checkAndFinalizeSession, useTransactionForGroup } from "@/hooks/use-session-store";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db";
 import { formatRupiah } from "@/lib/format";
 import {
   calcSubtotal,
@@ -20,7 +22,9 @@ import type { PaymentMethod } from "@/lib/db";
 import { ReceiptPreview } from "./receipt-preview";
 import { useKasir } from "./kasir-context";
 
-const paymentMethods: { value: PaymentMethod; label: string }[] = [
+const ONLINE_SERVICES = ["GoFood", "ShopeeFood", "GrabFood"];
+
+const basePaymentMethods: { value: PaymentMethod; label: string }[] = [
   { value: "CASH", label: "Tunai" },
   { value: "QRIS", label: "QRIS" },
   { value: "SPLIT", label: "Split" },
@@ -45,6 +49,11 @@ export function PaymentScreen({
   const { staffId, staffName, staffRole, storeInfo, defaultTaxPct, defaultServicePct } = useKasir();
   const items = useOrderItems(sessionId);
   const existingGroupTx = useTransactionForGroup(sessionId, splitGroup ?? 0);
+  const session = useLiveQuery(() => db.table_sessions.get(sessionId), [sessionId]);
+  const isOnlineSession = session?.service ? ONLINE_SERVICES.includes(session.service) : false;
+  const paymentMethods = isOnlineSession
+    ? [...basePaymentMethods, { value: "PENDING" as PaymentMethod, label: "Unsettled" }]
+    : basePaymentMethods;
   const activeItems = (items ?? []).filter((i) => {
     if (i.status === "CANCELLED") return false;
     if (splitGroup !== undefined) return i.splitGroup === splitGroup;
@@ -103,7 +112,7 @@ export function PaymentScreen({
   const isValid =
     total > 0 &&
     activeItems.length > 0 &&
-    (method === "QRIS" || (method === "CASH" && cashAmount >= total) || (method === "SPLIT" && cashAmount > 0 && cashAmount < total));
+    (method === "QRIS" || method === "PENDING" || (method === "CASH" && cashAmount >= total) || (method === "SPLIT" && cashAmount > 0 && cashAmount < total));
 
   // Quick cash amounts
   const quickAmounts = (() => {
@@ -165,8 +174,10 @@ export function PaymentScreen({
     if (processing) return;
     setError(null);
 
-    if (!isValid && method !== "QRIS") return;
+    if (!isValid && method !== "QRIS" && method !== "PENDING") return;
     if (method === "CASH") {
+      await doRecordPayment();
+    } else if (method === "PENDING") {
       await doRecordPayment();
     } else {
       // QRIS or SPLIT: show QRIS confirmation page
@@ -197,6 +208,9 @@ export function PaymentScreen({
             <p>Tunai: <span className="font-bold">{formatRupiah(cashAmount)}</span></p>
             <p>QRIS: <span className="font-bold">{formatRupiah(qrisAmount)}</span></p>
           </div>
+        )}
+        {method === "PENDING" && (
+          <p className="text-sm text-amber-600 dark:text-amber-400">Unsettled — menunggu pencairan</p>
         )}
         <div className="flex gap-2 mt-4">
           <Button variant="outline" onClick={() => setShowReceipt(true)}>
@@ -354,7 +368,7 @@ export function PaymentScreen({
         {/* Payment method */}
         <div className="space-y-2">
           <Label className="text-xs">Metode Pembayaran</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className={cn("grid gap-2", paymentMethods.length > 3 ? "grid-cols-4" : "grid-cols-3")}>
             {paymentMethods.map((pm) => (
               <button
                 key={pm.value}
@@ -367,7 +381,9 @@ export function PaymentScreen({
                 className={cn(
                   "h-12 rounded-lg border text-xs font-medium transition-colors",
                   method === pm.value
-                    ? "border-primary bg-primary/10 text-primary"
+                    ? pm.value === "PENDING"
+                      ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : "border-primary bg-primary/10 text-primary"
                     : "bg-card text-muted-foreground"
                 )}
               >
@@ -492,6 +508,14 @@ export function PaymentScreen({
                 />
               </div>
             )}
+          </div>
+        )}
+
+        {/* PENDING: read-only total confirmation */}
+        {method === "PENDING" && (
+          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 space-y-1">
+            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Pesanan Online — Unsettled</p>
+            <p className="text-sm text-muted-foreground">Transaksi akan dicatat dan menunggu pencairan dari platform.</p>
           </div>
         )}
 
