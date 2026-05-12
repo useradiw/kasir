@@ -31,6 +31,9 @@ const TABLE_LABELS: Record<string, string> = {
   attendanceRecords: "Absensi",
   notifications: "Notifikasi",
   settings: "Pengaturan",
+  onlineSettlements: "Pencairan Online",
+  settlementItems: "Item Pencairan",
+  settlementDeductions: "Potongan Pencairan",
 };
 
 export default function RestoreClient() {

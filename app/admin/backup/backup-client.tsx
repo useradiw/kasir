@@ -30,6 +30,9 @@ const TABLE_OPTIONS = [
   { key: "attendanceRecords", label: "Absensi" },
   { key: "notifications", label: "Notifikasi" },
   { key: "settings", label: "Pengaturan" },
+  { key: "onlineSettlements", label: "Pencairan Online" },
+  { key: "settlementItems", label: "Item Pencairan" },
+  { key: "settlementDeductions", label: "Potongan Pencairan" },
 ] as const;
 
 function downloadJson(data: unknown, filename: string) {

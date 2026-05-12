@@ -40,6 +40,7 @@ const allAdminLinks = [
   { href: "/admin/attendance", label: "Absensi", desc: "Pencatatan kehadiran", icon: ClipboardCheck },
   { href: "/admin/inventory", label: "Inventori", desc: "Kategori & menu", icon: Package },
   { href: "/admin/transactions", label: "Transaksi", desc: "Riwayat transaksi", icon: Receipt },
+  { href: "/admin/settlement", label: "Pencairan Online", desc: "Kelola pencairan GoFood/Shopee/Grab", icon: Banknote },
   { href: "/admin/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Wallet },
   { href: "/admin/cash-register", label: "Kas Harian", desc: "Buka & tutup kas", icon: Landmark },
   { href: "/admin/notifications", label: "Notifikasi", desc: "Riwayat notifikasi sistem", icon: Bell, ownerOnly: true },

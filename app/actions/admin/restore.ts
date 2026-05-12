@@ -25,6 +25,9 @@ const IMPORT_ORDER = [
   "tableSessions",
   "orderItems",
   "transactions",
+  "onlineSettlements",
+  "settlementItems",
+  "settlementDeductions",
   "cashRegisters",
   "expenses",
   "expenseItems",
@@ -261,6 +264,7 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           id: row.id as string,
           name: row.name as string,
           service: row.service as "GoFood" | "ShopeeFood" | "GrabFood" | "Take_Away" | "Unknown" | null ?? undefined,
+          externalOrderId: row.externalOrderId as string | null ?? undefined,
           customerAlias: row.customerAlias as string | null ?? undefined,
           customerPhone: row.customerPhone as string | null ?? undefined,
           ownerId: row.ownerId as string | null ?? undefined,
@@ -273,6 +277,7 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
         update: {
           name: row.name as string,
           service: row.service as "GoFood" | "ShopeeFood" | "GrabFood" | "Take_Away" | "Unknown" | null ?? undefined,
+          externalOrderId: row.externalOrderId as string | null ?? undefined,
           paidAt: toDate(row.paidAt),
           erasedAt: toDate(row.erasedAt),
         },
@@ -322,7 +327,7 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           totalAmount: row.totalAmount as number,
           cashAmount: row.cashAmount as number ?? 0,
           qrisAmount: row.qrisAmount as number ?? 0,
-          paymentMethod: row.paymentMethod as "CASH" | "QRIS" | "SPLIT",
+          paymentMethod: row.paymentMethod as "CASH" | "QRIS" | "SPLIT" | "PENDING",
           status: row.status as "PAID" | "VOIDED" ?? "PAID",
           voidedById: row.voidedById as string | null ?? undefined,
           voidedAt: toDate(row.voidedAt),
@@ -335,6 +340,57 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           voidedById: row.voidedById as string | null ?? undefined,
           voidedAt: toDate(row.voidedAt),
           voidReason: row.voidReason as string | null ?? undefined,
+        },
+      });
+      break;
+
+    case "onlineSettlements":
+      await prisma.onlineSettlement.upsert({
+        where: { id: row.id as string },
+        create: {
+          id: row.id as string,
+          service: row.service as "GoFood" | "ShopeeFood" | "GrabFood",
+          settlementDate: toDate(row.settlementDate) ?? new Date(),
+          totalGross: row.totalGross as number,
+          commissionAmount: row.commissionAmount as number,
+          finalAmount: row.finalAmount as number,
+          settledById: row.settledById as string,
+          notes: row.notes as string | null ?? undefined,
+          createdAt: toDate(row.createdAt) ?? undefined,
+        },
+        update: {
+          totalGross: row.totalGross as number,
+          commissionAmount: row.commissionAmount as number,
+          finalAmount: row.finalAmount as number,
+          notes: row.notes as string | null ?? undefined,
+        },
+      });
+      break;
+
+    case "settlementItems":
+      await prisma.settlementItem.upsert({
+        where: { id: row.id as string },
+        create: {
+          id: row.id as string,
+          settlementId: row.settlementId as string,
+          transactionId: row.transactionId as string,
+        },
+        update: {},
+      });
+      break;
+
+    case "settlementDeductions":
+      await prisma.settlementDeduction.upsert({
+        where: { id: row.id as string },
+        create: {
+          id: row.id as string,
+          settlementId: row.settlementId as string,
+          label: row.label as string,
+          amount: row.amount as number,
+        },
+        update: {
+          label: row.label as string,
+          amount: row.amount as number,
         },
       });
       break;

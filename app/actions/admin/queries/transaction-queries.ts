@@ -14,12 +14,12 @@ export async function getTransactionsData(opts: {
 
   const PAGE_SIZE = 20;
   const where: {
-    paymentMethod?: "CASH" | "QRIS" | "SPLIT";
+    paymentMethod?: "CASH" | "QRIS" | "SPLIT" | "PENDING";
     status?: "PAID" | "VOIDED";
     paidAt?: { gte?: Date; lt?: Date };
   } = {};
 
-  if (opts.method) where.paymentMethod = opts.method as "CASH" | "QRIS" | "SPLIT";
+  if (opts.method) where.paymentMethod = opts.method as "CASH" | "QRIS" | "SPLIT" | "PENDING";
   if (opts.status) where.status = opts.status as "PAID" | "VOIDED";
   if (opts.from || opts.to) {
     where.paidAt = {};
@@ -41,10 +41,12 @@ export async function getTransactionsData(opts: {
       include: {
         processedBy: { select: { name: true } },
         voidedBy: { select: { name: true } },
+        settlementItem: { select: { id: true } },
         tableSession: {
           select: {
             name: true,
             service: true,
+            externalOrderId: true,
             orderItems: {
               select: { nameSnapshot: true, qty: true, price: true, status: true },
             },
@@ -61,6 +63,8 @@ export async function getTransactionsData(opts: {
       id: t.id,
       sessionName: t.tableSession.name,
       service: t.tableSession.service as string | null,
+      externalOrderId: t.tableSession.externalOrderId ?? null,
+      isSettled: !!t.settlementItem,
       totalAmount: t.totalAmount,
       subtotal: t.subtotal,
       taxAmount: t.taxAmount,

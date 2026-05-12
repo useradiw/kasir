@@ -17,6 +17,8 @@ type Row = {
   id: string;
   sessionName: string;
   service: string | null;
+  externalOrderId: string | null;
+  isSettled: boolean;
   totalAmount: number;
   subtotal: number;
   taxAmount: number;
@@ -39,6 +41,7 @@ const methodLabel: Record<string, string> = {
   CASH: "Tunai",
   QRIS: "QRIS",
   SPLIT: "Split",
+  PENDING: "Unsettled",
 };
 
 const statusBadge: Record<string, string> = {
@@ -94,40 +97,47 @@ export default function TransactionsClient({
       {/* Filters */}
       <Card>
         <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="grid gap-1">
-              <Label>Metode Bayar</Label>
-              <AdminSelect
-                value={localFilters.method}
-                onChange={(e) => setLocalFilters((f) => ({ ...f, method: e.target.value }))}
-              >
-                <option value="">Semua</option>
-                <option value="CASH">Tunai</option>
-                <option value="QRIS">QRIS</option>
-                <option value="SPLIT">Split</option>
-              </AdminSelect>
+          <div className="grid gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1">
+                <Label>Metode Bayar</Label>
+                <AdminSelect
+                  value={localFilters.method}
+                  onChange={(e) => setLocalFilters((f) => ({ ...f, method: e.target.value }))}
+                >
+                  <option value="">Semua</option>
+                  <option value="CASH">Tunai</option>
+                  <option value="QRIS">QRIS</option>
+                  <option value="SPLIT">Split</option>
+                  <option value="PENDING">Unsettled</option>
+                </AdminSelect>
+              </div>
+              <div className="grid gap-1">
+                <Label>Status</Label>
+                <AdminSelect
+                  value={localFilters.status}
+                  onChange={(e) => setLocalFilters((f) => ({ ...f, status: e.target.value }))}
+                >
+                  <option value="">Semua</option>
+                  <option value="PAID">Dibayar</option>
+                  <option value="VOIDED">Dibatalkan</option>
+                </AdminSelect>
+              </div>
             </div>
-            <div className="grid gap-1">
-              <Label>Status</Label>
-              <AdminSelect
-                value={localFilters.status}
-                onChange={(e) => setLocalFilters((f) => ({ ...f, status: e.target.value }))}
-              >
-                <option value="">Semua</option>
-                <option value="PAID">Dibayar</option>
-                <option value="VOIDED">Dibatalkan</option>
-              </AdminSelect>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1">
+                <Label>Dari Tanggal</Label>
+                <Input type="date" value={localFilters.from} onChange={(e) => setLocalFilters((f) => ({ ...f, from: e.target.value }))} />
+              </div>
+              <div className="grid gap-1">
+                <Label>Sampai</Label>
+                <Input type="date" value={localFilters.to} onChange={(e) => setLocalFilters((f) => ({ ...f, to: e.target.value }))} />
+              </div>
             </div>
-            <div className="grid gap-1">
-              <Label>Dari Tanggal</Label>
-              <Input type="date" value={localFilters.from} onChange={(e) => setLocalFilters((f) => ({ ...f, from: e.target.value }))} className="w-36" />
+            <div className="flex gap-2">
+              <Button onClick={applyFilters} size="sm">Filter</Button>
+              <Button variant="ghost" size="sm" onClick={() => { setLocalFilters({ method: "", status: "", from: "", to: "" }); router.push("/admin/transactions"); }}>Reset</Button>
             </div>
-            <div className="grid gap-1">
-              <Label>Sampai</Label>
-              <Input type="date" value={localFilters.to} onChange={(e) => setLocalFilters((f) => ({ ...f, to: e.target.value }))} className="w-36" />
-            </div>
-            <Button onClick={applyFilters} size="sm">Filter</Button>
-            <Button variant="ghost" size="sm" onClick={() => { setLocalFilters({ method: "", status: "", from: "", to: "" }); router.push("/admin/transactions"); }}>Reset</Button>
           </div>
         </CardContent>
       </Card>
@@ -150,8 +160,16 @@ export default function TransactionsClient({
                       {r.sessionName}
                       {r.service && <span className="ml-1 text-xs text-muted-foreground">({r.service})</span>}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    {r.externalOrderId && (
+                      <p className="text-xs text-muted-foreground">ID: {r.externalOrderId}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
                       {methodLabel[r.paymentMethod] ?? r.paymentMethod}
+                      {r.paymentMethod === "PENDING" && (
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${r.isSettled ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}>
+                          {r.isSettled ? "Sudah Cair" : "Belum Cair"}
+                        </span>
+                      )}
                       {r.processedBy && <> · {r.processedBy}</>}
                     </p>
                   </div>
@@ -177,7 +195,7 @@ export default function TransactionsClient({
                 {/* Expandable detail */}
                 {expandId === r.id && (
                   <div className="pt-2 border-t border-foreground/10 space-y-3 text-xs">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <div className="space-y-1">
                         <p className="font-medium mb-2">Item Pesanan</p>
                         {r.orderItems.map((oi, i) => (

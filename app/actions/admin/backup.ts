@@ -24,6 +24,9 @@ const ALL_TABLES = [
   "attendanceRecords",
   "notifications",
   "settings",
+  "onlineSettlements",
+  "settlementItems",
+  "settlementDeductions",
 ] as const;
 
 export type BackupTableKey = (typeof ALL_TABLES)[number];
@@ -98,6 +101,15 @@ export async function exportDatabase(tables: string[]) {
         break;
       case "settings":
         result.settings = await prisma.setting.findMany();
+        break;
+      case "onlineSettlements":
+        result.onlineSettlements = await prisma.onlineSettlement.findMany({ orderBy: { settlementDate: "desc" } });
+        break;
+      case "settlementItems":
+        result.settlementItems = await prisma.settlementItem.findMany();
+        break;
+      case "settlementDeductions":
+        result.settlementDeductions = await prisma.settlementDeduction.findMany();
         break;
     }
   }

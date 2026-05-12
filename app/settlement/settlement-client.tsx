@@ -41,9 +41,11 @@ function getCommissionForService(
 export function SettlementClient({
   data,
   staffRole,
+  backHref = "/",
 }: {
   data: SettlementData;
   staffRole: RoleEnum;
+  backHref?: string;
 }) {
   const [tab, setTab] = useState<"create" | "history">("create");
   const [serviceFilter, setServiceFilter] = useState<ServiceKey | "all">("all");
@@ -61,7 +63,7 @@ export function SettlementClient({
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <Link href="/" className="p-1">
+        <Link href={backHref} className="p-1">
           <ArrowLeft className="size-5 text-muted-foreground" />
         </Link>
         <PageHeader title="Pencairan Online" />
