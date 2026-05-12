@@ -1,11 +1,3 @@
-/** @deprecated Use `getStoreInfo()` from `@/lib/settings` for dynamic values. */
-export const STORE_INFO = {
-  name: "Sate Kambing Sido Mampir",
-  address: "Jl. Brigjen Katamso 51, Surakarta",
-  phone: "",
-  instagram: "@kambingsidomampir",
-} as const;
-
 export function formatRupiah(amount: number): string {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",

@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateExpenses } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
+import { runAction } from "@/lib/action-error";
 
 const expenseItemSchema = z.object({
   description: z.string().min(1, "Deskripsi item harus diisi"),
@@ -26,46 +27,45 @@ export async function addExpense(data: {
   countToKasPakHar?: boolean;
   items: { description: string; amount: number; cost: number; unit?: string; templateId?: string | null }[];
 }) {
-  const staff = await requireRole("OWNER", "MANAGER");
+  return runAction(async () => {
+    const staff = await requireRole("OWNER", "MANAGER");
+    const parsed = expenseSchema.parse(data);
 
-  const parsed = expenseSchema.safeParse(data);
-  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+    const deductFromCash = parsed.deductFromCash ?? true;
+    const countToKasPakHar = parsed.countToKasPakHar ?? false;
 
-  const deductFromCash = parsed.data.deductFromCash ?? true;
-  const countToKasPakHar = parsed.data.countToKasPakHar ?? false;
+    if (deductFromCash && countToKasPakHar) {
+      throw new Error("Tidak bisa mengurangi kas dan Kas Pak Har bersamaan");
+    }
 
-  if (deductFromCash && countToKasPakHar) {
-    throw new Error("Tidak bisa mengurangi kas dan Kas Pak Har bersamaan");
-  }
+    await prisma.$transaction(async (tx) => {
+      const expense = await tx.expense.create({
+        data: {
+          description: parsed.description || null,
+          deductFromCash,
+          countToKasPakHar,
+          staffId: staff.id,
+          recordedAt: new Date(),
+          items: { create: parsed.items },
+        },
+      });
 
-  const expense = await prisma.expense.create({
-    data: {
-      description: parsed.data.description || null,
-      deductFromCash,
-      countToKasPakHar,
-      staffId: staff.id,
-      recordedAt: new Date(),
-      items: {
-        create: parsed.data.items,
-      },
-    },
-  });
-
-  if (countToKasPakHar) {
-    const total = parsed.data.items.reduce((sum, i) => sum + i.amount * i.cost, 0);
-    await prisma.kasPakHar.create({
-      data: {
-        type: "EXPENSE_DEDUCTION",
-        amount: total,
-        description: parsed.data.description || null,
-        expenseId: expense.id,
-        createdById: staff.id,
-      },
+      if (countToKasPakHar) {
+        const total = parsed.items.reduce((sum, i) => sum + i.amount * i.cost, 0);
+        await tx.kasPakHar.create({
+          data: {
+            type: "EXPENSE_DEDUCTION",
+            amount: total,
+            description: parsed.description || null,
+            expenseId: expense.id,
+            createdById: staff.id,
+          },
+        });
+      }
     });
-  }
 
-  revalidatePath("/admin/expenses");
-  revalidatePath("/admin/kas-pak-har");
+    revalidateExpenses();
+  });
 }
 
 export async function updateExpense(
@@ -77,55 +77,53 @@ export async function updateExpense(
     items: { description: string; amount: number; cost: number; unit?: string; templateId?: string | null }[];
   },
 ) {
-  const staff = await requireRole("OWNER", "MANAGER");
+  return runAction(async () => {
+    const staff = await requireRole("OWNER", "MANAGER");
+    const parsed = expenseSchema.parse(data);
 
-  const parsed = expenseSchema.safeParse(data);
-  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+    const deductFromCash = parsed.deductFromCash ?? true;
+    const countToKasPakHar = parsed.countToKasPakHar ?? false;
 
-  const deductFromCash = parsed.data.deductFromCash ?? true;
-  const countToKasPakHar = parsed.data.countToKasPakHar ?? false;
+    if (deductFromCash && countToKasPakHar) {
+      throw new Error("Tidak bisa mengurangi kas dan Kas Pak Har bersamaan");
+    }
 
-  if (deductFromCash && countToKasPakHar) {
-    throw new Error("Tidak bisa mengurangi kas dan Kas Pak Har bersamaan");
-  }
-
-  // Remove old kas pak har entries for this expense
-  await prisma.kasPakHar.deleteMany({ where: { expenseId: id } });
-
-  await prisma.$transaction([
-    prisma.expenseItem.deleteMany({ where: { expenseId: id } }),
-    prisma.expense.update({
-      where: { id },
-      data: {
-        description: parsed.data.description || null,
-        deductFromCash,
-        countToKasPakHar,
-        items: {
-          create: parsed.data.items,
+    await prisma.$transaction(async (tx) => {
+      // Remove old kas pak har entries for this expense
+      await tx.kasPakHar.deleteMany({ where: { expenseId: id } });
+      await tx.expenseItem.deleteMany({ where: { expenseId: id } });
+      await tx.expense.update({
+        where: { id },
+        data: {
+          description: parsed.description || null,
+          deductFromCash,
+          countToKasPakHar,
+          items: { create: parsed.items },
         },
-      },
-    }),
-  ]);
+      });
 
-  if (countToKasPakHar) {
-    const total = parsed.data.items.reduce((sum, i) => sum + i.amount * i.cost, 0);
-    await prisma.kasPakHar.create({
-      data: {
-        type: "EXPENSE_DEDUCTION",
-        amount: total,
-        description: parsed.data.description || null,
-        expenseId: id,
-        createdById: staff.id,
-      },
+      if (countToKasPakHar) {
+        const total = parsed.items.reduce((sum, i) => sum + i.amount * i.cost, 0);
+        await tx.kasPakHar.create({
+          data: {
+            type: "EXPENSE_DEDUCTION",
+            amount: total,
+            description: parsed.description || null,
+            expenseId: id,
+            createdById: staff.id,
+          },
+        });
+      }
     });
-  }
 
-  revalidatePath("/admin/expenses");
-  revalidatePath("/admin/kas-pak-har");
+    revalidateExpenses();
+  });
 }
 
 export async function deleteExpense(id: string) {
-  await requireOwner();
-  await prisma.expense.delete({ where: { id } });
-  revalidatePath("/admin/expenses");
+  return runAction(async () => {
+    await requireOwner();
+    await prisma.expense.delete({ where: { id } });
+    revalidateExpenses();
+  });
 }

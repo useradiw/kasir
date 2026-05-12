@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { AdminSelect } from "@/components/admin/ui";
 import { formatRupiah } from "@/lib/format";
 import { exportCSV } from "@/lib/export-csv";
-import { exportPDF, fmtRp } from "@/lib/export-pdf";
+import { exportPDF } from "@/lib/export-pdf";
 import type { ReportData } from "@/app/actions/admin/queries";
 
 const COLORS = ["#0d9488", "#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
@@ -102,11 +102,11 @@ export function ReportClient({
         title: `Laporan ${PERIOD_LABEL[currentPeriod]} (${dateRangeLabel})`,
         headers: ["Metrik", "Nilai"],
         rows: [
-          ["Total Pendapatan", fmtRp(data.revenue.total)],
+          ["Total Pendapatan", formatRupiah(data.revenue.total)],
           ["Jumlah Transaksi", data.revenue.count],
-          ["Rata-rata Transaksi", fmtRp(data.revenue.average)],
-          ["Total Pengeluaran", fmtRp(data.totalExpenses)],
-          ["Laba Bersih", fmtRp(data.netProfit)],
+          ["Rata-rata Transaksi", formatRupiah(data.revenue.average)],
+          ["Total Pengeluaran", formatRupiah(data.totalExpenses)],
+          ["Laba Bersih", formatRupiah(data.netProfit)],
           ["Transaksi Void", data.voidedCount],
         ],
       },
@@ -154,37 +154,37 @@ export function ReportClient({
     const title = `Laporan ${PERIOD_LABEL[currentPeriod]}`;
     const subtitle = `Periode: ${dateRangeLabel}`;
     const summaryCards = [
-      { label: "Total Pendapatan", value: fmtRp(data.revenue.total) },
+      { label: "Total Pendapatan", value: formatRupiah(data.revenue.total) },
       { label: "Transaksi", value: String(data.revenue.count) },
-      { label: "Pengeluaran", value: fmtRp(data.totalExpenses) },
-      { label: "Laba Bersih", value: fmtRp(data.netProfit) },
+      { label: "Pengeluaran", value: formatRupiah(data.totalExpenses) },
+      { label: "Laba Bersih", value: formatRupiah(data.netProfit) },
     ];
     const sections = [
       {
         title: currentPeriod === "yearly" ? "Pendapatan per Bulan" : "Pendapatan per Hari",
         headers: [currentPeriod === "yearly" ? "Bulan" : "Tanggal", "Pendapatan", "Jumlah Transaksi"],
-        rows: data.revenueByDay.map((r) => [r.date, fmtRp(r.revenue), r.count]),
+        rows: data.revenueByDay.map((r) => [r.date, formatRupiah(r.revenue), r.count]),
       },
       {
         title: "Metode Pembayaran",
         headers: ["Metode", "Total", "Jumlah"],
-        rows: data.paymentMethods.map((p) => [METHOD_LABEL[p.method] ?? p.method, fmtRp(p.amount), p.count]),
+        rows: data.paymentMethods.map((p) => [METHOD_LABEL[p.method] ?? p.method, formatRupiah(p.amount), p.count]),
       },
       {
         title: "Item Terlaris (Top 10)",
         headers: ["Nama", "Qty Terjual", "Pendapatan"],
-        rows: data.topItems.map((i) => [i.name, i.qty, fmtRp(i.revenue)]),
+        rows: data.topItems.map((i) => [i.name, i.qty, formatRupiah(i.revenue)]),
       },
       {
         title: "Kas Harian",
         headers: ["Tanggal", "Kas Awal", "Pemasukan", "Pengeluaran", "Kas Akhir", "Selisih"],
         rows: data.cashRegisterSummary.map((c) => [
           c.date,
-          fmtRp(c.openingCash),
-          fmtRp(c.cashIncome),
-          fmtRp(c.expenses),
-          c.closingCash !== null ? fmtRp(c.closingCash) : "Belum tutup",
-          c.difference !== null ? fmtRp(c.difference) : "-",
+          formatRupiah(c.openingCash),
+          formatRupiah(c.cashIncome),
+          formatRupiah(c.expenses),
+          c.closingCash !== null ? formatRupiah(c.closingCash) : "Belum tutup",
+          c.difference !== null ? formatRupiah(c.difference) : "-",
         ]),
       },
       {
@@ -193,7 +193,7 @@ export function ReportClient({
         rows: data.transactions.map((t) => [
           new Date(t.paidAt).toLocaleString("id-ID"),
           t.sessionName,
-          fmtRp(t.totalAmount),
+          formatRupiah(t.totalAmount),
           METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod,
           t.processedBy ?? "-",
         ]),

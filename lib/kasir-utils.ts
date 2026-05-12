@@ -1,10 +1,13 @@
 import type { OrderItem, OrderItemStatus, ServiceEnum, MenuItem, MenuVariant, OnlinePrice } from "@/lib/db";
 
+/** Filter out cancelled order items. */
+export function activeItems<T extends { status: string }>(items: T[]): T[] {
+  return items.filter((i) => i.status !== "CANCELLED");
+}
+
 /** Sum price * qty for non-cancelled items. */
 export function calcSubtotal(items: OrderItem[]): number {
-  return items
-    .filter((i) => i.status !== "CANCELLED")
-    .reduce((sum, i) => sum + i.price * i.qty, 0);
+  return activeItems(items).reduce((sum, i) => sum + i.price * i.qty, 0);
 }
 
 /** Final item price: online override if available, otherwise base + variant modifier. */

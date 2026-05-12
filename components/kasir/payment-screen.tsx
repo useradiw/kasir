@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle, Loader2, ChevronDown, Smartphone } from "lucide-react";
 import type { PaymentMethod } from "@/lib/db";
 import { ReceiptPreview } from "./receipt-preview";
-import type { StoreInfo } from "@/lib/settings";
+import { useKasir } from "./kasir-context";
 
 const paymentMethods: { value: PaymentMethod; label: string }[] = [
   { value: "CASH", label: "Tunai" },
@@ -28,12 +28,6 @@ const paymentMethods: { value: PaymentMethod; label: string }[] = [
 
 export function PaymentScreen({
   sessionId,
-  staffId,
-  staffName,
-  staffRole,
-  storeInfo,
-  defaultTaxPct = 0,
-  defaultServicePct = 0,
   splitGroup,
   splitTotalGroups,
   onDone,
@@ -41,12 +35,6 @@ export function PaymentScreen({
   onHome,
 }: {
   sessionId: string;
-  staffId: string;
-  staffName: string;
-  staffRole?: string;
-  storeInfo: StoreInfo;
-  defaultTaxPct?: number;
-  defaultServicePct?: number;
   /** When set, only pays for items in this splitGroup (1-based). */
   splitGroup?: number;
   splitTotalGroups?: number;
@@ -54,6 +42,7 @@ export function PaymentScreen({
   onBack: () => void;
   onHome?: () => void;
 }) {
+  const { staffId, staffName, staffRole, storeInfo, defaultTaxPct, defaultServicePct } = useKasir();
   const items = useOrderItems(sessionId);
   const existingGroupTx = useTransactionForGroup(sessionId, splitGroup ?? 0);
   const activeItems = (items ?? []).filter((i) => {
@@ -222,7 +211,6 @@ export function PaymentScreen({
             sessionId={sessionId}
             mode="receipt"
             cashierName={staffName}
-            storeInfo={storeInfo}
             splitGroup={splitGroup}
             splitTotalGroups={splitTotalGroups}
             onClose={() => setShowReceipt(false)}

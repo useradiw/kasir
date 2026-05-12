@@ -5,6 +5,7 @@ import { Container } from "@/components/shared/container";
 import { useStaffId, useProductSyncQuery, useStoreConfig } from "@/hooks/use-kasir-query";
 import { retryUnsyncedTransactions } from "@/hooks/use-session-store";
 import { Loader2 } from "lucide-react";
+import { KasirProvider, type KasirContextValue } from "./kasir-context";
 import { SessionList } from "./session-list";
 import { MenuBrowser } from "./menu-browser";
 import { OrderReview } from "./order-review";
@@ -92,92 +93,86 @@ export function KasirShell() {
   const staffData = staff.data!;
   const storeConfig = config.data!;
 
+  const kasirCtx: KasirContextValue = {
+    staffId: staffData.staffId,
+    staffName: staffData.staffName,
+    staffRole: staffData.staffRole,
+    storeInfo: storeConfig.storeInfo,
+    defaultTaxPct: storeConfig.defaultTaxPct,
+    defaultServicePct: storeConfig.defaultServicePct,
+  };
+
   return (
-    <Container id="kasir" sectionStyle="min-h-screen flex flex-col" className="flex flex-col flex-1">
-      {view === "sessions" && (
-        <SessionList
-          staffId={staffData.staffId}
-          staffName={staffData.staffName}
-          storeInfo={storeConfig.storeInfo}
-          onOpenSession={openSession}
-          onOpenPaidSession={openPaidSession}
-        />
-      )}
-      {view === "menu" && activeSessionId && (
-        <MenuBrowser
-          sessionId={activeSessionId}
-          onBack={goToSessions}
-          onReview={goToReview}
-          onHome={goToSessions}
-        />
-      )}
-      {view === "review" && activeSessionId && (
-        <OrderReview
-          sessionId={activeSessionId}
-          storeInfo={storeConfig.storeInfo}
-          onBack={goToMenu}
-          onPay={goToPayment}
-          onSplitItems={goToSplitItems}
-          onHome={goToSessions}
-        />
-      )}
-      {view === "split-items" && activeSessionId && (
-        <SplitItemsScreen
-          sessionId={activeSessionId}
-          onBack={goToReview}
-          onStartPayment={startSplitPayment}
-          onPaySingleGroup={startSingleGroupPayment}
-          onHome={goToSessions}
-        />
-      )}
-      {view === "split-payment" && activeSessionId && (
-        <PaymentScreen
-          key={`split-${splitPayingGroup}`}
-          sessionId={activeSessionId}
-          staffId={staffData.staffId}
-          staffName={staffData.staffName}
-          staffRole={staffData.staffRole}
-          storeInfo={storeConfig.storeInfo}
-          defaultTaxPct={storeConfig.defaultTaxPct}
-          defaultServicePct={storeConfig.defaultServicePct}
-          splitGroup={splitPayingGroup}
-          splitTotalGroups={splitTotalGroups}
-          onDone={() => {
-            if (splitTotalGroups === 0) {
-              setView("split-items");
-            } else if (splitPayingGroup < splitTotalGroups) {
-              startSplitPayment(splitPayingGroup + 1, splitTotalGroups);
-            } else {
-              goToSessions();
-            }
-          }}
-          onBack={() => setView("split-items")}
-          onHome={goToSessions}
-        />
-      )}
-      {view === "payment" && activeSessionId && (
-        <PaymentScreen
-          sessionId={activeSessionId}
-          staffId={staffData.staffId}
-          staffName={staffData.staffName}
-          staffRole={staffData.staffRole}
-          storeInfo={storeConfig.storeInfo}
-          defaultTaxPct={storeConfig.defaultTaxPct}
-          defaultServicePct={storeConfig.defaultServicePct}
-          onDone={goToSessions}
-          onBack={goToReview}
-          onHome={goToSessions}
-        />
-      )}
-      {view === "history-review" && activeSessionId && (
-        <OrderReview
-          sessionId={activeSessionId}
-          storeInfo={storeConfig.storeInfo}
-          onBack={goToSessions}
-          onHome={goToSessions}
-          readOnly
-        />
-      )}
-    </Container>
+    <KasirProvider value={kasirCtx}>
+      <Container id="kasir" sectionStyle="min-h-screen flex flex-col" className="flex flex-col flex-1">
+        {view === "sessions" && (
+          <SessionList
+            onOpenSession={openSession}
+            onOpenPaidSession={openPaidSession}
+          />
+        )}
+        {view === "menu" && activeSessionId && (
+          <MenuBrowser
+            sessionId={activeSessionId}
+            onBack={goToSessions}
+            onReview={goToReview}
+            onHome={goToSessions}
+          />
+        )}
+        {view === "review" && activeSessionId && (
+          <OrderReview
+            sessionId={activeSessionId}
+            onBack={goToMenu}
+            onPay={goToPayment}
+            onSplitItems={goToSplitItems}
+            onHome={goToSessions}
+          />
+        )}
+        {view === "split-items" && activeSessionId && (
+          <SplitItemsScreen
+            sessionId={activeSessionId}
+            onBack={goToReview}
+            onStartPayment={startSplitPayment}
+            onPaySingleGroup={startSingleGroupPayment}
+            onHome={goToSessions}
+          />
+        )}
+        {view === "split-payment" && activeSessionId && (
+          <PaymentScreen
+            key={`split-${splitPayingGroup}`}
+            sessionId={activeSessionId}
+            splitGroup={splitPayingGroup}
+            splitTotalGroups={splitTotalGroups}
+            onDone={() => {
+              if (splitTotalGroups === 0) {
+                setView("split-items");
+              } else if (splitPayingGroup < splitTotalGroups) {
+                startSplitPayment(splitPayingGroup + 1, splitTotalGroups);
+              } else {
+                goToSessions();
+              }
+            }}
+            onBack={() => setView("split-items")}
+            onHome={goToSessions}
+          />
+        )}
+        {view === "payment" && activeSessionId && (
+          <PaymentScreen
+            sessionId={activeSessionId}
+            onDone={goToSessions}
+            onBack={goToReview}
+            onHome={goToSessions}
+          />
+        )}
+        {view === "history-review" && activeSessionId && (
+          <OrderReview
+            sessionId={activeSessionId}
+            onBack={goToSessions}
+            onHome={goToSessions}
+            readOnly
+          />
+        )}
+      </Container>
+    </KasirProvider>
   );
 }

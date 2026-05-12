@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useOrderItems, useSessionSplitStatus, assignSplitGroup } from "@/hooks/use-session-store";
-import { calcSubtotal } from "@/lib/kasir-utils";
+import { activeItems as getActiveItems, calcSubtotal } from "@/lib/kasir-utils";
 import { formatRupiah } from "@/lib/format";
 import { KasirTopBar, BottomBar } from "./ui";
 import { Button } from "@/components/ui/button";
@@ -31,7 +31,7 @@ export function SplitItemsScreen({
   onHome?: () => void;
 }) {
   const items = useOrderItems(sessionId);
-  const activeItems = (items ?? []).filter((i) => i.status !== "CANCELLED");
+  const activeItems = getActiveItems(items ?? []);
   const { paidGroups } = useSessionSplitStatus(sessionId);
 
   const [groupCount, setGroupCount] = useState(2);

@@ -1,13 +1,14 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidateCashRegister } from "@/lib/revalidate";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Staff } from "@/generated/prisma";
 import { getSetting } from "@/lib/settings";
 import { localDateKey } from "@/lib/format";
+import { runAction } from "@/lib/action-error";
 
 const DEFAULT_LOCK_HOURS = 4;
 
@@ -43,60 +44,51 @@ const closeSchema = z.object({
 // ─── Actions ─────────────────────────────────────────────────────────────────
 
 export async function openRegisterForStaff(formData: FormData) {
-  const staff = await getStaffFromSession();
+  return runAction(async () => {
+    const staff = await getStaffFromSession();
+    const { openingCash } = openSchema.parse({ openingCash: formData.get("openingCash") });
 
-  const parsed = openSchema.safeParse({ openingCash: formData.get("openingCash") });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const existing = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
+    if (existing) throw new Error("Kas hari ini sudah dibuka.");
 
-  const existing = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
-  if (existing) throw new Error("Kas hari ini sudah dibuka.");
-
-  await prisma.cashRegister.create({
-    data: {
-      date: todayMidnight,
-      openingCash: parsed.data.openingCash,
-      openedById: staff.id,
-    },
+    await prisma.cashRegister.create({
+      data: { date: todayMidnight, openingCash, openedById: staff.id },
+    });
+    revalidateCashRegister();
   });
-  revalidatePath("/cashregister");
-  revalidatePath("/admin/cash-register");
 }
 
 export async function closeRegisterForStaff(formData: FormData) {
-  const staff = await getStaffFromSession();
+  return runAction(async () => {
+    const staff = await getStaffFromSession();
+    const { closingCash } = closeSchema.parse({ closingCash: formData.get("closingCash") });
 
-  const parsed = closeSchema.safeParse({ closingCash: formData.get("closingCash") });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const register = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
+    if (!register) throw new Error("Kas hari ini belum dibuka.");
+    if (register.closingCash !== null) throw new Error("Kas hari ini sudah ditutup.");
 
-  const register = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
-  if (!register) throw new Error("Kas hari ini belum dibuka.");
-  if (register.closingCash !== null) throw new Error("Kas hari ini sudah ditutup.");
+    // Lock check (duration from settings)
+    const lockHours = parseInt(await getSetting("lock_hours")) || DEFAULT_LOCK_HOURS;
+    const lockExpiry = new Date(register.createdAt.getTime() + lockHours * 60 * 60 * 1000);
+    if (now < lockExpiry) {
+      const remaining = lockExpiry.getTime() - now.getTime();
+      const hours = Math.floor(remaining / (60 * 60 * 1000));
+      const minutes = Math.ceil((remaining % (60 * 60 * 1000)) / (60 * 1000));
+      throw new Error(`Kas masih terkunci. Bisa ditutup dalam ${hours} jam ${minutes} menit.`);
+    }
 
-  // Lock check (duration from settings)
-  const lockHours = parseInt(await getSetting("lock_hours")) || DEFAULT_LOCK_HOURS;
-  const lockExpiry = new Date(register.createdAt.getTime() + lockHours * 60 * 60 * 1000);
-  if (now < lockExpiry) {
-    const remaining = lockExpiry.getTime() - now.getTime();
-    const hours = Math.floor(remaining / (60 * 60 * 1000));
-    const minutes = Math.ceil((remaining % (60 * 60 * 1000)) / (60 * 1000));
-    throw new Error(`Kas masih terkunci. Bisa ditutup dalam ${hours} jam ${minutes} menit.`);
-  }
-
-  await prisma.cashRegister.update({
-    where: { id: register.id },
-    data: {
-      closingCash: parsed.data.closingCash,
-      closedById: staff.id,
-    },
+    await prisma.cashRegister.update({
+      where: { id: register.id },
+      data: { closingCash, closedById: staff.id },
+    });
+    revalidateCashRegister();
   });
-  revalidatePath("/cashregister");
-  revalidatePath("/admin/cash-register");
 }
 
 // ─── Query ───────────────────────────────────────────────────────────────────

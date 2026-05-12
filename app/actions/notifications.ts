@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateNotifications } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/admin-auth";
 
@@ -10,8 +10,7 @@ export async function markNotificationRead(id: string) {
     where: { id, recipientId: staff.id, readAt: null },
     data: { readAt: new Date() },
   });
-  revalidatePath("/admin");
-  revalidatePath("/admin/notifications");
+  revalidateNotifications();
 }
 
 export async function markAllNotificationsRead() {
@@ -20,6 +19,5 @@ export async function markAllNotificationsRead() {
     where: { recipientId: staff.id, readAt: null },
     data: { readAt: new Date() },
   });
-  revalidatePath("/admin");
-  revalidatePath("/admin/notifications");
+  revalidateNotifications();
 }

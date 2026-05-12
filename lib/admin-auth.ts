@@ -45,3 +45,10 @@ export async function requireAuth(): Promise<Staff> {
 
   return staff;
 }
+
+// Returns minimal staff identity (id, name, role) for the authenticated user.
+// Delegates to requireAuth() to avoid duplicating the auth check.
+export async function getStaffIdentity() {
+  const staff = await requireAuth();
+  return { staffId: staff.id, staffName: staff.name, staffRole: staff.role };
+}

@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateExpenses } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
+import { runAction } from "@/lib/action-error";
 
 const entrySchema = z.object({
   type: z.enum(["DEPOSIT", "WITHDRAWAL"]),
@@ -16,26 +17,27 @@ export async function addKasPakHarEntry(data: {
   amount: number;
   description?: string;
 }) {
-  const staff = await requireRole("OWNER", "MANAGER");
-  const parsed = entrySchema.safeParse(data);
-  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
-
-  await prisma.kasPakHar.create({
-    data: {
-      type: parsed.data.type,
-      amount: parsed.data.amount,
-      description: parsed.data.description || null,
-      createdById: staff.id,
-    },
+  return runAction(async () => {
+    const staff = await requireRole("OWNER", "MANAGER");
+    const parsed = entrySchema.parse(data);
+    await prisma.kasPakHar.create({
+      data: {
+        type: parsed.type,
+        amount: parsed.amount,
+        description: parsed.description || null,
+        createdById: staff.id,
+      },
+    });
+    revalidateExpenses();
   });
-
-  revalidatePath("/admin/kas-pak-har");
 }
 
 export async function deleteKasPakHarEntry(id: string) {
-  await requireOwner();
-  await prisma.kasPakHar.delete({ where: { id } });
-  revalidatePath("/admin/kas-pak-har");
+  return runAction(async () => {
+    await requireOwner();
+    await prisma.kasPakHar.delete({ where: { id } });
+    revalidateExpenses();
+  });
 }
 
 export async function getKasPakHarData() {

@@ -13,7 +13,7 @@ import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { computeExpenseTotal } from "@/lib/expense-utils";
 import { addExpense, updateExpense, deleteExpense } from "@/app/actions/admin/expenses";
-import { exportPDF, fmtRp } from "@/lib/export-pdf";
+import { exportPDF } from "@/lib/export-pdf";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 
 type ExpenseItem = { id: string; description: string; amount: number; cost: number; unit?: string | null; templateId?: string | null };
@@ -58,22 +58,22 @@ export default function ExpensesClient({
   function handleExportPdf() {
     const subtitle = filters.from && filters.to ? `${filters.from} – ${filters.to}` : "Semua periode";
     const summaryCards = [
-      { label: "Total Pengeluaran", value: fmtRp(totalAmount) },
+      { label: "Total Pengeluaran", value: formatRupiah(totalAmount) },
       { label: "Jumlah Entri", value: String(expenses.length) },
     ];
     const rows = expenses.map((e) => [
       formatDateTime(e.recordedAt),
       e.description ?? "-",
       e.staffName ?? "-",
-      fmtRp(computeExpenseTotal(e.items)),
+      formatRupiah(computeExpenseTotal(e.items)),
     ]);
     const detail = expenses.flatMap((e) =>
       e.items.map((i) => [
         formatDateTime(e.recordedAt),
         i.description,
         `${i.amount} ${i.unit ?? ""}`.trim(),
-        fmtRp(i.cost),
-        fmtRp(i.amount * i.cost),
+        formatRupiah(i.cost),
+        formatRupiah(i.amount * i.cost),
       ])
     );
     exportPDF(

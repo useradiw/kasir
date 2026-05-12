@@ -9,14 +9,6 @@ interface Section {
 
 const TEAL = [0, 128, 128] as const;
 
-function fmtRp(n: number): string {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(n);
-}
-
 export function exportPDF(
   title: string,
   subtitle: string,
@@ -100,5 +92,3 @@ export function exportPDF(
 
   doc.save(`${title.replace(/\s+/g, "_")}.pdf`);
 }
-
-export { fmtRp };

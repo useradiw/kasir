@@ -9,14 +9,14 @@ import {
   updateOrderItemQty,
 } from "@/hooks/use-session-store";
 import { formatRupiah, formatDateTime, formatPaymentMethod } from "@/lib/format";
-import { calcSubtotal, getStatusColor, getStatusLabel } from "@/lib/kasir-utils";
+import { activeItems as getActiveItems, calcSubtotal, getStatusColor, getStatusLabel } from "@/lib/kasir-utils";
 import { KasirTopBar, BottomBar, Badge, QtyControl, EmptyState } from "./ui";
 import { Button } from "@/components/ui/button";
 import { X, ClipboardList, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OrderItem, OrderItemStatus } from "@/lib/db";
 import { ReceiptPreview } from "./receipt-preview";
-import type { StoreInfo } from "@/lib/settings";
+import { useKasir } from "./kasir-context";
 
 const nextStatus: Partial<Record<OrderItemStatus, OrderItemStatus>> = {
   PENDING: "PREPARING",
@@ -30,7 +30,6 @@ export function OrderReview({
   onSplitItems,
   onHome,
   readOnly,
-  storeInfo,
 }: {
   sessionId: string;
   onBack: () => void;
@@ -38,11 +37,11 @@ export function OrderReview({
   onSplitItems?: () => void;
   onHome?: () => void;
   readOnly?: boolean;
-  storeInfo: StoreInfo;
 }) {
+  const { storeInfo } = useKasir();
   const items = useOrderItems(sessionId);
   const tx = useTransaction(readOnly ? sessionId : null);
-  const activeItems = items?.filter((i) => i.status !== "CANCELLED") ?? [];
+  const activeItems = getActiveItems(items ?? []);
   const cancelledItems = items?.filter((i) => i.status === "CANCELLED") ?? [];
   const subtotal = calcSubtotal(items ?? []);
   const [showChecklist, setShowChecklist] = useState(false);
@@ -113,7 +112,6 @@ export function OrderReview({
         <ReceiptPreview
           sessionId={sessionId}
           mode="checklist"
-          storeInfo={storeInfo}
           onClose={() => setShowChecklist(false)}
         />
       )}

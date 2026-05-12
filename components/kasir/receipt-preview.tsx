@@ -12,12 +12,12 @@ import { calcSubtotal, getServiceLabel } from "@/lib/kasir-utils";
 import { buildReceipt, buildChecklist } from "@/lib/escpos";
 import { Button } from "@/components/ui/button";
 import { X, Download, Printer, Loader2 } from "lucide-react";
+import { useKasir } from "./kasir-context";
 
 export function ReceiptPreview({
   sessionId,
   mode,
   cashierName,
-  storeInfo,
   splitGroup,
   splitTotalGroups,
   onClose,
@@ -25,13 +25,13 @@ export function ReceiptPreview({
   sessionId: string;
   mode: "checklist" | "receipt";
   cashierName?: string;
-  storeInfo: StoreInfo;
   /** When set, only show items belonging to this split group. */
   splitGroup?: number;
   /** Total number of groups (for label display). */
   splitTotalGroups?: number;
   onClose: () => void;
 }) {
+  const { storeInfo } = useKasir();
   const receiptRef = useRef<HTMLDivElement>(null);
   const items = useOrderItems(sessionId);
   const txs = useTransactions(sessionId);

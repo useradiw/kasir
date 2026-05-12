@@ -3,7 +3,8 @@
 import { cn } from "@/lib/utils";
 
 // Re-export shared components so admin pages keep working
-export { ErrorBanner, StatusBadge, PageHeader as AdminPageHeader } from "@/components/shared/ui";
+export { ErrorBanner, PageHeader as AdminPageHeader } from "@/components/shared/ui";
+export { StatusBadge, RoleBadge } from "@/components/shared/badge";
 
 // ─── Admin Select ────────────────────────────────────────────────────────────
 
@@ -19,31 +20,6 @@ export function AdminSelect({
       )}
       {...props}
     />
-  );
-}
-
-// ─── Role Badge ───────────────────────────────────────────────────────────────
-
-const roleBadgeClass: Record<string, string> = {
-  OWNER:
-    "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  MANAGER:
-    "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  CASHIER:
-    "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-  STAFF: "bg-muted text-muted-foreground",
-};
-
-export function RoleBadge({ role }: { role: string }) {
-  return (
-    <span
-      className={cn(
-        "rounded-full px-2 py-0.5 text-xs font-medium",
-        roleBadgeClass[role] ?? "bg-muted text-muted-foreground"
-      )}
-    >
-      {role}
-    </span>
   );
 }
 

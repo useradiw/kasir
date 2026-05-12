@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateCashRegister } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
 import { z } from "zod";
+import { runAction } from "@/lib/action-error";
 
 const openSchema = z.object({
   openingCash: z.coerce.number().int().min(0, "Kas awal tidak boleh negatif"),
@@ -14,43 +15,41 @@ const closeSchema = z.object({
 });
 
 export async function openRegister(formData: FormData) {
-  const staff = await requireOwner();
+  return runAction(async () => {
+    const staff = await requireOwner();
+    const { openingCash } = openSchema.parse({ openingCash: formData.get("openingCash") });
 
-  const parsed = openSchema.safeParse({ openingCash: formData.get("openingCash") });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const existing = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
+    if (existing) throw new Error("Kas hari ini sudah dibuka.");
 
-  const existing = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
-  if (existing) throw new Error("Kas hari ini sudah dibuka.");
-
-  await prisma.cashRegister.create({
-    data: { date: todayMidnight, openingCash: parsed.data.openingCash, openedById: staff.id },
+    await prisma.cashRegister.create({
+      data: { date: todayMidnight, openingCash, openedById: staff.id },
+    });
+    revalidateCashRegister();
   });
-  revalidatePath("/admin/cash-register");
-  revalidatePath("/cashregister");
 }
 
 export async function closeRegister(formData: FormData) {
-  const staff = await requireOwner();
+  return runAction(async () => {
+    const staff = await requireOwner();
+    const { closingCash } = closeSchema.parse({ closingCash: formData.get("closingCash") });
 
-  const parsed = closeSchema.safeParse({ closingCash: formData.get("closingCash") });
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
+    const now = new Date();
+    const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  const now = new Date();
-  const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const register = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
+    if (!register) throw new Error("Kas hari ini belum dibuka.");
+    if (register.closingCash !== null) throw new Error("Kas hari ini sudah ditutup.");
 
-  const register = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
-  if (!register) throw new Error("Kas hari ini belum dibuka.");
-  if (register.closingCash !== null) throw new Error("Kas hari ini sudah ditutup.");
-
-  await prisma.cashRegister.update({
-    where: { id: register.id },
-    data: { closingCash: parsed.data.closingCash, closedById: staff.id },
+    await prisma.cashRegister.update({
+      where: { id: register.id },
+      data: { closingCash, closedById: staff.id },
+    });
+    revalidateCashRegister();
   });
-  revalidatePath("/admin/cash-register");
-  revalidatePath("/cashregister");
 }
 
 const editSchema = z.object({
@@ -59,31 +58,31 @@ const editSchema = z.object({
 });
 
 export async function editRegister(id: string, formData: FormData) {
-  const staff = await requireOwner();
+  return runAction(async () => {
+    const staff = await requireOwner();
+    const raw: Record<string, unknown> = { openingCash: formData.get("openingCash") };
+    const closingVal = formData.get("closingCash");
+    if (closingVal !== null && closingVal !== "") raw.closingCash = closingVal;
 
-  const raw: Record<string, unknown> = { openingCash: formData.get("openingCash") };
-  const closingVal = formData.get("closingCash");
-  if (closingVal !== null && closingVal !== "") raw.closingCash = closingVal;
-
-  const parsed = editSchema.safeParse(raw);
-  if (!parsed.success) throw new Error(Object.values(parsed.error.flatten().fieldErrors).flat()[0]);
-
-  const closingCash = parsed.data.closingCash;
-  await prisma.cashRegister.update({
-    where: { id },
-    data: {
-      openingCash: parsed.data.openingCash,
-      ...(closingCash !== undefined ? { closingCash, closedById: staff.id } : {}),
-      editedById: staff.id,
-      editedAt: new Date(),
-    },
+    const parsed = editSchema.parse(raw);
+    const closingCash = parsed.closingCash;
+    await prisma.cashRegister.update({
+      where: { id },
+      data: {
+        openingCash: parsed.openingCash,
+        ...(closingCash !== undefined ? { closingCash, closedById: staff.id } : {}),
+        editedById: staff.id,
+        editedAt: new Date(),
+      },
+    });
+    revalidateCashRegister();
   });
-  revalidatePath("/admin/cash-register");
-  revalidatePath("/cashregister");
 }
 
 export async function deleteRegister(id: string) {
-  await requireOwner();
-  await prisma.cashRegister.delete({ where: { id } });
-  revalidatePath("/admin/cash-register");
+  return runAction(async () => {
+    await requireOwner();
+    await prisma.cashRegister.delete({ where: { id } });
+    revalidateCashRegister();
+  });
 }

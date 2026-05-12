@@ -1,6 +1,7 @@
 "use client";
 
-import { cn } from "@/lib/utils";
+// Re-export badges from unified badge module
+export { StatusBadge } from "@/components/shared/badge";
 
 // ─── Error Banner ────────────────────────────────────────────────────────────
 
@@ -11,43 +12,6 @@ export function ErrorBanner({ error }: { error: string | null }) {
       {error}
     </div>
   );
-}
-
-// ─── Status Badge ─────────────────────────────────────────────────────────────
-
-type StatusBadgeProps = {
-  active: boolean;
-  onClick?: () => void;
-  disabled?: boolean;
-  activeLabel?: string;
-  inactiveLabel?: string;
-};
-
-export function StatusBadge({
-  active,
-  onClick,
-  disabled,
-  activeLabel,
-  inactiveLabel,
-}: StatusBadgeProps) {
-  const activeText = activeLabel ?? "Aktif";
-  const inactiveText = inactiveLabel ?? (onClick ? "Nonaktif" : "Tidak aktif");
-
-  const cls = cn(
-    "rounded-full px-2 py-0.5 text-xs font-medium",
-    active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
-    onClick && "cursor-pointer"
-  );
-
-  if (onClick) {
-    return (
-      <button type="button" onClick={onClick} disabled={disabled} className={cls}>
-        {active ? activeText : inactiveText}
-      </button>
-    );
-  }
-
-  return <span className={cls}>{active ? activeText : inactiveText}</span>;
 }
 
 // ─── Page Header ──────────────────────────────────────────────────────────────

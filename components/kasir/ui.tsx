@@ -46,42 +46,9 @@ export function BottomBar({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ─── Badge ───────────────────────────────────────────────────────────────────
+// ─── Badge (re-exported from shared) ────────────────────────────────────────
 
-export function Badge({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <span
-      className={cn(
-        "rounded-full px-2 py-0.5 text-xs font-medium",
-        className
-      )}
-    >
-      {children}
-    </span>
-  );
-}
-
-// ─── Sync Badge ─────────────────────────────────────────────────────────
-
-export function SyncBadge({ synced }: { synced: 0 | 1 }) {
-  return (
-    <Badge
-      className={
-        synced
-          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
-      }
-    >
-      {synced ? "Synced" : "Belum sync"}
-    </Badge>
-  );
-}
+export { Badge, SyncBadge } from "@/components/shared/badge";
 
 // ─── Qty Control ─────────────────────────────────────────────────────────────
 

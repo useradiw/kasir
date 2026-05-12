@@ -4,7 +4,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { TableSession, OrderItem, Transaction } from "@/lib/db";
 import { pushTransaction, pushErasedSession, pushSessionUpdate } from "@/app/actions/push-transaction";
-import { calcItemPrice } from "@/lib/kasir-utils";
+import { activeItems as getActiveItems, calcItemPrice } from "@/lib/kasir-utils";
 import type { ServiceEnum } from "@/lib/db";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -104,7 +104,7 @@ export function useSessionSplitStatus(sessionId: string) {
   const items = useOrderItems(sessionId);
   const txs = useTransactions(sessionId);
 
-  const activeItems = (items ?? []).filter((i) => i.status !== "CANCELLED");
+  const activeItems = getActiveItems(items ?? []);
   const unassigned = activeItems.filter((i) => i.splitGroup === 0);
   const paidGroups = new Set((txs ?? []).map((t) => t.splitGroup).filter((g) => g > 0));
   const assignedGroups = new Set(activeItems.map((i) => i.splitGroup).filter((g) => g > 0));
@@ -372,7 +372,7 @@ export async function recordPayment(input: PaymentInput): Promise<string> {
  */
 export async function checkAndFinalizeSession(sessionId: string): Promise<boolean> {
   const allItems = await db.order_items.where("tableSessionId").equals(sessionId).toArray();
-  const activeItems = allItems.filter((i) => i.status !== "CANCELLED");
+  const activeItems = getActiveItems(allItems);
   const unassigned = activeItems.filter((i) => i.splitGroup === 0);
   if (unassigned.length > 0 || activeItems.length === 0) return false;
 

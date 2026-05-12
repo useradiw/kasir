@@ -24,7 +24,7 @@ export function useAdminAction() {
       } catch (e) {
         const message = e instanceof Error ? e.message : "Terjadi kesalahan.";
         setError(message);
-        notify.error(message);
+        notify.error(e);
       }
     });
   }

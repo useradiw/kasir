@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateExpenseTemplates } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
+import { runAction } from "@/lib/action-error";
 
 const templateSchema = z.object({
   name: z.string().min(1, "Nama tidak boleh kosong"),
@@ -36,18 +37,18 @@ export async function addExpenseTemplate(data: {
   defaultUnit?: string;
   defaultCost?: number | null;
 }) {
-  await requireRole("OWNER", "MANAGER");
-  const parsed = templateSchema.safeParse(data);
-  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
-
-  await prisma.expenseTemplate.create({
-    data: {
-      name: parsed.data.name,
-      defaultUnit: parsed.data.defaultUnit || null,
-      defaultCost: parsed.data.defaultCost ?? null,
-    },
+  return runAction(async () => {
+    await requireRole("OWNER", "MANAGER");
+    const parsed = templateSchema.parse(data);
+    await prisma.expenseTemplate.create({
+      data: {
+        name: parsed.name,
+        defaultUnit: parsed.defaultUnit || null,
+        defaultCost: parsed.defaultCost ?? null,
+      },
+    });
+    revalidateExpenseTemplates();
   });
-  revalidatePath("/admin/expense-templates");
 }
 
 export async function updateExpenseTemplate(id: string, data: {
@@ -55,27 +56,29 @@ export async function updateExpenseTemplate(id: string, data: {
   defaultUnit?: string;
   defaultCost?: number | null;
 }) {
-  await requireRole("OWNER", "MANAGER");
-  const parsed = templateSchema.safeParse(data);
-  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
-
-  await prisma.expenseTemplate.update({
-    where: { id },
-    data: {
-      name: parsed.data.name,
-      defaultUnit: parsed.data.defaultUnit || null,
-      defaultCost: parsed.data.defaultCost ?? null,
-    },
+  return runAction(async () => {
+    await requireRole("OWNER", "MANAGER");
+    const parsed = templateSchema.parse(data);
+    await prisma.expenseTemplate.update({
+      where: { id },
+      data: {
+        name: parsed.name,
+        defaultUnit: parsed.defaultUnit || null,
+        defaultCost: parsed.defaultCost ?? null,
+      },
+    });
+    revalidateExpenseTemplates();
   });
-  revalidatePath("/admin/expense-templates");
 }
 
 export async function deleteExpenseTemplate(id: string) {
-  await requireRole("OWNER", "MANAGER");
-  // Soft delete: deactivate instead of hard delete (keeps history intact)
-  await prisma.expenseTemplate.update({
-    where: { id },
-    data: { isActive: false },
+  return runAction(async () => {
+    await requireRole("OWNER", "MANAGER");
+    // Soft delete: deactivate instead of hard delete (keeps history intact)
+    await prisma.expenseTemplate.update({
+      where: { id },
+      data: { isActive: false },
+    });
+    revalidateExpenseTemplates();
   });
-  revalidatePath("/admin/expense-templates");
 }
