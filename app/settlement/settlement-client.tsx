@@ -210,60 +210,61 @@ function CreateSettlementTab({
     );
   };
 
-  if (unsettled.length === 0) {
-    return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
-        Tidak ada transaksi yang belum dicairkan.
-      </div>
-    );
-  }
+  const isEmpty = unsettled.length === 0;
 
   return (
     <div className="space-y-4">
+      {isEmpty && (
+        <div className="py-4 text-center text-sm text-muted-foreground">
+          Tidak ada transaksi yang belum dicairkan.
+        </div>
+      )}
       {/* Transaction dropdown */}
-      <div className="space-y-2">
-        <Label className="text-xs">Pilih Transaksi</Label>
-        <button
-          type="button"
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-full flex items-center justify-between h-9 rounded-lg border border-input bg-card px-3 text-sm"
-        >
-          <span className="text-muted-foreground">
-            {selectedIds.size > 0 ? `${selectedIds.size} transaksi dipilih` : "Pilih transaksi..."}
-          </span>
-          {dropdownOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-        </button>
+      {!isEmpty && (
+        <div className="space-y-2">
+          <Label className="text-xs">Pilih Transaksi</Label>
+          <button
+            type="button"
+            onClick={() => setDropdownOpen(!dropdownOpen)}
+            className="w-full flex items-center justify-between h-9 rounded-lg border border-input bg-card px-3 text-sm"
+          >
+            <span className="text-muted-foreground">
+              {selectedIds.size > 0 ? `${selectedIds.size} transaksi dipilih` : "Pilih transaksi..."}
+            </span>
+            {dropdownOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          </button>
 
-        {dropdownOpen && (
-          <div className="rounded-lg border bg-card max-h-60 overflow-y-auto">
-            {unsettled.map((tx) => (
-              <label
-                key={tx.id}
-                className="flex items-center gap-2 px-3 py-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(tx.id)}
-                  onChange={() => toggleTx(tx.id)}
-                  className="accent-primary"
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <Badge className={cn(getServiceColor(tx.service as ServiceEnum), "text-[10px]")}>
-                      {getServiceLabel(tx.service as ServiceEnum)}
-                    </Badge>
-                    <span className="text-xs truncate">{tx.externalOrderId ?? tx.sessionName}</span>
+          {dropdownOpen && (
+            <div className="rounded-lg border bg-card max-h-60 overflow-y-auto">
+              {unsettled.map((tx) => (
+                <label
+                  key={tx.id}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(tx.id)}
+                    onChange={() => toggleTx(tx.id)}
+                    className="accent-primary"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <Badge className={cn(getServiceColor(tx.service as ServiceEnum), "text-[10px]")}>
+                        {getServiceLabel(tx.service as ServiceEnum)}
+                      </Badge>
+                      <span className="text-xs truncate">{tx.externalOrderId ?? tx.sessionName}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                      <span>{formatDateTime(tx.paidAt)}</span>
+                      <span className="font-medium">{formatRupiah(tx.totalAmount)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <span>{formatDateTime(tx.paidAt)}</span>
-                    <span className="font-medium">{formatRupiah(tx.totalAmount)}</span>
-                  </div>
-                </div>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Selected summary */}
       {selectedIds.size > 0 && (

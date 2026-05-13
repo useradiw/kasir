@@ -130,6 +130,7 @@ export async function getTransactionDetail(transactionId: string) {
       id: tx.tableSession.id,
       name: tx.tableSession.name,
       service: tx.tableSession.service as string | null,
+      externalOrderId: tx.tableSession.externalOrderId ?? null,
       customerAlias: tx.tableSession.customerAlias,
       customerPhone: tx.tableSession.customerPhone,
       ownerName: tx.tableSession.owner?.name ?? null,

@@ -8,7 +8,7 @@ export default async function AdminSettlementPage() {
   const data = await getSettlementData();
 
   return (
-    <Container id="admin-settlement" sectionStyle="" className="!max-w-4xl py-6">
+    <Container id="admin-settlement" sectionStyle="" className="py-6">
       <SettlementClient data={data} staffRole={staff.role} backHref="/admin" />
     </Container>
   );

@@ -13,8 +13,11 @@ export function useBluetoothPrinter() {
     () => false
   );
 
-  const isSupported =
-    typeof navigator !== "undefined" && "bluetooth" in navigator;
+  const isSupported = useSyncExternalStore(
+    () => () => {},
+    () => "bluetooth" in navigator,
+    () => false
+  );
 
   const connect = useCallback(async () => {
     setError(null);

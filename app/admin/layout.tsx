@@ -20,6 +20,7 @@ const navItemsBase = [
     { href: "/admin/cash-register", label: "Kas Harian" },
     { href: "/admin/kas-pak-har", label: "Kas Pak Har", ownerOnly: true },
     { href: "/admin/expense-templates", label: "Template Pengeluaran" },
+    { href: "/admin/settlement", label: "Pencairan Online" },
   ]},
   { trigger: "Laporan", content: [
     { href: "/admin/reports", label: "Laporan" },

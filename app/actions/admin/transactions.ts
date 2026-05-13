@@ -48,6 +48,7 @@ export interface UpdateTransactionInput {
   customerAlias?: string | null;
   customerPhone?: string | null;
   service?: string | null;
+  externalOrderId?: string | null;
   // Order item updates: { itemId -> { qty, price, note } }
   orderItems?: Array<{
     id: string;
@@ -55,6 +56,8 @@ export interface UpdateTransactionInput {
     price: number;
     note: string | null;
   }>;
+  // Transaction fields
+  paymentMethod?: string;
   // Charge overrides
   taxAmount?: number;
   serviceCharge?: number;
@@ -85,6 +88,7 @@ export async function updateTransaction(
       if (input.customerAlias !== undefined) sessionUpdates.customerAlias = input.customerAlias;
       if (input.customerPhone !== undefined) sessionUpdates.customerPhone = input.customerPhone;
       if (input.service !== undefined) sessionUpdates.service = input.service;
+      if (input.externalOrderId !== undefined) sessionUpdates.externalOrderId = input.externalOrderId;
       if (Object.keys(sessionUpdates).length > 0) {
         await p.tableSession.update({
           where: { id: tx.tableSessionId },
@@ -122,15 +126,18 @@ export async function updateTransaction(
       const discountAmount = input.discountAmount ?? tx.discountAmount;
       const totalAmount = subtotal + taxAmount + serviceCharge - discountAmount;
 
+      const txData: Record<string, unknown> = {
+        subtotal,
+        taxAmount,
+        serviceCharge,
+        discountAmount,
+        totalAmount,
+      };
+      if (input.paymentMethod !== undefined) txData.paymentMethod = input.paymentMethod;
+
       await p.transaction.update({
         where: { id: transactionId },
-        data: {
-          subtotal,
-          taxAmount,
-          serviceCharge,
-          discountAmount,
-          totalAmount,
-        },
+        data: txData,
       });
     });
 

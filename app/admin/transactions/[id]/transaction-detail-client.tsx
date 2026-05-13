@@ -44,12 +44,14 @@ export default function TransactionDetailClient({
   const [customerAlias, setCustomerAlias] = useState(data.session.customerAlias ?? "");
   const [customerPhone, setCustomerPhone] = useState(data.session.customerPhone ?? "");
   const [service, setService] = useState(data.session.service ?? "");
+  const [externalOrderId, setExternalOrderId] = useState(data.session.externalOrderId ?? "");
   const [orderItems, setOrderItems] = useState(
     data.orderItems.map((oi) => ({ ...oi }))
   );
   const [taxAmount, setTaxAmount] = useState(data.taxAmount);
   const [serviceCharge, setServiceCharge] = useState(data.serviceCharge);
   const [discountAmount, setDiscountAmount] = useState(data.discountAmount);
+  const [paymentMethod, setPaymentMethod] = useState(data.paymentMethod);
 
   // Live recalculation
   const activeItems = orderItems.filter((oi) => oi.status !== "CANCELLED");
@@ -60,10 +62,12 @@ export default function TransactionDetailClient({
     setCustomerAlias(data.session.customerAlias ?? "");
     setCustomerPhone(data.session.customerPhone ?? "");
     setService(data.session.service ?? "");
+    setExternalOrderId(data.session.externalOrderId ?? "");
     setOrderItems(data.orderItems.map((oi) => ({ ...oi })));
     setTaxAmount(data.taxAmount);
     setServiceCharge(data.serviceCharge);
     setDiscountAmount(data.discountAmount);
+    setPaymentMethod(data.paymentMethod);
     setError(null);
   }
 
@@ -73,6 +77,8 @@ export default function TransactionDetailClient({
         customerAlias: customerAlias.trim() || null,
         customerPhone: customerPhone.trim() || null,
         service: service || null,
+        externalOrderId: externalOrderId.trim() || null,
+        paymentMethod,
         orderItems: orderItems.map((oi) => ({
           id: oi.id,
           qty: oi.qty,
@@ -175,7 +181,7 @@ export default function TransactionDetailClient({
 
       {error && <ErrorBanner error={error} />}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="space-y-6">
         {/* Left: Receipt Preview */}
         <Card>
           <CardHeader className="pb-2">
@@ -206,7 +212,7 @@ export default function TransactionDetailClient({
             <div className="flex justify-center">
               <div
                 ref={receiptRef}
-                className="w-[300px] bg-white text-black p-4 font-mono text-xs space-y-2"
+                className="w-75 bg-white text-black p-4 font-mono text-xs space-y-2"
               >
                 {/* Store header */}
                 <div className="text-center">
@@ -378,8 +384,37 @@ export default function TransactionDetailClient({
                 )}
               </div>
               <div className="grid gap-1">
+                <Label className="text-xs">ID Pesanan Eksternal</Label>
+                {editing ? (
+                  <Input
+                    value={externalOrderId}
+                    onChange={(e) => setExternalOrderId(e.target.value)}
+                    placeholder="ID dari GoFood/Shopee/Grab"
+                    className="h-8 text-sm"
+                  />
+                ) : (
+                  <p className="text-sm">{data.session.externalOrderId || "-"}</p>
+                )}
+              </div>
+              <div className="grid gap-1">
                 <Label className="text-xs">Kasir</Label>
                 <p className="text-sm">{data.processedBy ?? "-"}</p>
+              </div>
+              <div className="grid gap-1">
+                <Label className="text-xs">Metode Bayar</Label>
+                {editing ? (
+                  <AdminSelect
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                  >
+                    <option value="CASH">Tunai</option>
+                    <option value="QRIS">QRIS</option>
+                    <option value="SPLIT">Split</option>
+                    <option value="PENDING">Unsettled</option>
+                  </AdminSelect>
+                ) : (
+                  <p className="text-sm">{formatPaymentMethod(data.paymentMethod)}</p>
+                )}
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs">Waktu Bayar</Label>
