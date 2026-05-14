@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidateExpenses } from "@/lib/revalidate";
+import { revalidateExpenses, revalidateIngredients } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
+import { applyStockMovements, getUnitConversionFactor } from "@/lib/cogs-utils";
 
 const expenseItemSchema = z.object({
   description: z.string().min(1, "Deskripsi item harus diisi"),
@@ -62,9 +63,28 @@ export async function addExpense(data: {
           },
         });
       }
+
+      // Stock IN: apply ingredient stock for items linked to a template
+      const itemsWithTemplate = await tx.expenseItem.findMany({
+        where: { expenseId: expense.id, templateId: { not: null } },
+        select: {
+          id: true, templateId: true, amount: true, cost: true, unit: true,
+          template: { select: { defaultUnit: true } },
+        },
+      });
+      await applyStockMovements(
+        tx,
+        itemsWithTemplate.map((i) => {
+          const factor = getUnitConversionFactor(i.unit, i.template?.defaultUnit);
+          return { templateId: i.templateId!, quantity: i.amount * factor, unitCost: i.cost };
+        }),
+        "PURCHASE",
+        expense.id,
+      );
     });
 
     revalidateExpenses();
+    revalidateIngredients();
   });
 }
 
@@ -89,7 +109,28 @@ export async function updateExpense(
     }
 
     await prisma.$transaction(async (tx) => {
-      // Remove old kas pak har entries for this expense
+      // Reverse stock for old items before deleting them
+      const oldItems = await tx.expenseItem.findMany({
+        where: { expenseId: id, templateId: { not: null } },
+        select: {
+          templateId: true, amount: true, cost: true, unit: true,
+          template: { select: { defaultUnit: true } },
+        },
+      });
+      if (oldItems.length > 0) {
+        await applyStockMovements(
+          tx,
+          oldItems.map((i) => {
+            const factor = getUnitConversionFactor(i.unit, i.template?.defaultUnit);
+            return { templateId: i.templateId!, quantity: -(i.amount * factor), unitCost: i.cost };
+          }),
+          "ADJUSTMENT",
+          id,
+          "Expense edited — reversing old purchase",
+        );
+      }
+
+      // Remove old kas pak har entries and items, then recreate
       await tx.kasPakHar.deleteMany({ where: { expenseId: id } });
       await tx.expenseItem.deleteMany({ where: { expenseId: id } });
       await tx.expense.update({
@@ -114,16 +155,60 @@ export async function updateExpense(
           },
         });
       }
+
+      // Stock IN for new items
+      const newItems = await tx.expenseItem.findMany({
+        where: { expenseId: id, templateId: { not: null } },
+        select: {
+          id: true, templateId: true, amount: true, cost: true, unit: true,
+          template: { select: { defaultUnit: true } },
+        },
+      });
+      await applyStockMovements(
+        tx,
+        newItems.map((i) => {
+          const factor = getUnitConversionFactor(i.unit, i.template?.defaultUnit);
+          return { templateId: i.templateId!, quantity: i.amount * factor, unitCost: i.cost };
+        }),
+        "PURCHASE",
+        id,
+      );
     });
 
     revalidateExpenses();
+    revalidateIngredients();
   });
 }
 
 export async function deleteExpense(id: string) {
   return runAction(async () => {
     await requireOwner();
-    await prisma.expense.delete({ where: { id } });
+
+    await prisma.$transaction(async (tx) => {
+      // Reverse stock for items linked to a template before cascade delete
+      const items = await tx.expenseItem.findMany({
+        where: { expenseId: id, templateId: { not: null } },
+        select: {
+          templateId: true, amount: true, cost: true, unit: true,
+          template: { select: { defaultUnit: true } },
+        },
+      });
+      if (items.length > 0) {
+        await applyStockMovements(
+          tx,
+          items.map((i) => {
+            const factor = getUnitConversionFactor(i.unit, i.template?.defaultUnit);
+            return { templateId: i.templateId!, quantity: -(i.amount * factor), unitCost: i.cost };
+          }),
+          "ADJUSTMENT",
+          id,
+          "Expense deleted — reversing purchase",
+        );
+      }
+      await tx.expense.delete({ where: { id } });
+    });
+
     revalidateExpenses();
+    revalidateIngredients();
   });
 }

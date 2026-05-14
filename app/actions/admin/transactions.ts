@@ -1,12 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { revalidateTransactions } from "@/lib/revalidate";
+import { revalidateTransactions, revalidateIngredients } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
 import { ActionError, runAction } from "@/lib/action-error";
 import { createVoidNotification } from "@/lib/notifications";
 import { formatRupiah } from "@/lib/format";
+import { reverseTransactionStock } from "@/lib/cogs-utils";
 
 export async function voidTransaction(transactionId: string, reason: string) {
   return runAction(async () => {
@@ -18,14 +19,20 @@ export async function voidTransaction(transactionId: string, reason: string) {
     if (!tx) throw new ActionError("Transaksi tidak ditemukan.");
     if (tx.status === "VOIDED") throw new ActionError("Transaksi sudah di-void.");
 
-    await prisma.transaction.update({
-      where: { id: transactionId },
-      data: {
-        status: "VOIDED",
-        voidedById: staff.id,
-        voidedAt: new Date(),
-        voidReason: reason.trim(),
-      },
+    await prisma.$transaction(async (p) => {
+      // Reverse ingredient stock deductions and nullify COGS
+      await reverseTransactionStock(p, transactionId);
+
+      await p.transaction.update({
+        where: { id: transactionId },
+        data: {
+          status: "VOIDED",
+          voidedById: staff.id,
+          voidedAt: new Date(),
+          voidReason: reason.trim(),
+          cogs: null,
+        },
+      });
     });
 
     await createVoidNotification({
@@ -38,6 +45,7 @@ export async function voidTransaction(transactionId: string, reason: string) {
     });
 
     revalidateTransactions();
+    revalidateIngredients();
   });
 }
 

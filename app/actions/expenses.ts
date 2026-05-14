@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { revalidateExpenses, revalidateCashRegister } from "@/lib/revalidate";
+import { revalidateExpenses, revalidateCashRegister, revalidateIngredients } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
+import { applyStockMovements, getUnitConversionFactor } from "@/lib/cogs-utils";
 
 const expenseItemSchema = z.object({
   description: z.string().min(1, "Deskripsi item harus diisi"),
@@ -63,10 +64,30 @@ export async function addExpenseForStaff(data: {
           },
         });
       }
+
+      // Stock IN: apply ingredient stock for items linked to a template.
+      // Fetch template.defaultUnit to handle unit conversion (e.g., purchase in kg, stock in gr).
+      const itemsWithTemplate = await tx.expenseItem.findMany({
+        where: { expenseId: expense.id, templateId: { not: null } },
+        select: {
+          id: true, templateId: true, amount: true, cost: true, unit: true,
+          template: { select: { defaultUnit: true } },
+        },
+      });
+      await applyStockMovements(
+        tx,
+        itemsWithTemplate.map((i) => {
+          const factor = getUnitConversionFactor(i.unit, i.template?.defaultUnit);
+          return { templateId: i.templateId!, quantity: i.amount * factor, unitCost: i.cost };
+        }),
+        "PURCHASE",
+        expense.id,
+      );
     });
 
     revalidatePath("/expenses");
     revalidateExpenses();
     revalidateCashRegister();
+    revalidateIngredients();
   });
 }

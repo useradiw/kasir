@@ -42,14 +42,9 @@ function ingredientUnit(ing: Ingredient): string {
 }
 
 function ingredientCost(ing: Ingredient): number | null {
+  // Prefer actual latest purchase cost over the default cost
+  if (ing.latestCost !== undefined && ing.latestCost > 0) return ing.latestCost;
   return ing.templateCost ?? null;
-}
-
-function recipeEstimatedCost(recipe: Recipe): number {
-  return recipe.ingredients.reduce((sum, ing) => {
-    const cost = ingredientCost(ing);
-    return cost !== null ? sum + ing.quantity * cost : sum;
-  }, 0);
 }
 
 export default function RecipeTab({ templates, recipes, menuItems, variants, isOwner }: Props) {
@@ -245,10 +240,16 @@ function RecipeCard({
   run: ReturnType<typeof useAdminAction>["run"];
   confirm: ReturnType<typeof useConfirm>;
 }) {
-  const estimatedCost = recipeEstimatedCost(recipe);
   const displayLabel = recipe.variantLabel
     ? `${recipe.menuItemName} — ${recipe.variantLabel}`
     : `${recipe.menuItemName} (Base)`;
+
+  const hasCogs = recipe.cogs > 0;
+  const marginColor =
+    recipe.marginPct === null ? "" :
+    recipe.marginPct >= 60 ? "text-green-600 dark:text-green-400" :
+    recipe.marginPct >= 30 ? "text-yellow-600 dark:text-yellow-400" :
+    "text-destructive";
 
   return (
     <Card>
@@ -259,9 +260,38 @@ function RecipeCard({
       >
         <div>
           <p className="font-medium text-sm">{displayLabel}</p>
-          <p className="text-xs text-muted-foreground">
-            {recipe.ingredients.length} bahan · Est. {formatRupiah(estimatedCost)}/porsi
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
+            <span className="text-xs text-muted-foreground">
+              {recipe.ingredients.length} bahan
+            </span>
+            {hasCogs && (
+              <>
+                <span className="text-xs text-muted-foreground">·</span>
+                <span className="text-xs text-muted-foreground">
+                  HPP <span className="font-medium text-foreground">{formatRupiah(recipe.cogs)}</span>
+                </span>
+                {recipe.sellingPrice > 0 && (
+                  <>
+                    <span className="text-xs text-muted-foreground">·</span>
+                    <span className="text-xs text-muted-foreground">
+                      Harga <span className="font-medium text-foreground">{formatRupiah(recipe.sellingPrice)}</span>
+                    </span>
+                    {recipe.marginPct !== null && (
+                      <>
+                        <span className="text-xs text-muted-foreground">·</span>
+                        <span className={`text-xs font-semibold ${marginColor}`}>
+                          Margin {recipe.marginPct}%
+                        </span>
+                      </>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+            {!hasCogs && (
+              <span className="text-xs text-muted-foreground">· HPP belum terhitung (belum ada pembelian bahan)</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {isOwner && (
@@ -301,6 +331,9 @@ function RecipeCard({
                     {ingredientCost(ing) !== null && (
                       <span className="text-muted-foreground text-xs ml-1">
                         ({formatRupiah(ingredientCost(ing)!)}/{ingredientUnit(ing)})
+                        {ing.latestCost !== undefined && ing.latestCost > 0 && ing.latestCost !== ing.templateCost && (
+                          <span className="text-primary"> ↑ harga terkini</span>
+                        )}
                       </span>
                     )}
                   </div>

@@ -107,6 +107,9 @@ export function ReportClient({
           ["Jumlah Transaksi", data.revenue.count],
           ["Rata-rata Transaksi", formatRupiah(data.revenue.average)],
           ["Total Pengeluaran", formatRupiah(data.totalExpenses)],
+          ["HPP (COGS)", formatRupiah(data.cogs)],
+          ["Laba Kotor", formatRupiah(data.grossProfit)],
+          ["Margin Kotor", data.grossMarginPct !== null ? `${data.grossMarginPct}%` : "-"],
           ["Laba Bersih", formatRupiah(data.netProfit)],
           ["Transaksi Void", data.voidedCount],
         ],
@@ -158,6 +161,8 @@ export function ReportClient({
       { label: "Total Pendapatan", value: formatRupiah(data.revenue.total) },
       { label: "Transaksi", value: String(data.revenue.count) },
       { label: "Pengeluaran", value: formatRupiah(data.totalExpenses) },
+      { label: "HPP (COGS)", value: formatRupiah(data.cogs) },
+      { label: "Laba Kotor", value: formatRupiah(data.grossProfit) },
       { label: "Laba Bersih", value: formatRupiah(data.netProfit) },
     ];
     const sections = [
@@ -253,6 +258,16 @@ export function ReportClient({
         <SummaryCard label="Total Pendapatan" value={formatRupiah(data.revenue.total)} />
         <SummaryCard label="Transaksi" value={`${data.revenue.count} (avg ${formatRupiah(data.revenue.average)})`} />
         {isOwner && <SummaryCard label="Pengeluaran" value={formatRupiah(data.totalExpenses)} />}
+        {isOwner && data.cogs > 0 && (
+          <SummaryCard label="HPP (COGS)" value={formatRupiah(data.cogs)} className="text-destructive" />
+        )}
+        {isOwner && data.cogs > 0 && (
+          <SummaryCard
+            label={`Laba Kotor${data.grossMarginPct !== null ? ` (${data.grossMarginPct}%)` : ""}`}
+            value={formatRupiah(data.grossProfit)}
+            className={data.grossProfit < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"}
+          />
+        )}
         {isOwner && (
           <SummaryCard
             label="Laba Bersih"

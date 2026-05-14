@@ -15,6 +15,8 @@ const navItemsBase = [
   ]},
   { trigger: "Barang", content: [
     { href: "/admin/inventory", label: "Inventori" },
+    { href: "/admin/ingredients", label: "Stok Bahan" },
+    { href: "/admin/menu-performance", label: "Performa Menu", ownerOnly: true },
   ]},
   { trigger: "Keuangan", content: [
     { href: "/admin/cash-register", label: "Kas Harian" },

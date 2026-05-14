@@ -14,7 +14,7 @@ export async function getRecipeData() {
     }),
     prisma.recipe.findMany({
       include: {
-        menuItem: { select: { id: true, name: true } },
+        menuItem: { select: { id: true, name: true, price: true } },
         variant:  { select: { id: true, label: true, priceModifier: true } },
         ingredients: {
           include: {
@@ -27,6 +27,23 @@ export async function getRecipeData() {
     }),
   ]);
 
+  // Get latest purchase cost per template for COGS calculation
+  const templateIds = [...new Set(
+    recipes.flatMap((r) => r.ingredients.map((i) => i.templateId).filter(Boolean) as string[])
+  )];
+
+  const latestCosts = await Promise.all(
+    templateIds.map(async (templateId) => {
+      const latest = await prisma.expenseItem.findFirst({
+        where: { templateId },
+        orderBy: { expense: { recordedAt: "desc" } },
+        select: { cost: true },
+      });
+      return { templateId, latestCost: latest?.cost ?? 0 };
+    }),
+  );
+  const costMap = new Map(latestCosts.map((c) => [c.templateId, c.latestCost]));
+
   return {
     templates: templates.map((t) => ({
       id: t.id,
@@ -34,24 +51,41 @@ export async function getRecipeData() {
       defaultUnit: t.defaultUnit,
       defaultCost: t.defaultCost,
     })),
-    recipes: recipes.map((r) => ({
-      id: r.id,
-      menuItemId: r.menuItemId,
-      menuItemName: r.menuItem.name,
-      variantId: r.variantId,
-      variantLabel: r.variant?.label ?? null,
-      notes: r.notes,
-      ingredients: r.ingredients.map((i) => ({
-        id: i.id,
-        templateId: i.templateId,
-        templateName: i.template?.name ?? null,
-        templateUnit: i.template?.defaultUnit ?? null,
-        templateCost: i.template?.defaultCost ?? null,
-        customName: i.customName,
-        customUnit: i.customUnit,
-        quantity: i.quantity,
-      })),
-    })),
+    recipes: recipes.map((r) => {
+      const sellingPrice = r.menuItem.price + (r.variant?.priceModifier ?? 0);
+
+      // Compute COGS from latest ingredient costs
+      const cogs = r.ingredients.reduce((sum, ing) => {
+        if (!ing.templateId) return sum;
+        const unitCost = costMap.get(ing.templateId) ?? 0;
+        return sum + ing.quantity * unitCost;
+      }, 0);
+      const cogsRounded = Math.round(cogs);
+      const margin = sellingPrice > 0 ? ((sellingPrice - cogsRounded) / sellingPrice) * 100 : null;
+
+      return {
+        id: r.id,
+        menuItemId: r.menuItemId,
+        menuItemName: r.menuItem.name,
+        sellingPrice,
+        variantId: r.variantId,
+        variantLabel: r.variant?.label ?? null,
+        notes: r.notes,
+        cogs: cogsRounded,
+        marginPct: margin !== null ? Math.round(margin * 10) / 10 : null,
+        ingredients: r.ingredients.map((i) => ({
+          id: i.id,
+          templateId: i.templateId,
+          templateName: i.template?.name ?? null,
+          templateUnit: i.template?.defaultUnit ?? null,
+          templateCost: i.template?.defaultCost ?? null,
+          latestCost: i.templateId ? (costMap.get(i.templateId) ?? 0) : 0,
+          customName: i.customName,
+          customUnit: i.customUnit,
+          quantity: i.quantity,
+        })),
+      };
+    }),
   };
 }
 

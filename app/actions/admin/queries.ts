@@ -14,6 +14,11 @@ export {
   getReportData,
   getRecipeData,
   getSettlementData,
+  getIngredientStockData,
+  getIngredientLogs,
+  adjustIngredientStock,
+  setLowStockAlert,
+  getMenuPerformanceData,
 } from "./queries/index";
 
 export type {
@@ -21,4 +26,8 @@ export type {
   ReportData,
   RecipeData,
   SettlementData,
+  IngredientStockData,
+  IngredientLog,
+  MenuPerformanceData,
+  MenuPerformanceRow,
 } from "./queries/index";

@@ -63,3 +63,10 @@ export function revalidateSettlement() {
   revalidatePath("/settlement");
   revalidatePath("/admin/reports");
 }
+
+/** Revalidate ingredient stock page and related inventory. */
+export function revalidateIngredients() {
+  revalidatePath("/admin/ingredients");
+  revalidatePath("/admin/inventory");
+  revalidatePath("/admin/expense-templates");
+}

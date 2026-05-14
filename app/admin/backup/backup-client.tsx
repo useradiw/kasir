@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,7 @@ const TABLE_OPTIONS = [
   { key: "onlineSettlements", label: "Pencairan Online" },
   { key: "settlementItems", label: "Item Pencairan" },
   { key: "settlementDeductions", label: "Potongan Pencairan" },
+  { key: "ingredientLogs", label: "Log Stok Bahan" },
 ] as const;
 
 function downloadJson(data: unknown, filename: string) {
@@ -48,11 +49,9 @@ function downloadJson(data: unknown, filename: string) {
 export default function BackupClient() {
   const { isPending, run, error } = useAdminAction();
   const [selected, setSelected] = useState<Set<string>>(new Set(TABLE_OPTIONS.map((t) => t.key)));
-  const [lastBackup, setLastBackup] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLastBackup(localStorage.getItem("lastBackupDate"));
-  }, []);
+  const [lastBackup, setLastBackup] = useState<string | null>(
+    () => (typeof window !== "undefined" ? localStorage.getItem("lastBackupDate") : null),
+  );
 
   function toggleTable(key: string) {
     setSelected((prev) => {

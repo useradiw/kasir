@@ -12,3 +12,7 @@ export { getRecipeData } from "./recipe-queries";
 export type { RecipeData } from "./recipe-queries";
 export { getSettlementData } from "./settlement-queries";
 export type { SettlementData } from "./settlement-queries";
+export { getIngredientStockData, getIngredientLogs, adjustIngredientStock, setLowStockAlert } from "./ingredient-queries";
+export type { IngredientStockData, IngredientLog } from "./ingredient-queries";
+export { getMenuPerformanceData } from "./menu-performance-queries";
+export type { MenuPerformanceData, MenuPerformanceRow } from "./menu-performance-queries";

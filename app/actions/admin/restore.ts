@@ -34,6 +34,7 @@ const IMPORT_ORDER = [
   "kasPakHar",
   "attendanceRecords",
   "notifications",
+  "ingredientLogs",
 ] as const;
 
 export async function restoreDatabase(
@@ -392,6 +393,23 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           label: row.label as string,
           amount: row.amount as number,
         },
+      });
+      break;
+
+    case "ingredientLogs":
+      await prisma.ingredientLog.upsert({
+        where: { id: row.id as string },
+        create: {
+          id: row.id as string,
+          templateId: row.templateId as string,
+          type: row.type as "PURCHASE" | "SALE" | "ADJUSTMENT" | "WASTE",
+          quantity: row.quantity as number,
+          unitCost: row.unitCost as number,
+          referenceId: (row.referenceId as string | null) ?? null,
+          note: (row.note as string | null) ?? null,
+          createdAt: row.createdAt ? new Date(row.createdAt as string) : new Date(),
+        },
+        update: {},
       });
       break;
 

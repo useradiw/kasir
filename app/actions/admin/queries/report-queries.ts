@@ -72,6 +72,7 @@ export async function getReportData(opts: {
         },
       },
       orderBy: { paidAt: "desc" },
+      // cogs is included automatically via Prisma include
     }),
     prisma.expense.findMany({
       where: { recordedAt: { gte: start, lt: end } },
@@ -128,7 +129,6 @@ export async function getReportData(opts: {
   // --- Revenue summary (offline only) ---
   const totalRevenue = offlineTx.reduce((s, t) => s + t.totalAmount, 0);
   const totalTransactions = offlineTx.length;
-  const avgTransaction = totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 0;
 
   // --- Revenue by day (or by month for yearly) — offline only ---
   const revenueByDay: { date: string; revenue: number; count: number }[] = [];
@@ -310,20 +310,31 @@ export async function getReportData(opts: {
 
   const isOwner = opts.isOwner ?? false;
 
+  // --- COGS summary (paid offline + online transactions with COGS recorded) ---
+  const totalCogs = paidTx.reduce((s, t) => s + (t.cogs ?? 0), 0);
+  const totalRevenueCombined = totalRevenue + disbursedRevenue;
+  const grossProfit = totalRevenueCombined - totalCogs;
+  const grossMarginPct = totalRevenueCombined > 0
+    ? Math.round((grossProfit / totalRevenueCombined) * 1000) / 10
+    : null;
+
   return {
     period: opts.period,
     dateRange: { start: localDateKey(start), end: localDateKey(new Date(end.getTime() - 1)) },
     revenue: {
-      total: totalRevenue + disbursedRevenue,
+      total: totalRevenueCombined,
       offlineTotal: totalRevenue,
       onlineDisbursed: disbursedRevenue,
       count: totalTransactions + onlineTx.length,
       average: (totalTransactions + onlineTx.length) > 0
-        ? Math.round((totalRevenue + disbursedRevenue) / (totalTransactions + onlineTx.length))
+        ? Math.round(totalRevenueCombined / (totalTransactions + onlineTx.length))
         : 0,
     },
     totalExpenses: isOwner ? totalExpenses : 0,
-    netProfit: isOwner ? (totalRevenue + disbursedRevenue) - totalExpenses : 0,
+    netProfit: isOwner ? totalRevenueCombined - totalExpenses : 0,
+    cogs: isOwner ? totalCogs : 0,
+    grossProfit: isOwner ? grossProfit : 0,
+    grossMarginPct: isOwner ? grossMarginPct : null,
     onlineOrdersSummary,
     revenueByDay,
     paymentMethods,
@@ -353,6 +364,7 @@ export async function getReportData(opts: {
       status: t.status as string,
       paidAt: t.paidAt.toISOString(),
       processedBy: t.processedBy?.name ?? null,
+      cogs: t.cogs ?? null,
     })),
     voidedCount: transactions.filter((t) => t.status === "VOIDED").length,
   };

@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import type { TableSession, OrderItem, Transaction } from "@/lib/db";
 import { createVoidNotification } from "@/lib/notifications";
+import { computeOrderCogs, applyStockMovements } from "@/lib/cogs-utils";
 
 export interface TransactionPayload {
   session: TableSession;
@@ -23,9 +24,9 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
     }
   }
 
-  await prisma.$transaction([
-    // Upsert table session
-    prisma.tableSession.upsert({
+  await prisma.$transaction(async (tx) => {
+    // ── Upsert table session ───────────────────────────────────────────────
+    await tx.tableSession.upsert({
       where: { id: session.id },
       create: {
         id: session.id,
@@ -48,11 +49,11 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         servedAt: session.servedAt ? new Date(session.servedAt) : null,
         erasedAt: session.erasedAt ? new Date(session.erasedAt) : null,
       },
-    }),
+    });
 
-    // Upsert order items
-    ...orderItems.map((item) =>
-      prisma.orderItem.upsert({
+    // ── Upsert order items ─────────────────────────────────────────────────
+    for (const item of orderItems) {
+      await tx.orderItem.upsert({
         where: { id: item.id },
         create: {
           id: item.id,
@@ -80,11 +81,29 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
           servedAt: item.servedAt ? new Date(item.servedAt) : null,
           cancelledAt: item.cancelledAt ? new Date(item.cancelledAt) : null,
         },
-      })
-    ),
+      });
+    }
 
-    // Upsert transaction
-    prisma.transaction.upsert({
+    // ── COGS + stock deduction (only on first sync — guard against retries) ─
+    const existingTx = await tx.transaction.findUnique({
+      where: { id: transaction.id },
+      select: { id: true },
+    });
+
+    let cogs: number | null = null;
+
+    if (!existingTx) {
+      // First sync: compute COGS and deduct ingredient stock
+      const { totalCogs, movements } = await computeOrderCogs(tx, orderItems);
+      cogs = totalCogs > 0 ? totalCogs : null;
+
+      if (movements.length > 0) {
+        await applyStockMovements(tx, movements, "SALE", transaction.id);
+      }
+    }
+
+    // ── Upsert transaction ─────────────────────────────────────────────────
+    await tx.transaction.upsert({
       where: { id: transaction.id },
       create: {
         id: transaction.id,
@@ -102,13 +121,14 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         status: transaction.status,
         paidAt: new Date(transaction.paidAt),
         createdAt: new Date(transaction.createdAt),
+        cogs,
       },
       update: {
         status: transaction.status,
         splitGroup: transaction.splitGroup ?? 0,
       },
-    }),
-  ]);
+    });
+  });
 }
 
 /** Sync a session's mutable fields (name, service, externalOrderId) to the server. Creates if missing. */

@@ -147,6 +147,7 @@ model Transaction {
   tableSession   TableSession      @relation(fields: [tableSessionId], references: [id])
   processedBy    Staff             @relation("ProcessedTransactions", fields: [processedById], references: [id])
   voidedBy       Staff?            @relation("VoidedTransactions", fields: [voidedById], references: [id], onDelete: SetNull)
+  cogs           Int?
   settlementItem SettlementItem?
 
   @@map("transactions")
@@ -343,9 +344,12 @@ model ExpenseTemplate {
   defaultUnit       String?
   defaultCost       Int?
   isActive          Boolean            @default(true)
+  currentStock      Float              @default(0)
+  lowStockAlert     Float?
   createdAt         DateTime           @default(now())
   expenseItems      ExpenseItem[]
   recipeIngredients RecipeIngredient[]
+  ingredientLogs    IngredientLog[]
 
   @@map("expense_templates")
 }
@@ -378,6 +382,23 @@ model RecipeIngredient {
   template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@map("recipe_ingredients")
+}
+
+// --- INGREDIENT STOCK LEDGER ---
+
+model IngredientLog {
+  id          String            @id @default(uuid())
+  templateId  String
+  template    ExpenseTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  type        StockMovementType
+  quantity    Float
+  unitCost    Int
+  referenceId String?
+  note        String?
+  createdAt   DateTime          @default(now())
+
+  @@index([templateId, createdAt])
+  @@map("ingredient_logs")
 }
 
 // --- ENUMS ---
@@ -431,4 +452,11 @@ enum KasPakHarType {
   DEPOSIT
   WITHDRAWAL
   EXPENSE_DEDUCTION
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
+  WASTE
 }
