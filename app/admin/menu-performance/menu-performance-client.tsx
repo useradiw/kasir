@@ -206,7 +206,7 @@ export function MenuPerformanceClient({
       ) : (
         <Card>
           <CardContent className="pt-4 overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
+            <table className="w-full text-sm min-w-175">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="pb-2 pr-3">Menu</th>
