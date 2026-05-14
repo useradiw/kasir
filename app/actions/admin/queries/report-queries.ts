@@ -56,6 +56,7 @@ export async function getReportData(opts: {
     cashRegisters,
     attendanceRecords,
     settings,
+    staffList,
   ] = await Promise.all([
     prisma.transaction.findMany({
       where: { paidAt: { gte: start, lt: end } },
@@ -97,6 +98,10 @@ export async function getReportData(opts: {
           ],
         },
       },
+    }),
+    prisma.staff.findMany({
+      where: { salary: { gt: 0 } },
+      select: { id: true, name: true, salary: true },
     }),
   ]);
 
@@ -206,8 +211,26 @@ export async function getReportData(opts: {
     .sort((a, b) => b.qty - a.qty)
     .slice(0, 10);
 
+  // --- Staff salary: daily rate × present days (absent days = no pay) ---
+  const presentDaysByStaff: Record<string, number> = {};
+  for (const r of attendanceRecords) {
+    if (r.status === "PRESENT") {
+      presentDaysByStaff[r.staffId] = (presentDaysByStaff[r.staffId] ?? 0) + 1;
+    }
+  }
+  const staffSalaryBreakdown = staffList
+    .map((s) => ({
+      name: s.name,
+      dailySalary: s.salary!,
+      presentDays: presentDaysByStaff[s.id] ?? 0,
+      total: (presentDaysByStaff[s.id] ?? 0) * s.salary!,
+    }))
+    .filter((s) => s.presentDays > 0);
+  const totalSalary = staffSalaryBreakdown.reduce((s, x) => s + x.total, 0);
+
   // --- Expense summary ---
-  const totalExpenses = expenses.reduce((s, e) => s + computeExpenseTotal(e.items), 0);
+  const totalExpenseItems = expenses.reduce((s, e) => s + computeExpenseTotal(e.items), 0);
+  const totalExpenses = totalExpenseItems + totalSalary;
 
   // --- Cash register summary (offline only) ---
   const cashByDate: Record<string, number> = {};
@@ -331,6 +354,8 @@ export async function getReportData(opts: {
         : 0,
     },
     totalExpenses: isOwner ? totalExpenses : 0,
+    totalSalary: isOwner ? totalSalary : 0,
+    staffSalary: isOwner ? staffSalaryBreakdown : [],
     netProfit: isOwner ? totalRevenueCombined - totalExpenses : 0,
     cogs: isOwner ? totalCogs : 0,
     grossProfit: isOwner ? grossProfit : 0,

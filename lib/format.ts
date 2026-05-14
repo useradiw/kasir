@@ -3,7 +3,9 @@ export function formatRupiah(amount: number): string {
     style: "currency",
     currency: "IDR",
     minimumFractionDigits: 0,
-  }).format(amount).replace(/\u00a0/g, " ");
+  // Replace all Unicode whitespace variants (U+00A0 non-breaking, U+202F narrow no-break)
+  // that differ between Node.js ICU and Chrome's Intl implementation.
+  }).format(amount).replace(/[\u00a0\u202f\u2009\u2007]/g, " ");
 }
 
 export function formatDateTime(

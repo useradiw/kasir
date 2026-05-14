@@ -55,7 +55,7 @@ export default function ExpensesClient({
     router.push(`/admin/expenses?${params.toString()}`);
   }
 
-  function handleExportPdf() {
+  async function handleExportPdf() {
     const subtitle = filters.from && filters.to ? `${filters.from} – ${filters.to}` : "Semua periode";
     const summaryCards = [
       { label: "Total Pengeluaran", value: formatRupiah(totalAmount) },
@@ -76,7 +76,7 @@ export default function ExpensesClient({
         formatRupiah(i.amount * i.cost),
       ])
     );
-    exportPDF(
+    await exportPDF(
       "Laporan Pengeluaran",
       subtitle,
       summaryCards,

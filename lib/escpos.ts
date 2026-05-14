@@ -20,6 +20,7 @@ export interface PrintReceiptData {
   cashAmount: number;
   qrisAmount?: number;
   isPaid: boolean;
+  isOnline?: boolean;
   splitGroupLabel?: string;
 }
 
@@ -143,16 +144,18 @@ export function buildReceipt(
   if (data.discountAmount > 0)
     b.push(...padLine("Diskon", "-" + formatRupiah(data.discountAmount), w));
 
-  // Payment info
-  b.push(...divider(w));
-  b.push(...padLine("Metode", formatPaymentMethod(data.paymentMethod), w));
-  if (data.paymentMethod === "CASH") {
-    b.push(...padLine("Dibayar", formatRupiah(data.cashAmount), w));
-    const change = data.cashAmount - data.totalAmount;
-    if (change > 0) b.push(...padLine("Kembalian", formatRupiah(change), w));
-  } else if (data.paymentMethod === "SPLIT") {
-    b.push(...padLine("Tunai", formatRupiah(data.cashAmount), w));
-    if (data.qrisAmount) b.push(...padLine("QRIS", formatRupiah(data.qrisAmount), w));
+  // Payment info — skipped for online orders
+  if (!data.isOnline) {
+    b.push(...divider(w));
+    b.push(...padLine("Metode", formatPaymentMethod(data.paymentMethod), w));
+    if (data.paymentMethod === "CASH") {
+      b.push(...padLine("Dibayar", formatRupiah(data.cashAmount), w));
+      const change = data.cashAmount - data.totalAmount;
+      if (change > 0) b.push(...padLine("Kembalian", formatRupiah(change), w));
+    } else if (data.paymentMethod === "SPLIT") {
+      b.push(...padLine("Tunai", formatRupiah(data.cashAmount), w));
+      if (data.qrisAmount) b.push(...padLine("QRIS", formatRupiah(data.qrisAmount), w));
+    }
   }
 
   // Payment status

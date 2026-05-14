@@ -141,7 +141,12 @@ export function ReportClient({
         ]),
       },
       {
-        title: "Pengeluaran",
+        title: "Pengeluaran - Gaji Karyawan",
+        headers: ["Nama", "Gaji/Hari", "Hari Hadir", "Total"],
+        rows: data.staffSalary.map((s) => [s.name, s.dailySalary, s.presentDays, s.total]),
+      },
+      {
+        title: "Pengeluaran - Operasional",
         headers: ["Tanggal", "Total", "Keterangan", "Item"],
         rows: data.expenses.map((e) => [
           new Date(e.recordedAt).toLocaleString("id-ID"),
@@ -154,7 +159,7 @@ export function ReportClient({
     exportCSV(`Laporan_${currentPeriod}_${currentDate}.csv`, sections);
   }
 
-  function handlePDF() {
+  async function handlePDF() {
     const title = `Laporan ${PERIOD_LABEL[currentPeriod]}`;
     const subtitle = `Periode: ${dateRangeLabel}`;
     const summaryCards = [
@@ -205,7 +210,7 @@ export function ReportClient({
         ]),
       },
     ];
-    exportPDF(title, subtitle, summaryCards, sections);
+    await exportPDF(title, subtitle, summaryCards, sections);
   }
 
   return (
@@ -491,6 +496,54 @@ export function ReportClient({
               </div>
             ) : (
               <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada kas terdaftar.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Pengeluaran Detail (owner only) */}
+      {isOwner && (data.expenses.length > 0 || data.staffSalary.length > 0) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Rincian Pengeluaran</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {data.staffSalary.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Gaji Karyawan</p>
+                <div className="divide-y divide-foreground/5">
+                  {data.staffSalary.map((s, i) => (
+                    <div key={i} className="py-1.5 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span>{s.name}</span>
+                        <span className="text-destructive">{formatRupiah(s.total)}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {s.presentDays} hari × {formatRupiah(s.dailySalary)}
+                      </p>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between py-1.5 text-sm font-medium">
+                    <span>Total Gaji</span>
+                    <span className="text-destructive">{formatRupiah(data.totalSalary)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {data.expenses.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">Pengeluaran Operasional</p>
+                <div className="divide-y divide-foreground/5">
+                  {data.expenses.map((e) => (
+                    <div key={e.id} className="py-1.5 text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="truncate">{e.description ?? "-"}</span>
+                        <span className="text-destructive shrink-0 ml-2">{formatRupiah(e.total)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type MenuItem, type MenuVariant, type OnlinePrice, type ServiceEnum } from "@/lib/db";
 import { addOrderItem } from "@/hooks/use-session-store";
@@ -57,7 +57,7 @@ export function MenuItemGrid({
   );
 }
 
-function MenuItemCard({
+const MenuItemCard = memo(function MenuItemCard({
   item,
   sessionId,
   isExpanded,
@@ -183,4 +183,4 @@ function MenuItemCard({
       )}
     </div>
   );
-}
+});

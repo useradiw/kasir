@@ -130,6 +130,7 @@ export default function TransactionDetailClient({
       cashAmount: data.cashAmount,
       qrisAmount: data.qrisAmount,
       isPaid: data.status === "PAID",
+      isOnline: data.paymentMethod === "PENDING",
     }, storeInfo);
     if (!isConnected) await connect();
     await print(receiptData);
@@ -289,28 +290,32 @@ export default function TransactionDetailClient({
 
                 <ReceiptDivider />
 
-                {/* Payment method */}
-                <div className="flex justify-between">
-                  <span>Metode</span>
-                  <span>{formatPaymentMethod(data.paymentMethod)}</span>
-                </div>
-                {(data.paymentMethod === "CASH" || data.paymentMethod === "SPLIT") && (
+                {/* Payment method — hidden for online orders */}
+                {data.paymentMethod !== "PENDING" && (
                   <>
                     <div className="flex justify-between">
-                      <span>Tunai</span>
-                      <span>{formatRupiah(data.cashAmount)}</span>
+                      <span>Metode</span>
+                      <span>{formatPaymentMethod(data.paymentMethod)}</span>
                     </div>
-                    {data.paymentMethod === "SPLIT" && (
-                      <div className="flex justify-between">
-                        <span>QRIS</span>
-                        <span>{formatRupiah(data.qrisAmount)}</span>
-                      </div>
-                    )}
-                    {data.paymentMethod === "CASH" && data.cashAmount > (editing ? totalAmount : data.totalAmount) && (
-                      <div className="flex justify-between">
-                        <span>Kembalian</span>
-                        <span>{formatRupiah(data.cashAmount - (editing ? totalAmount : data.totalAmount))}</span>
-                      </div>
+                    {(data.paymentMethod === "CASH" || data.paymentMethod === "SPLIT") && (
+                      <>
+                        <div className="flex justify-between">
+                          <span>Tunai</span>
+                          <span>{formatRupiah(data.cashAmount)}</span>
+                        </div>
+                        {data.paymentMethod === "SPLIT" && (
+                          <div className="flex justify-between">
+                            <span>QRIS</span>
+                            <span>{formatRupiah(data.qrisAmount)}</span>
+                          </div>
+                        )}
+                        {data.paymentMethod === "CASH" && data.cashAmount > (editing ? totalAmount : data.totalAmount) && (
+                          <div className="flex justify-between">
+                            <span>Kembalian</span>
+                            <span>{formatRupiah(data.cashAmount - (editing ? totalAmount : data.totalAmount))}</span>
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}
@@ -413,13 +418,44 @@ export default function TransactionDetailClient({
                     <option value="PENDING">Unsettled</option>
                   </AdminSelect>
                 ) : (
-                  <p className="text-sm">{formatPaymentMethod(data.paymentMethod)}</p>
+                  <p className="text-sm">
+                    {data.paymentMethod === "PENDING" && data.settlement
+                      ? "Settled"
+                      : formatPaymentMethod(data.paymentMethod)}
+                  </p>
                 )}
               </div>
               <div className="grid gap-1">
                 <Label className="text-xs">Waktu Bayar</Label>
                 <p className="text-sm">{formatDateTime(data.paidAt)}</p>
               </div>
+              {data.settlement && (
+                <div className="rounded-lg bg-primary/10 p-3 space-y-1 text-sm">
+                  <p className="font-medium text-primary">Sudah Cair</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDateTime(data.settlement.settlementDate)} · oleh {data.settlement.settledBy ?? "-"}
+                  </p>
+                  <div className="space-y-0.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Komisi</span>
+                      <span className="text-destructive">-{formatRupiah(data.settlement.commissionAmount)}</span>
+                    </div>
+                    {data.settlement.deductions.map((d) => (
+                      <div key={d.id} className="flex justify-between">
+                        <span className="text-muted-foreground">{d.label}</span>
+                        <span className="text-destructive">-{formatRupiah(d.amount)}</span>
+                      </div>
+                    ))}
+                    <div className="flex justify-between font-medium border-t pt-1">
+                      <span>Diterima</span>
+                      <span className="text-primary">{formatRupiah(data.settlement.finalAmount)}</span>
+                    </div>
+                  </div>
+                  {data.settlement.notes && (
+                    <p className="text-xs text-muted-foreground italic">{data.settlement.notes}</p>
+                  )}
+                </div>
+              )}
               {data.status === "VOIDED" && (
                 <div className="rounded-lg bg-destructive/10 p-3 space-y-1 text-sm">
                   <p className="font-medium text-destructive">Transaksi di-void</p>

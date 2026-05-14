@@ -1,6 +1,3 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 interface Section {
   title: string;
   headers: string[];
@@ -9,12 +6,16 @@ interface Section {
 
 const TEAL = [0, 128, 128] as const;
 
-export function exportPDF(
+export async function exportPDF(
   title: string,
   subtitle: string,
   summaryCards: { label: string; value: string }[],
   sections: Section[]
 ) {
+  const [{ default: jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   let y = 15;

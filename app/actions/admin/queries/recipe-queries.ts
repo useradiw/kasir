@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 
@@ -32,17 +33,17 @@ export async function getRecipeData() {
     recipes.flatMap((r) => r.ingredients.map((i) => i.templateId).filter(Boolean) as string[])
   )];
 
-  const latestCosts = await Promise.all(
-    templateIds.map(async (templateId) => {
-      const latest = await prisma.expenseItem.findFirst({
-        where: { templateId },
-        orderBy: { expense: { recordedAt: "desc" } },
-        select: { cost: true },
-      });
-      return { templateId, latestCost: latest?.cost ?? 0 };
-    }),
-  );
-  const costMap = new Map(latestCosts.map((c) => [c.templateId, c.latestCost]));
+  const costMap = new Map<string, number>();
+  if (templateIds.length > 0) {
+    const latestCosts = await prisma.$queryRaw<{ templateId: string; cost: number }[]>`
+      SELECT DISTINCT ON ("templateId") "templateId", "cost"
+      FROM "ExpenseItem" ei
+      JOIN "Expense" e ON ei."expenseId" = e."id"
+      WHERE ei."templateId" IN (${Prisma.join(templateIds)})
+      ORDER BY "templateId", e."recordedAt" DESC
+    `;
+    for (const c of latestCosts) costMap.set(c.templateId, c.cost);
+  }
 
   return {
     templates: templates.map((t) => ({

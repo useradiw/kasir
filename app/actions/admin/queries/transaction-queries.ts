@@ -96,6 +96,16 @@ export async function getTransactionDetail(transactionId: string) {
     include: {
       processedBy: { select: { name: true } },
       voidedBy: { select: { name: true } },
+      settlementItem: {
+        include: {
+          settlement: {
+            include: {
+              deductions: { select: { id: true, label: true, amount: true } },
+              settledBy: { select: { name: true } },
+            },
+          },
+        },
+      },
       tableSession: {
         include: {
           orderItems: {
@@ -135,6 +145,16 @@ export async function getTransactionDetail(transactionId: string) {
     voidReason: tx.voidReason ?? null,
     cogs: tx.cogs ?? null,
     grossProfit: tx.cogs !== null ? tx.totalAmount - tx.cogs : null,
+    settlement: tx.settlementItem ? {
+      id: tx.settlementItem.settlement.id,
+      settlementDate: tx.settlementItem.settlement.settlementDate.toISOString(),
+      finalAmount: tx.settlementItem.settlement.finalAmount,
+      commissionAmount: tx.settlementItem.settlement.commissionAmount,
+      service: tx.settlementItem.settlement.service as string,
+      notes: tx.settlementItem.settlement.notes ?? null,
+      settledBy: tx.settlementItem.settlement.settledBy?.name ?? null,
+      deductions: tx.settlementItem.settlement.deductions,
+    } : null,
     session: {
       id: tx.tableSession.id,
       name: tx.tableSession.name,

@@ -1,5 +1,6 @@
 "use server";
 
+import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
 
@@ -162,18 +163,19 @@ export async function getMenuPerformanceData(opts: {
     }
   }
 
-  // Load latest cost for each template (parallel)
-  const costEntries = await Promise.all(
-    [...allTemplateIds].map(async (templateId) => {
-      const latest = await prisma.expenseItem.findFirst({
-        where: { templateId },
-        orderBy: { expense: { recordedAt: "desc" } },
-        select: { cost: true },
-      });
-      return [templateId, latest?.cost ?? 0] as [string, number];
-    }),
-  );
-  const costMap = new Map(costEntries);
+  // Load latest cost for each template (single query)
+  const costMap = new Map<string, number>();
+  if (allTemplateIds.size > 0) {
+    const templateIdArr = [...allTemplateIds];
+    const latestCosts = await prisma.$queryRaw<{ templateId: string; cost: number }[]>`
+      SELECT DISTINCT ON ("templateId") "templateId", "cost"
+      FROM "ExpenseItem" ei
+      JOIN "Expense" e ON ei."expenseId" = e."id"
+      WHERE ei."templateId" IN (${Prisma.join(templateIdArr)})
+      ORDER BY "templateId", e."recordedAt" DESC
+    `;
+    for (const c of latestCosts) costMap.set(c.templateId, c.cost);
+  }
 
   function recipeCogsPerPortion(menuItemId: string, variantId: string | null): number {
     const r = recipeMap.get(`${menuItemId}:${variantId ?? "null"}`);
