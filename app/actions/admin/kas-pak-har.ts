@@ -41,7 +41,7 @@ export async function deleteKasPakHarEntry(id: string) {
 }
 
 export async function getKasPakHarData() {
-  await requireOwner();
+  await requireRole("OWNER", "MANAGER");
 
   const entries = await prisma.kasPakHar.findMany({
     orderBy: { date: "desc" },

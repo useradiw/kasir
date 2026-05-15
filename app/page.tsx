@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 
 const allKasirLinks = [
-  { href: "/kasir", label: "Kasir", desc: "Buka halaman kasir (POS)", icon: ShoppingCart, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
+  { href: "/kasir", label: "Kasir", desc: "Buka halaman kasir (POS)", icon: ShoppingCart, roles: ["OWNER", "MANAGER", "CASHIER"] },
   { href: "/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Landmark, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
   { href: "/cashregister", label: "Kas Kecil", desc: "Buka & tutup kas", icon: Wallet, roles: ["OWNER", "MANAGER", "CASHIER"] },
   { href: "/settlement", label: "Pencairan Online", desc: "Catat pencairan GoFood/Shopee/Grab", icon: Banknote, roles: ["OWNER", "MANAGER", "CASHIER"] },
@@ -36,7 +36,7 @@ const allKasirLinks = [
 ] as const;
 
 const allAdminLinks = [
-  { href: "/admin", label: "Dashboard", desc: "Ringkasan & statistik", icon: LayoutDashboard },
+  { href: "/admin", label: "Dashboard", desc: "Ringkasan & statistik", icon: LayoutDashboard, roles: ["OWNER", "MANAGER", "CASHIER"] },
   { href: "/admin/staff", label: "Kelola Staff", desc: "Tambah & atur staff", icon: Users },
   { href: "/admin/sessions", label: "Sesi Login", desc: "Aktivitas login pengguna", icon: Monitor },
   { href: "/admin/attendance", label: "Absensi", desc: "Pencatatan kehadiran", icon: ClipboardCheck },
@@ -45,10 +45,11 @@ const allAdminLinks = [
   { href: "/admin/settlement", label: "Pencairan Online", desc: "Kelola pencairan GoFood/Shopee/Grab", icon: Banknote },
   { href: "/admin/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Wallet },
   { href: "/admin/cash-register", label: "Kas Harian", desc: "Buka & tutup kas", icon: Landmark },
-  { href: "/admin/notifications", label: "Notifikasi", desc: "Riwayat notifikasi sistem", icon: Bell, ownerOnly: true },
-  { href: "/admin/reports", label: "Laporan", desc: "Laporan & analitik", icon: Receipt, ownerOnly: true },
-  { href: "/admin/backup", label: "Backup DB", desc: "Export data database", icon: HardDrive, ownerOnly: true },
-  { href: "/settings", label: "Pengaturan", desc: "Konfigurasi toko & sistem", icon: Settings, ownerOnly: true },
+  { href: "/admin/kas-pak-har", label: "Kas Pak Har", desc: "Dana darurat Pak Har", icon: Wallet },
+  { href: "/admin/notifications", label: "Notifikasi", desc: "Riwayat notifikasi sistem", icon: Bell, roles: ["OWNER"] },
+  { href: "/admin/reports", label: "Laporan", desc: "Laporan & analitik", icon: Receipt },
+  { href: "/admin/backup", label: "Backup DB", desc: "Export data database", icon: HardDrive, roles: ["OWNER"] },
+  { href: "/settings", label: "Pengaturan", desc: "Konfigurasi toko & sistem", icon: Settings, roles: ["OWNER"] },
 ];
 
 export default async function Home() {
@@ -71,13 +72,12 @@ export default async function Home() {
 
   const staffName = staff?.name ?? user.email ?? "Pengguna";
   const staffRole = staff?.role ?? "STAFF";
-  const isOwner = staffRole === "OWNER";
-  const isManager = staffRole === "MANAGER";
 
   const kasirLinks = allKasirLinks.filter((l) => (l.roles as readonly string[]).includes(staffRole));
-  const adminLinks = (isOwner || isManager)
-    ? allAdminLinks.filter((l) => !("ownerOnly" in l) || !l.ownerOnly || isOwner)
-    : [];
+  const adminLinks = allAdminLinks.filter((l) => {
+    const roles = l.roles ?? ["OWNER", "MANAGER"];
+    return (roles as readonly string[]).includes(staffRole);
+  });
 
   return (
     <Container id="menu" sectionStyle="bg-white dark:bg-black min-h-screen" className="py-6">

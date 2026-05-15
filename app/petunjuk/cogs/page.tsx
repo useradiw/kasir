@@ -1,6 +1,8 @@
 import { requireAuth } from "@/lib/admin-auth";
 import { Container } from "@/components/shared/container";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { readFile } from "fs/promises";
 import path from "path";
@@ -17,12 +19,18 @@ export default async function CogsGuidePage() {
 
   return (
     <Container id="top" sectionStyle="min-h-screen" className="py-8 max-w-2xl">
-      <div className="mb-6 flex items-center gap-3">
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <Link href="/">
+          <Button variant="ghost" size="sm" className="-ml-2 gap-1.5 text-muted-foreground">
+            <ArrowLeft className="size-4" />
+            Kembali
+          </Button>
+        </Link>
         <Link
           href="/petunjuk#admin-stok-bahan"
           className="text-sm text-muted-foreground hover:text-primary transition-colors"
         >
-          ← Petunjuk Penggunaan
+          Petunjuk Penggunaan
         </Link>
         {!isAdmin && (
           <span className="text-xs text-muted-foreground italic">
@@ -119,6 +127,7 @@ export default async function CogsGuidePage() {
 
       <p className="text-xs text-muted-foreground mt-10 pt-6 border-t border-border">
         Sumber: <code className="font-mono">docs/cogs-feature.md</code>
+        <span className="block mt-1">Ditulis: 15 Mei 2026</span>
       </p>
 
       <BackToTop />

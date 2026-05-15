@@ -1,6 +1,8 @@
 import { requireAuth } from "@/lib/admin-auth";
 import { Container } from "@/components/shared/container";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { BackToTop } from "./back-to-top";
 
 export const metadata = { title: "Petunjuk Penggunaan" };
@@ -54,9 +56,16 @@ export default async function PetunjukPage() {
 
   return (
     <Container id="top" sectionStyle="min-h-screen" className="py-8 max-w-2xl">
+      <Link href="/">
+        <Button variant="ghost" size="sm" className="mb-4 -ml-2 gap-1.5 text-muted-foreground">
+          <ArrowLeft className="size-4" />
+          Kembali
+        </Button>
+      </Link>
       <h1 className="text-2xl font-bold mb-1">Petunjuk Penggunaan</h1>
       <p className="text-muted-foreground text-sm mb-6">
         Panduan cara menggunakan fitur-fitur aplikasi Kasir POS.
+        <span className="block mt-1 text-xs">Ditulis: 15 Mei 2026</span>
       </p>
 
       {/* TOC at top */}
@@ -406,23 +415,24 @@ export default async function PetunjukPage() {
             <tbody>
               {(
                 [
-                  ["Aplikasi Kasir (POS)", true, true, true, true],
+                  ["Aplikasi Kasir (POS)", true, true, true, false],
                   ["Catat Pengeluaran", true, true, true, true],
                   ["Kas Harian (buka/tutup)", true, true, true, false],
                   ["Pencairan Online", true, true, true, false],
                   ["Profil Pengguna", true, true, true, true],
-                  ["Panel Admin", true, true, false, false],
+                  ["Panel Admin (Dashboard)", true, true, true, false],
                   ["Inventori & Resep", true, true, false, false],
                   ["Stok Bahan (HPP)", true, true, false, false],
                   ["Transaksi & Void", true, true, false, false],
                   ["Pengeluaran (admin)", true, true, false, false],
                   ["Template Pengeluaran", true, true, false, false],
                   ["Pencairan Online (admin)", true, true, false, false],
+                  ["Hapus Pencairan", true, false, false, false],
                   ["Sesi Login", true, true, false, false],
                   ["Absensi", true, true, false, false],
                   ["Performa Menu", true, false, false, false],
-                  ["Kas Pak Har", true, false, false, false],
-                  ["Laporan", true, false, false, false],
+                  ["Kas Pak Har", true, true, false, false],
+                  ["Laporan", true, true, false, false],
                   ["Kelola Staff", true, false, false, false],
                   ["Notifikasi sistem", true, false, false, false],
                   ["Backup & Restore", true, false, false, false],

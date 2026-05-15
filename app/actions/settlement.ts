@@ -81,7 +81,7 @@ export async function createSettlement(input: z.infer<typeof createSettlementSch
 
 export async function deleteSettlement(settlementId: string) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireRole("OWNER");
 
     const settlement = await prisma.onlineSettlement.findUnique({
       where: { id: settlementId },

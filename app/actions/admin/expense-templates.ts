@@ -13,7 +13,7 @@ const templateSchema = z.object({
 });
 
 export async function getExpenseTemplates() {
-  await requireRole("OWNER", "MANAGER", "CASHIER");
+  await requireRole("OWNER", "MANAGER");
   return prisma.expenseTemplate.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },
@@ -22,7 +22,7 @@ export async function getExpenseTemplates() {
 }
 
 export async function getDistinctExpenseItemNames() {
-  await requireRole("OWNER", "MANAGER", "CASHIER");
+  await requireRole("OWNER", "MANAGER");
   const items = await prisma.expenseItem.findMany({
     select: { description: true },
     distinct: ["description"],

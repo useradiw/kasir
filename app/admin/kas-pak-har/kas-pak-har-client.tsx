@@ -22,7 +22,7 @@ type Entry = {
   createdAt: string;
 };
 
-export default function KasPakHarClient({ data }: { data: { balance: number; entries: Entry[] } }) {
+export default function KasPakHarClient({ data, isOwner = true }: { data: { balance: number; entries: Entry[] }; isOwner?: boolean }) {
   const { isPending, run, error } = useAdminAction();
   const confirm = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
@@ -119,7 +119,7 @@ export default function KasPakHarClient({ data }: { data: { balance: number; ent
                       </p>
                     )}
                   </div>
-                  {e.type !== "EXPENSE_DEDUCTION" && (
+                  {isOwner && e.type !== "EXPENSE_DEDUCTION" && (
                     <Button
                       size="xs"
                       variant="destructive"

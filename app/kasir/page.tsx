@@ -1,7 +1,7 @@
-import { requireAuth } from "@/lib/admin-auth";
+import { requireRole } from "@/lib/admin-auth";
 import { KasirShell } from "@/components/kasir/kasir-shell";
 
 export default async function KasirPage() {
-  await requireAuth();
+  await requireRole("OWNER", "MANAGER", "CASHIER");
   return <KasirShell />;
 }

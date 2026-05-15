@@ -50,7 +50,7 @@ export function SettlementClient({
   const [tab, setTab] = useState<"create" | "history">("create");
   const [serviceFilter, setServiceFilter] = useState<ServiceKey | "all">("all");
 
-  const canDelete = staffRole === "OWNER" || staffRole === "MANAGER";
+  const canDelete = staffRole === "OWNER";
 
   const filteredUnsettled = serviceFilter === "all"
     ? data.unsettled

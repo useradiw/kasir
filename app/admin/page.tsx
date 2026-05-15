@@ -6,7 +6,7 @@ import { requireRole } from "@/lib/admin-auth";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 
 export default async function AdminDashboard() {
-  await requireRole("OWNER", "MANAGER");
+  await requireRole("OWNER", "MANAGER", "CASHIER");
   const data = await getDashboardData();
 
   const stats = [
