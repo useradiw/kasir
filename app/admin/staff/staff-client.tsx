@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,7 @@ import {
   linkSupabaseUser,
   unlinkSupabaseUser,
 } from "@/app/actions/admin/staff";
+import { Copy, Check } from "lucide-react";
 
 type StaffRow = {
   id: string;
@@ -40,14 +41,29 @@ export default function StaffClient({ staffList, isOwner }: { staffList: StaffRo
   const [editId, setEditId] = useState<string | null>(null);
   const [linkId, setLinkId] = useState<string | null>(null);
   const [linkEmail, setLinkEmail] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  const copyRegisterLink = useCallback(() => {
+    const url = `${window.location.origin}/auth/daftar`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }, []);
 
   return (
     <div className="space-y-6">
       <AdminPageHeader title="Manajemen Staff">
         {isOwner && (
-          <Button onClick={() => setShowAdd((v) => !v)} size="sm">
-            {showAdd ? "Batal" : "+ Tambah Staff"}
-          </Button>
+          <>
+            <Button onClick={copyRegisterLink} size="sm" variant="outline" className="gap-1.5">
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+              {copied ? "Tersalin!" : "Link Daftar"}
+            </Button>
+            <Button onClick={() => setShowAdd((v) => !v)} size="sm">
+              {showAdd ? "Batal" : "+ Tambah Staff"}
+            </Button>
+          </>
         )}
       </AdminPageHeader>
 
