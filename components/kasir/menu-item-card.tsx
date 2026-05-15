@@ -107,14 +107,14 @@ const MenuItemCard = memo(function MenuItemCard({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card transition-all",
+        "rounded-2xl border bg-card transition-all",
         isExpanded && "col-span-2"
       )}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="w-full p-3 text-left active:bg-accent transition-colors rounded-lg"
+        className="w-full p-3 text-left active:bg-accent active:scale-[0.98] transition-all duration-150 rounded-2xl"
       >
         <p className="font-medium text-sm leading-tight">{item.name}</p>
         <p className="text-xs text-muted-foreground mt-0.5">{formatRupiah(calcItemPrice(item, null, service, onlinePrices))}</p>

@@ -29,7 +29,7 @@ export function PaidSessionCard({
 
   return (
     <div
-      className={cn("rounded-lg border bg-card p-3 min-h-14", !isErased && "cursor-pointer active:bg-accent transition-colors")}
+      className={cn("rounded-2xl border bg-card p-3 min-h-14", !isErased && "cursor-pointer active:bg-accent active:scale-[0.98] transition-all duration-150")}
       onClick={isErased ? undefined : onClick}
       role={isErased ? undefined : "button"}
       tabIndex={isErased ? undefined : 0}
@@ -93,7 +93,7 @@ export function SplitReceiptPicker({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-72 rounded-lg bg-background p-4 space-y-3">
+      <div className="w-72 rounded-2xl bg-background p-4 space-y-3">
         <p className="text-sm font-semibold text-center">Pilih Struk</p>
         {sortedTxs.map((tx) => (
           <Button

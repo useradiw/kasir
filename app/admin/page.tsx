@@ -1,5 +1,6 @@
 import { Container } from "@/components/shared/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPageHeader } from "@/components/admin/ui";
 import { getDashboardData } from "@/app/actions/admin/queries";
 import { requireRole } from "@/lib/admin-auth";
 import { formatRupiah, formatDateTime } from "@/lib/format";
@@ -17,7 +18,7 @@ export default async function AdminDashboard() {
 
   return (
     <Container id="admin-dashboard" sectionStyle="" className="py-6 space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard</h1>
+      <AdminPageHeader title="Dashboard" />
 
       <div className="grid grid-cols-2 gap-3">
         {stats.map((s) => (
@@ -28,7 +29,7 @@ export default async function AdminDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{s.value}</p>
+              <p className="text-2xl font-bold tabular-nums">{s.value}</p>
             </CardContent>
           </Card>
         ))}

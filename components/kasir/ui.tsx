@@ -21,14 +21,14 @@ export function KasirTopBar({
   return (
     <Container id="kasirtopbar" className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-background px-3">
       {onBack && (
-        <button type="button" onClick={onBack} className="p-1 -ml-1">
+        <button type="button" onClick={onBack} className="p-2.5 -ml-2.5" aria-label="Kembali">
           <ArrowLeft className="size-5" />
         </button>
       )}
       <span className="flex-1 truncate font-semibold text-sm">{title}</span>
       {children}
       {onHome && (
-        <button type="button" onClick={onHome} className="p-1">
+        <button type="button" onClick={onHome} className="p-2.5" aria-label="Daftar sesi">
           <LayoutList className="size-5 text-muted-foreground" />
         </button>
       )}
@@ -67,14 +67,15 @@ export function QtyControl({
     <div className="flex items-center gap-1">
       <Button
         variant="outline"
-        size="icon-xs"
+        size="icon-sm"
         onClick={onDecrease}
         disabled={qty <= min}
+        aria-label="Kurangi jumlah"
       >
         <Minus className="size-3" />
       </Button>
       <span className="w-6 text-center text-sm font-medium">{qty}</span>
-      <Button variant="outline" size="icon-xs" onClick={onIncrease}>
+      <Button variant="outline" size="icon-sm" onClick={onIncrease} aria-label="Tambah jumlah">
         <Plus className="size-3" />
       </Button>
     </div>
@@ -127,17 +128,17 @@ export function NumericKeypad({
   return (
     <div className="grid grid-cols-3 gap-2">
       {KEYPAD_KEYS.map((key) => (
-        <button
+        <Button
           key={key}
-          type="button"
+          variant="outline"
           onClick={() => handleKey(key)}
           className={cn(
-            "h-12 rounded-lg border bg-card text-lg font-medium transition-colors active:bg-accent",
+            "h-12 text-lg",
             key === "del" && "text-muted-foreground"
           )}
         >
-          {key === "del" ? <Delete className="size-5 mx-auto" /> : key}
-        </button>
+          {key === "del" ? <Delete className="size-5" /> : key}
+        </Button>
       ))}
     </div>
   );

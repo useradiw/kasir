@@ -85,7 +85,7 @@ export function SessionCard({
 
   return (
     <div
-      className="rounded-lg border bg-card p-3 min-h-14 cursor-pointer active:bg-accent transition-colors"
+      className="rounded-2xl border bg-card p-3 min-h-14 cursor-pointer active:bg-accent active:scale-[0.98] transition-all duration-150"
       onClick={isEditing || isEditingService ? undefined : onClick}
       role="button"
       tabIndex={0}
@@ -102,10 +102,10 @@ export function SessionCard({
               className="h-7 text-sm"
               autoFocus
             />
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={saveEdit}>
+            <Button size="icon-sm" variant="ghost" onClick={saveEdit} aria-label="Simpan">
               <Check className="size-4" />
             </Button>
-            <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={cancelEdit}>
+            <Button size="icon-sm" variant="ghost" onClick={cancelEdit} aria-label="Batal">
               <X className="size-4" />
             </Button>
           </div>
@@ -115,7 +115,7 @@ export function SessionCard({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); startEdit(e); }}
-              className="p-1 text-muted-foreground hover:text-foreground"
+              className="p-3 -m-2 text-muted-foreground hover:text-foreground"
               aria-label="Ubah nama meja"
             >
               <Pencil className="size-3" />
@@ -184,7 +184,8 @@ export function SessionCard({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setDraftOrderId(session.externalOrderId ?? ""); setIsEditingOrderId(true); }}
-                className="p-0.5 text-muted-foreground hover:text-foreground"
+                className="p-2.5 -m-1.5 text-muted-foreground hover:text-foreground"
+                aria-label="Ubah ID pesanan"
               >
                 <Pencil className="size-3" />
               </button>

@@ -1,6 +1,6 @@
 import { Container } from "@/components/shared/container";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RoleBadge, StatusBadge } from "@/components/admin/ui";
+import { RoleBadge, StatusBadge, AdminPageHeader } from "@/components/admin/ui";
 import { getSessionsData } from "@/app/actions/admin/queries";
 import { requireRole } from "@/lib/admin-auth";
 import { formatDateTime } from "@/lib/format";
@@ -31,7 +31,7 @@ export default async function SessionsPage() {
 
   return (
     <Container id="admin-sessions" sectionStyle="" className="py-6 space-y-6">
-      <h1 className="text-2xl font-bold">Sesi Login</h1>
+      <AdminPageHeader title="Sesi Login" />
 
       {error && (
         <div className="rounded-lg bg-destructive/10 px-4 py-2 text-sm text-destructive">

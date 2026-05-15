@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ErrorBanner } from "@/components/admin/ui";
+import { ErrorBanner, AdminPageHeader } from "@/components/admin/ui";
 import { DenominationInput } from "@/components/admin/denomination-input";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
@@ -122,7 +122,7 @@ export default function CashRegisterClient({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Kas Harian</h1>
+      <AdminPageHeader title="Kas Harian" />
 
       <ErrorBanner error={error} />
 

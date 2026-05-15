@@ -78,10 +78,10 @@ export function SplitItemsScreen({
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium text-muted-foreground">Pilih orang, lalu ketuk item</p>
             <div className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={removeGroup} disabled={groupCount <= 2}>
+              <Button size="icon-sm" variant="ghost" onClick={removeGroup} disabled={groupCount <= 2} aria-label="Kurangi orang">
                 <Trash2 className="size-3" />
               </Button>
-              <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={addGroup} disabled={groupCount >= 4}>
+              <Button size="icon-sm" variant="ghost" onClick={addGroup} disabled={groupCount >= 4} aria-label="Tambah orang">
                 <Plus className="size-3" />
               </Button>
             </div>
@@ -96,7 +96,7 @@ export function SplitItemsScreen({
                   type="button"
                   onClick={() => !isPaid && setSelectedGroup(g)}
                   className={cn(
-                    "rounded-lg border p-2 text-xs font-medium transition-colors",
+                    "rounded-2xl border p-2 text-xs font-medium transition-colors",
                     isPaid
                       ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-300 opacity-70"
                       : selectedGroup === g
@@ -111,7 +111,7 @@ export function SplitItemsScreen({
                   {isPaid ? (
                     <p className="font-bold text-green-600 dark:text-green-400">LUNAS</p>
                   ) : (
-                    <p className="font-bold">{formatRupiah(groupSubtotal(g))}</p>
+                    <p className="font-bold tabular-nums">{formatRupiah(groupSubtotal(g))}</p>
                   )}
                   <p className="text-[10px] opacity-70">
                     {activeItems.filter((i) => i.splitGroup === g).length} item
@@ -140,7 +140,7 @@ export function SplitItemsScreen({
                 type="button"
                 onClick={() => handleItemTap(item)}
                 className={cn(
-                  "w-full rounded-lg border p-3 text-left transition-colors",
+                  "w-full rounded-2xl border p-3 text-left transition-colors",
                   itemGroup > 0 ? colorClass : "bg-card text-foreground border-border opacity-60"
                 )}
               >

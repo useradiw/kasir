@@ -201,11 +201,11 @@ export function PaymentScreen({
         <p className="text-lg font-semibold">Pembayaran Berhasil</p>
         <p className="text-sm text-muted-foreground">{formatRupiah(total)}</p>
         {method === "CASH" && change > 0 && (
-          <p className="text-sm">Kembalian: <span className="font-bold text-primary">{formatRupiah(change)}</span></p>
+          <p className="text-sm">Kembalian: <span className="font-bold text-primary tabular-nums">{formatRupiah(change)}</span></p>
         )}
         {method === "SPLIT" && (
           <div className="text-sm text-center space-y-0.5">
-            <p>Tunai: <span className="font-bold">{formatRupiah(cashAmount)}</span></p>
+            <p>Tunai: <span className="font-bold tabular-nums">{formatRupiah(cashAmount)}</span></p>
             <p>QRIS: <span className="font-bold">{formatRupiah(qrisAmount)}</span></p>
           </div>
         )}
@@ -298,21 +298,21 @@ export function PaymentScreen({
         {/* Total (BIG) at top */}
         <div className="rounded-xl bg-primary/5 px-4 py-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Total</p>
-          <p className="text-3xl font-bold">{formatRupiah(total)}</p>
+          <p className="text-3xl font-bold tabular-nums">{formatRupiah(total)}</p>
         </div>
 
         {/* Breakdown */}
-        <div className="rounded-lg border bg-card p-3 space-y-1 text-sm">
+        <div className="rounded-2xl border bg-card p-3 space-y-1 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Subtotal ({activeItems.length} item)</span>
-            <span>{formatRupiah(subtotal)}</span>
+            <span className="tabular-nums">{formatRupiah(subtotal)}</span>
           </div>
           {taxAmount > 0 && (
             <div className="flex justify-between">
               <span className="text-muted-foreground">
                 Pajak{taxMode === "pct" ? ` (${taxCharge.value}%)` : ""}
               </span>
-              <span>+{formatRupiah(taxAmount)}</span>
+              <span className="tabular-nums">+{formatRupiah(taxAmount)}</span>
             </div>
           )}
           {serviceAmount > 0 && (
@@ -320,7 +320,7 @@ export function PaymentScreen({
               <span className="text-muted-foreground">
                 Service{serviceMode === "pct" ? ` (${serviceCharge.value}%)` : ""}
               </span>
-              <span>+{formatRupiah(serviceAmount)}</span>
+              <span className="tabular-nums">+{formatRupiah(serviceAmount)}</span>
             </div>
           )}
           {discountAmount > 0 && (
@@ -328,7 +328,7 @@ export function PaymentScreen({
               <span>
                 Diskon{discountMode === "pct" ? ` (${discountCharge.value}%)` : ""}
               </span>
-              <span>-{formatRupiah(discountAmount)}</span>
+              <span className="tabular-nums">-{formatRupiah(discountAmount)}</span>
             </div>
           )}
         </div>
@@ -370,25 +370,25 @@ export function PaymentScreen({
           <Label className="text-xs">Metode Pembayaran</Label>
           <div className={cn("grid gap-2", paymentMethods.length > 3 ? "grid-cols-4" : "grid-cols-3")}>
             {paymentMethods.map((pm) => (
-              <button
+              <Button
                 key={pm.value}
-                type="button"
+                variant="outline"
                 onClick={() => {
                   setMethod(pm.value);
                   setCashInput("");
                   setQrisStep("idle");
                 }}
                 className={cn(
-                  "h-12 rounded-lg border text-xs font-medium transition-colors",
+                  "h-12 text-xs",
                   method === pm.value
                     ? pm.value === "PENDING"
-                      ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      ? "border-warning bg-warning/10 text-warning-foreground"
                       : "border-primary bg-primary/10 text-primary"
                     : "bg-card text-muted-foreground"
                 )}
               >
                 {pm.label}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -399,46 +399,47 @@ export function PaymentScreen({
             <Label className="text-xs">Bagian Tunai</Label>
             <div className="grid grid-cols-3 gap-2">
               {quickAmounts.slice(0, 6).filter((qa) => qa.value < total).map((qa) => (
-                <button
+                <Button
                   key={qa.value}
-                  type="button"
+                  variant="outline"
                   onClick={() => { setCashInput(qa.value.toString()); setShowKeypad(false); }}
                   className={cn(
-                    "h-11 rounded-lg border text-xs font-medium transition-colors",
+                    "h-11 text-xs",
                     cashAmount === qa.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "bg-card text-muted-foreground"
                   )}
                 >
                   {qa.label}
-                </button>
+                </Button>
               ))}
             </div>
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowKeypad(!showKeypad)}
-              className="flex w-full items-center justify-center gap-1 text-xs text-muted-foreground py-1"
+              className="w-full text-xs text-muted-foreground"
             >
               Jumlah lain
               <ChevronDown className={cn("size-3 transition-transform", showKeypad && "rotate-180")} />
-            </button>
+            </Button>
             {showKeypad && (
               <div className="space-y-2">
-                <div className="rounded-lg border bg-card px-3 py-2 text-center text-lg font-bold">
+                <div className="rounded-2xl border bg-card px-3 py-2 text-center text-lg font-bold">
                   {formatRupiah(parseInt(cashInput) || 0)}
                 </div>
                 <NumericKeypad value={cashInput} onChange={setCashInput} />
               </div>
             )}
             {cashAmount > 0 && cashAmount < total && (
-              <div className="rounded-lg bg-primary/5 p-3 space-y-1">
+              <div className="rounded-2xl bg-primary/5 p-3 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span>Tunai</span>
-                  <span className="font-bold">{formatRupiah(cashAmount)}</span>
+                  <span className="font-bold tabular-nums">{formatRupiah(cashAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>QRIS</span>
-                  <span className="font-bold text-primary">{formatRupiah(qrisAmount)}</span>
+                  <span className="font-bold text-primary tabular-nums">{formatRupiah(qrisAmount)}</span>
                 </div>
               </div>
             )}
@@ -454,52 +455,53 @@ export function PaymentScreen({
             <Label className="text-xs">Jumlah Tunai</Label>
             <div className="grid grid-cols-3 gap-2">
               {quickAmounts.map((qa) => (
-                <button
+                <Button
                   key={qa.value}
-                  type="button"
+                  variant="outline"
                   onClick={() => {
                     setCashInput(qa.value.toString());
                     setShowKeypad(false);
                   }}
                   className={cn(
-                    "h-11 rounded-lg border text-xs font-medium transition-colors",
+                    "h-11 text-xs",
                     cashAmount === qa.value
                       ? "border-primary bg-primary/10 text-primary"
                       : "bg-card text-muted-foreground"
                   )}
                 >
                   {qa.label}
-                </button>
+                </Button>
               ))}
             </div>
 
             {cashAmount > 0 && (
-              <div className="rounded-lg bg-primary/5 p-3 space-y-1">
+              <div className="rounded-2xl bg-primary/5 p-3 space-y-1">
                 <div className="flex justify-between text-sm">
                   <span>Dibayar</span>
-                  <span className="font-bold">{formatRupiah(cashAmount)}</span>
+                  <span className="font-bold tabular-nums">{formatRupiah(cashAmount)}</span>
                 </div>
                 {cashAmount >= total && (
                   <div className="flex justify-between text-sm">
                     <span>Kembalian</span>
-                    <span className="font-bold text-primary">{formatRupiah(change)}</span>
+                    <span className="font-bold text-primary tabular-nums">{formatRupiah(change)}</span>
                   </div>
                 )}
               </div>
             )}
 
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setShowKeypad(!showKeypad)}
-              className="flex w-full items-center justify-center gap-1 text-xs text-muted-foreground py-1"
+              className="w-full text-xs text-muted-foreground"
             >
               Jumlah lain
               <ChevronDown className={cn("size-3 transition-transform", showKeypad && "rotate-180")} />
-            </button>
+            </Button>
 
             {showKeypad && (
               <div className="space-y-2">
-                <div className="rounded-lg border bg-card px-3 py-2 text-center text-lg font-bold">
+                <div className="rounded-2xl border bg-card px-3 py-2 text-center text-lg font-bold">
                   {formatRupiah(parseInt(cashInput) || 0)}
                 </div>
                 <NumericKeypad
@@ -513,8 +515,8 @@ export function PaymentScreen({
 
         {/* PENDING: read-only total confirmation */}
         {method === "PENDING" && (
-          <div className="rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 space-y-1">
-            <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">Pesanan Online — Unsettled</p>
+          <div className="rounded-2xl bg-warning/10 border border-warning/30 p-3 space-y-1">
+            <p className="text-xs text-warning-foreground font-medium">Pesanan Online — Unsettled</p>
             <p className="text-sm text-muted-foreground">Transaksi akan dicatat dan menunggu pencairan dari platform.</p>
           </div>
         )}

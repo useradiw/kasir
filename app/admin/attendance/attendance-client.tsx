@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ErrorBanner, RoleBadge } from "@/components/admin/ui";
+import { ErrorBanner, RoleBadge, AdminPageHeader } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { markAttendance, bulkMarkAttendance } from "@/app/actions/admin/attendance";
 
@@ -55,7 +55,7 @@ export default function AttendanceClient({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Absensi Staff</h1>
+      <AdminPageHeader title="Absensi Staff" />
 
       <ErrorBanner error={error} />
 

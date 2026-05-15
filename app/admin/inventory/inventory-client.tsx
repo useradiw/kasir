@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminSelect, ErrorBanner, StatusBadge } from "@/components/admin/ui";
+import { AdminSelect, ErrorBanner, StatusBadge, AdminPageHeader } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah } from "@/lib/format";
@@ -67,7 +67,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Inventori Menu</h1>
+      <AdminPageHeader title="Inventori Menu" />
 
       <ErrorBanner error={error} />
 

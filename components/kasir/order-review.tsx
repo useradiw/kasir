@@ -49,7 +49,7 @@ export function OrderReview({
   return (
     <>
       <KasirTopBar title={readOnly ? "Detail Pesanan" : "Pesanan"} onBack={onBack} onHome={onHome}>
-        <button type="button" onClick={() => setShowChecklist(true)} className="p-1">
+        <button type="button" onClick={() => setShowChecklist(true)} className="p-2.5" aria-label="Cetak struk">
           <Printer className="size-5 text-muted-foreground" />
         </button>
       </KasirTopBar>
@@ -59,7 +59,7 @@ export function OrderReview({
         <div className="border-b bg-primary/5 px-3 py-2 space-y-1">
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Total</span>
-            <span className="font-bold">{formatRupiah(tx.totalAmount)}</span>
+            <span className="font-bold tabular-nums">{formatRupiah(tx.totalAmount)}</span>
           </div>
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{formatPaymentMethod(tx.paymentMethod)}</span>
@@ -93,7 +93,7 @@ export function OrderReview({
         <BottomBar>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">Subtotal</span>
-            <span className="text-lg font-bold">{formatRupiah(subtotal)}</span>
+            <span className="text-lg font-bold tabular-nums">{formatRupiah(subtotal)}</span>
           </div>
           <div className="flex gap-2">
             {onSplitItems && (
@@ -127,7 +127,7 @@ function OrderItemRow({ item, readOnly }: { item: OrderItem; readOnly?: boolean 
   return (
     <div
       className={cn(
-        "rounded-lg border bg-card p-3 space-y-2",
+        "rounded-2xl border bg-card p-3 space-y-2",
         isCancelled && "opacity-50"
       )}
     >
@@ -151,7 +151,8 @@ function OrderItemRow({ item, readOnly }: { item: OrderItem; readOnly?: boolean 
             <button
               type="button"
               onClick={() => removeOrderItem(item.id)}
-              className="p-0.5 text-destructive hover:bg-destructive/10 rounded"
+              className="p-2 -m-1 text-destructive hover:bg-destructive/10 rounded"
+              aria-label="Hapus item"
             >
               <X className="size-4" />
             </button>
@@ -172,7 +173,7 @@ function OrderItemRow({ item, readOnly }: { item: OrderItem; readOnly?: boolean 
             ) : (
               <span className="text-xs text-muted-foreground">{item.qty}x</span>
             )}
-            <span className="text-sm">{formatRupiah(item.price * item.qty)}</span>
+            <span className="text-sm tabular-nums">{formatRupiah(item.price * item.qty)}</span>
           </div>
 
           <div className="flex gap-1.5">

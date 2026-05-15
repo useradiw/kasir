@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { AdminPageHeader } from "@/components/admin/ui";
 import BackupClient from "./backup-client";
 import RestoreClient from "./restore-client";
 
@@ -15,7 +16,7 @@ export default function BackupTabsClient() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Backup Database</h1>
+      <AdminPageHeader title="Backup Database" />
 
       <div className="flex gap-2 border-b border-foreground/10">
         {TABS.map((t) => (

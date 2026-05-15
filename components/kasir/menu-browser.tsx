@@ -7,6 +7,7 @@ import { useOrderItems } from "@/hooks/use-session-store";
 import { formatRupiah } from "@/lib/format";
 import { activeItems as getActiveItems, calcSubtotal } from "@/lib/kasir-utils";
 import { KasirTopBar, BottomBar, EmptyState } from "./ui";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MenuItemGrid } from "./menu-item-card";
 import { PackageGrid } from "./package-card";
@@ -109,16 +110,16 @@ export function MenuBrowser({
 
       {activeItemCount > 0 && (
         <BottomBar>
-          <button
-            type="button"
+          <Button
+            size="lg"
             onClick={onReview}
-            className="w-full flex items-center justify-between rounded-lg bg-primary px-4 py-3 text-primary-foreground"
+            className="w-full justify-between"
           >
             <span className="text-sm font-medium">
               Lihat Pesanan ({activeItemCount} item)
             </span>
             <span className="text-sm font-bold">{formatRupiah(subtotal)}</span>
-          </button>
+          </Button>
         </BottomBar>
       )}
     </>

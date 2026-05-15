@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -14,7 +14,22 @@ import { exportCSV } from "@/lib/export-csv";
 import { exportPDF } from "@/lib/export-pdf";
 import type { ReportData } from "@/app/actions/admin/queries";
 
-const COLORS = ["#0d9488", "#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+const FALLBACK_COLORS = ["#0d9488", "#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+
+function useChartColors(count: number): string[] {
+  const [colors, setColors] = useState<string[]>(FALLBACK_COLORS.slice(0, count));
+  useEffect(() => {
+    const s = getComputedStyle(document.documentElement);
+    const resolved = Array.from({ length: count }, (_, i) => {
+      const v = s.getPropertyValue(`--chart-${i + 1}`).trim();
+      return v || FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+    });
+    // Sync CSS custom property values to state — intended DOM→state pattern
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setColors(resolved);
+  }, [count]);
+  return colors;
+}
 
 const PERIOD_LABEL: Record<string, string> = {
   daily: "Harian",
@@ -59,6 +74,7 @@ export function ReportClient({
 }) {
   const router = useRouter();
   const [showTransactions, setShowTransactions] = useState(false);
+  const chartColors = useChartColors(6);
 
   function navigate(period: string, date: string) {
     router.push(`/admin/reports?period=${period}&date=${date}`);
@@ -351,7 +367,7 @@ export function ReportClient({
                     formatter={(value) => formatRupiah(value as number)}
                     labelFormatter={(label) => xAxisFormatter(String(label))}
                   />
-                  <Bar dataKey="revenue" fill="#0d9488" radius={[4, 4, 0, 0]} name="Pendapatan" />
+                  <Bar dataKey="revenue" fill={chartColors[0]} radius={[4, 4, 0, 0]} name="Pendapatan" />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -380,7 +396,7 @@ export function ReportClient({
                     fontSize={11}
                   >
                     {data.paymentMethods.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      <Cell key={i} fill={chartColors[i % chartColors.length]} />
                     ))}
                   </Pie>
                   <Tooltip formatter={(value) => formatRupiah(value as number)} />
@@ -439,7 +455,7 @@ export function ReportClient({
                       fontSize={11}
                     >
                       {data.serviceChannels.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                        <Cell key={i} fill={chartColors[i % chartColors.length]} />
                       ))}
                     </Pie>
                     <Tooltip formatter={(value) => formatRupiah(value as number)} labelFormatter={(l) => SERVICE_LABEL[l] ?? l} />
@@ -631,7 +647,7 @@ function SummaryCard({ label, value, className }: { label: string; value: string
         <CardTitle className="text-sm text-muted-foreground font-normal">{label}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className={`text-xl font-bold ${className ?? ""}`}>{value}</p>
+        <p className={`text-xl font-bold tabular-nums ${className ?? ""}`}>{value}</p>
       </CardContent>
     </Card>
   );

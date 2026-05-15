@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
+import { AdminSelect, ErrorBanner, AdminPageHeader } from "@/components/admin/ui";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { voidTransaction } from "@/app/actions/admin/transactions";
@@ -91,7 +91,7 @@ export default function TransactionsClient({
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Transaksi</h1>
+      <AdminPageHeader title="Transaksi" />
       {error && <ErrorBanner error={error} />}
 
       {/* Filters */}
@@ -166,7 +166,7 @@ export default function TransactionsClient({
                     <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
                       {methodLabel[r.paymentMethod] ?? r.paymentMethod}
                       {r.paymentMethod === "PENDING" && (
-                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${r.isSettled ? "bg-primary/10 text-primary" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}`}>
+                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${r.isSettled ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning-foreground"}`}>
                           {r.isSettled ? "Sudah Cair" : "Belum Cair"}
                         </span>
                       )}

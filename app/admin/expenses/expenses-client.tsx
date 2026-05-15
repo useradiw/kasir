@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ErrorBanner } from "@/components/admin/ui";
+import { ErrorBanner, AdminPageHeader } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatDateTime } from "@/lib/format";
@@ -89,8 +89,7 @@ export default function ExpensesClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Pengeluaran</h1>
+      <AdminPageHeader title="Pengeluaran">
         <div className="flex items-center gap-2">
           {isOwner && (
             <Button size="sm" variant="outline" onClick={handleExportPdf}>
@@ -101,7 +100,7 @@ export default function ExpensesClient({
             {showAdd ? "Batal" : "+ Tambah"}
           </Button>
         </div>
-      </div>
+      </AdminPageHeader>
 
       <ErrorBanner error={error} />
 
@@ -203,7 +202,7 @@ export default function ExpensesClient({
                                   </span>
                                 )}
                                 {e.countToKasPakHar && (
-                                  <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400">
+                                  <span className="inline-flex items-center rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-foreground">
                                     Kas Pak Har
                                   </span>
                                 )}
