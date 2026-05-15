@@ -23,6 +23,7 @@ import {
   HardDrive,
   Settings,
   Bell,
+  BookOpen,
 } from "lucide-react";
 
 const allKasirLinks = [
@@ -31,6 +32,7 @@ const allKasirLinks = [
   { href: "/cashregister", label: "Kas Kecil", desc: "Buka & tutup kas", icon: Wallet, roles: ["OWNER", "MANAGER", "CASHIER"] },
   { href: "/settlement", label: "Pencairan Online", desc: "Catat pencairan GoFood/Shopee/Grab", icon: Banknote, roles: ["OWNER", "MANAGER", "CASHIER"] },
   { href: "/profile", label: "Profil", desc: "Profil pengguna", icon: UserPen, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
+  { href: "/petunjuk", label: "Petunjuk Penggunaan", desc: "Panduan fitur aplikasi", icon: BookOpen, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
 ] as const;
 
 const allAdminLinks = [

@@ -59,6 +59,27 @@ A local-first point-of-sale system for food & beverage businesses. The cashier o
 - Per-service online pricing overrides (GoFood, ShopeeFood, GrabFood)
 - Toggle active/inactive without deleting
 
+#### Ingredients / Stok Bahan (COGS)
+
+- Track ingredient stock linked to Expense Templates
+- Stock movement types: Purchase (auto on expense entry), Sale (auto on cashier transaction if recipe defined), Adjustment (manual), Waste (manual)
+- Low stock alerts with configurable minimum thresholds per ingredient
+- Backfill stock from historical purchase data (one-time setup action)
+- Latest purchase cost tracking per ingredient
+- Recipe integration: COGS (HPP) auto-calculated per menu item based on ingredient composition and latest costs
+- Gross margin per recipe shown in the Recipe tab under Inventory
+- Access: Owner, Manager
+
+#### Menu Performance
+
+- Sales analytics per menu item by period (daily, weekly, monthly, yearly)
+- Columns: Units Sold, Revenue, COGS/Portion, Total COGS, Gross Profit, Margin %
+- Sortable columns and menu item search
+- Period navigation with date picker
+- Summary: Total Sales, Total COGS, Gross Profit, Gross Margin
+- Items without recipes still appear; COGS/Margin columns are blank
+- Access: Owner only
+
 #### Transactions
 - Full transaction history with filtering
 - Transaction detail: items, payment breakdown, service type, cashier
@@ -189,3 +210,5 @@ prisma/schema.prisma
 | Staff management | ✓ | | | |
 | Settings | ✓ | | | |
 | Backup & Restore | ✓ | | | |
+| Ingredients / Stok Bahan | ✓ | ✓ | | |
+| Menu Performance | ✓ | | | |

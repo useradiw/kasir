@@ -6,7 +6,8 @@ import { DevNav } from "@/components/admin/dev-nav";
 const navItemsBase = [
   { trigger: "Navigasi", content: [
     { href: "/admin", label: "Dashboard" },
-    { href: "/", label: "Menu Utama" }
+    { href: "/", label: "Menu Utama" },
+    { href: "/petunjuk", label: "Petunjuk" },
   ]},
   { trigger: "Staff", content: [
     { href: "/admin/staff", label: "Kelola Staff" },
