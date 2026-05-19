@@ -1,66 +1,20 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useTransition } from "react";
-import { RefreshCw } from "lucide-react";
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  PieChart, Pie, Cell,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { AdminSelect } from "@/components/admin/ui";
-import { formatRupiah } from "@/lib/format";
-import { exportCSV } from "@/lib/export-csv";
-import { exportPDF } from "@/lib/export-pdf";
+import { useState, useTransition } from "react";
 import type { ReportData } from "@/app/actions/admin/queries";
+import { ReportHeader } from "./_components/report-header";
+import { HeroKpi } from "./_components/hero-kpi";
+import { PnLCard } from "./_components/pnl-card";
+import { Segmented } from "./_components/segmented";
+import { RingkasanTab } from "./_components/tabs/ringkasan-tab";
+import { PenjualanTab } from "./_components/tabs/penjualan-tab";
+import { OperasionalTab } from "./_components/tabs/operasional-tab";
+import { TransaksiTab } from "./_components/tabs/transaksi-tab";
+import { periodLabel, type Period } from "./_utils/period-date";
+import { downloadCSV, downloadPDF } from "./_utils/export";
 
-const FALLBACK_COLORS = ["#0d9488", "#0ea5e9", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
-
-function useChartColors(count: number): string[] {
-  const [colors, setColors] = useState<string[]>(FALLBACK_COLORS.slice(0, count));
-  useEffect(() => {
-    const s = getComputedStyle(document.documentElement);
-    const resolved = Array.from({ length: count }, (_, i) => {
-      const v = s.getPropertyValue(`--chart-${i + 1}`).trim();
-      return v || FALLBACK_COLORS[i % FALLBACK_COLORS.length];
-    });
-    // Sync CSS custom property values to state — intended DOM→state pattern
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setColors(resolved);
-  }, [count]);
-  return colors;
-}
-
-const PERIOD_LABEL: Record<string, string> = {
-  daily: "Harian",
-  weekly: "Mingguan",
-  monthly: "Bulanan",
-  yearly: "Tahunan",
-};
-
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
-
-const METHOD_LABEL: Record<string, string> = {
-  CASH: "Tunai",
-  QRIS: "QRIS",
-  SPLIT: "Split",
-  PENDING: "Unsettled",
-};
-
-const SERVICE_LABEL: Record<string, string> = {
-  GoFood: "GoFood",
-  ShopeeFood: "ShopeeFood",
-  GrabFood: "GrabFood",
-  Take_Away: "Take Away",
-  Unknown: "Lainnya",
-  "Dine In": "Dine In",
-};
-
-function shortDate(dateStr: string) {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
-}
+type TabKey = "summary" | "sales" | "ops" | "txn";
 
 export function ReportClient({
   data,
@@ -69,616 +23,57 @@ export function ReportClient({
   isOwner = true,
 }: {
   data: ReportData;
-  currentPeriod: string;
+  currentPeriod: Period;
   currentDate: string;
   isOwner?: boolean;
 }) {
   const router = useRouter();
-  const [showTransactions, setShowTransactions] = useState(false);
+  const [tab, setTab] = useState<TabKey>("summary");
   const [isRefreshing, startRefresh] = useTransition();
-  const chartColors = useChartColors(6);
 
-  const handleRefresh = () => startRefresh(() => router.refresh());
-
-  function navigate(period: string, date: string) {
+  const navigate = (period: Period, date: string) =>
     router.push(`/admin/reports?period=${period}&date=${date}`);
-  }
 
-  function shiftDate(direction: -1 | 1) {
-    const [y, m, d] = currentDate.split("-").map(Number);
-    const base = new Date(y, m - 1, d);
+  const dateRangeLabel = periodLabel(currentPeriod, currentDate);
 
-    if (currentPeriod === "daily") base.setDate(base.getDate() + direction);
-    else if (currentPeriod === "weekly") base.setDate(base.getDate() + direction * 7);
-    else if (currentPeriod === "yearly") base.setFullYear(base.getFullYear() + direction);
-    else base.setMonth(base.getMonth() + direction);
-
-    const newDate = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
-    navigate(currentPeriod, newDate);
-  }
-
-  // Format bar chart x-axis labels based on period
-  function xAxisFormatter(val: string) {
-    if (currentPeriod === "yearly") {
-      // val is "YYYY-MM"
-      const mo = parseInt(val.split("-")[1], 10) - 1;
-      return MONTH_NAMES[mo] ?? val;
-    }
-    return shortDate(val);
-  }
-
-  // Chart/section title for revenue-over-time chart
-  const revenueChartTitle = currentPeriod === "yearly" ? "Pendapatan per Bulan" : "Pendapatan per Hari";
-
-  const dateRangeLabel = currentPeriod === "yearly"
-    ? String(currentDate.split("-")[0]) // show just the year
-    : data.dateRange.start === data.dateRange.end
-      ? shortDate(data.dateRange.start)
-      : `${shortDate(data.dateRange.start)} – ${shortDate(data.dateRange.end)}`;
-
-  // --- Export handlers ---
-  function handleCSV() {
-    const sections = [
-      {
-        title: `Laporan ${PERIOD_LABEL[currentPeriod]} (${dateRangeLabel})`,
-        headers: ["Metrik", "Nilai"],
-        rows: [
-          ["Total Pendapatan", formatRupiah(data.revenue.total)],
-          ["Jumlah Transaksi", data.revenue.count],
-          ["Rata-rata Transaksi", formatRupiah(data.revenue.average)],
-          ["Total Pengeluaran", formatRupiah(data.totalExpenses)],
-          ["HPP (COGS)", formatRupiah(data.cogs)],
-          ["Laba Kotor", formatRupiah(data.grossProfit)],
-          ["Margin Kotor", data.grossMarginPct !== null ? `${data.grossMarginPct}%` : "-"],
-          ["Laba Bersih", formatRupiah(data.netProfit)],
-          ["Transaksi Void", data.voidedCount],
-        ],
-      },
-      {
-        title: currentPeriod === "yearly" ? "Pendapatan per Bulan" : "Pendapatan per Hari",
-        headers: [currentPeriod === "yearly" ? "Bulan" : "Tanggal", "Pendapatan", "Jumlah Transaksi"],
-        rows: data.revenueByDay.map((r) => [r.date, r.revenue, r.count]),
-      },
-      {
-        title: "Metode Pembayaran",
-        headers: ["Metode", "Total", "Jumlah"],
-        rows: data.paymentMethods.map((p) => [METHOD_LABEL[p.method] ?? p.method, p.amount, p.count]),
-      },
-      {
-        title: "Item Terlaris",
-        headers: ["Nama", "Qty", "Pendapatan"],
-        rows: data.topItems.map((i) => [i.name, i.qty, i.revenue]),
-      },
-      {
-        title: "Transaksi",
-        headers: ["Tanggal", "Sesi", "Total", "Metode", "Kasir"],
-        rows: data.transactions.map((t) => [
-          new Date(t.paidAt).toLocaleString("id-ID"),
-          t.sessionName,
-          t.totalAmount,
-          METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod,
-          t.processedBy ?? "-",
-        ]),
-      },
-      {
-        title: "Pengeluaran - Gaji Karyawan",
-        headers: ["Nama", "Gaji/Hari", "Hari Hadir", "Total"],
-        rows: data.staffSalary.map((s) => [s.name, s.dailySalary, s.presentDays, s.total]),
-      },
-      {
-        title: "Pengeluaran - Operasional",
-        headers: ["Tanggal", "Total", "Keterangan", "Item"],
-        rows: data.expenses.map((e) => [
-          new Date(e.recordedAt).toLocaleString("id-ID"),
-          e.total,
-          e.description ?? "-",
-          e.items.map((i) => `${i.description} (${i.amount}x${i.cost})`).join("; "),
-        ]),
-      },
-    ];
-    exportCSV(`Laporan_${currentPeriod}_${currentDate}.csv`, sections);
-  }
-
-  async function handlePDF() {
-    const title = `Laporan ${PERIOD_LABEL[currentPeriod]}`;
-    const subtitle = `Periode: ${dateRangeLabel}`;
-    const summaryCards = [
-      { label: "Total Pendapatan", value: formatRupiah(data.revenue.total) },
-      { label: "Transaksi", value: String(data.revenue.count) },
-      { label: "Pengeluaran", value: formatRupiah(data.totalExpenses) },
-      { label: "HPP (COGS)", value: formatRupiah(data.cogs) },
-      { label: "Laba Kotor", value: formatRupiah(data.grossProfit) },
-      { label: "Laba Bersih", value: formatRupiah(data.netProfit) },
-    ];
-    const sections = [
-      {
-        title: currentPeriod === "yearly" ? "Pendapatan per Bulan" : "Pendapatan per Hari",
-        headers: [currentPeriod === "yearly" ? "Bulan" : "Tanggal", "Pendapatan", "Jumlah Transaksi"],
-        rows: data.revenueByDay.map((r) => [r.date, formatRupiah(r.revenue), r.count]),
-      },
-      {
-        title: "Metode Pembayaran",
-        headers: ["Metode", "Total", "Jumlah"],
-        rows: data.paymentMethods.map((p) => [METHOD_LABEL[p.method] ?? p.method, formatRupiah(p.amount), p.count]),
-      },
-      {
-        title: "Item Terlaris (Top 10)",
-        headers: ["Nama", "Qty Terjual", "Pendapatan"],
-        rows: data.topItems.map((i) => [i.name, i.qty, formatRupiah(i.revenue)]),
-      },
-      {
-        title: "Kas Harian",
-        headers: ["Tanggal", "Kas Awal", "Pemasukan", "Pengeluaran", "Kas Akhir", "Selisih"],
-        rows: data.cashRegisterSummary.map((c) => [
-          c.date,
-          formatRupiah(c.openingCash),
-          formatRupiah(c.cashIncome),
-          formatRupiah(c.expenses),
-          c.closingCash !== null ? formatRupiah(c.closingCash) : "Belum tutup",
-          c.difference !== null ? formatRupiah(c.difference) : "-",
-        ]),
-      },
-      {
-        title: "Detail Transaksi",
-        headers: ["Waktu", "Sesi", "Total", "Metode", "Kasir"],
-        rows: data.transactions.map((t) => [
-          new Date(t.paidAt).toLocaleString("id-ID"),
-          t.sessionName,
-          formatRupiah(t.totalAmount),
-          METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod,
-          t.processedBy ?? "-",
-        ]),
-      },
-    ];
-    await exportPDF(title, subtitle, summaryCards, sections);
-  }
+  const tabs: ReadonlyArray<{ value: TabKey; label: string }> = [
+    { value: "summary", label: "Ringkasan" },
+    { value: "sales", label: "Penjualan" },
+    { value: "ops", label: "Operasional" },
+    ...(isOwner ? ([{ value: "txn", label: "Transaksi" }] as const) : []),
+  ];
 
   return (
     <div className="space-y-6">
-      {/* Header & Controls */}
-      <div className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold mr-auto">Laporan</h1>
-        <AdminSelect
-          value={currentPeriod}
-          onChange={(e) => navigate(e.target.value, currentDate)}
-        >
-          <option value="daily">Harian</option>
-          <option value="weekly">Mingguan</option>
-          <option value="monthly">Bulanan</option>
-          <option value="yearly">Tahunan</option>
-        </AdminSelect>
-        <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => shiftDate(-1)}>
-            &larr;
-          </Button>
-          <input
-            type="date"
-            value={currentDate}
-            onChange={(e) => navigate(currentPeriod, e.target.value)}
-            className="h-9 rounded-4xl border border-input bg-input/30 px-3 text-sm"
-          />
-          <Button variant="ghost" size="sm" onClick={() => shiftDate(1)}>
-            &rarr;
-          </Button>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          aria-label="Refresh"
-          title="Refresh"
-        >
-          <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
-        </Button>
-        {isOwner && (
-          <>
-            <Button variant="outline" size="sm" onClick={handleCSV}>
-              CSV
-            </Button>
-            <Button variant="outline" size="sm" onClick={handlePDF}>
-              PDF
-            </Button>
-          </>
-        )}
-      </div>
+      <ReportHeader
+        period={currentPeriod}
+        date={currentDate}
+        onPeriodChange={(p) => navigate(p, currentDate)}
+        onDateChange={(d) => navigate(currentPeriod, d)}
+        onRefresh={() => startRefresh(() => router.refresh())}
+        isRefreshing={isRefreshing}
+        onExportCSV={
+          isOwner ? () => downloadCSV(data, currentPeriod, currentDate, dateRangeLabel) : undefined
+        }
+        onExportPDF={
+          isOwner ? () => downloadPDF(data, currentPeriod, dateRangeLabel) : undefined
+        }
+      />
 
-      {/* Period Label */}
-      <p className="text-sm text-muted-foreground">
-        {PERIOD_LABEL[currentPeriod]} — {dateRangeLabel}
-      </p>
+      <HeroKpi
+        total={data.revenue.total}
+        count={data.revenue.count}
+        average={data.revenue.average}
+      />
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {currentPeriod === "daily" && (() => {
-          const cash = data.paymentMethods.find((p) => p.method === "CASH");
-          const qris = data.paymentMethods.find((p) => p.method === "QRIS");
-          return (
-            <>
-              <SummaryCard
-                label={`Cash (${cash?.count ?? 0} trx)`}
-                value={formatRupiah(cash?.amount ?? 0)}
-              />
-              <SummaryCard
-                label={`QRIS (${qris?.count ?? 0} trx)`}
-                value={formatRupiah(qris?.amount ?? 0)}
-              />
-            </>
-          );
-        })()}
-        <SummaryCard label="Total Pendapatan" value={formatRupiah(data.revenue.total)} />
-        <SummaryCard label="Transaksi" value={`${data.revenue.count} (avg ${formatRupiah(data.revenue.average)})`} />
-        {isOwner && <SummaryCard label="Pengeluaran" value={formatRupiah(data.totalExpenses)} />}
-        {isOwner && data.cogs > 0 && (
-          <SummaryCard label="HPP (COGS)" value={formatRupiah(data.cogs)} className="text-destructive" />
-        )}
-        {isOwner && data.cogs > 0 && (
-          <SummaryCard
-            label={`Laba Kotor${data.grossMarginPct !== null ? ` (${data.grossMarginPct}%)` : ""}`}
-            value={formatRupiah(data.grossProfit)}
-            className={data.grossProfit < 0 ? "text-destructive" : "text-green-600 dark:text-green-400"}
-          />
-        )}
-        {isOwner && (
-          <SummaryCard
-            label="Laba Bersih"
-            value={formatRupiah(data.netProfit)}
-            className={data.netProfit < 0 ? "text-destructive" : "text-primary"}
-          />
-        )}
-      </div>
+      {isOwner && <PnLCard data={data} />}
 
-      {/* Online Orders Section */}
-      {data.onlineOrdersSummary.count > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Pesanan Online</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <p className="text-xs text-muted-foreground">Penjualan Kotor</p>
-                <p className="font-medium">{formatRupiah(data.onlineOrdersSummary.gross)}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Komisi</p>
-                <p className="font-medium text-destructive">-{formatRupiah(data.onlineOrdersSummary.commission)}</p>
-              </div>
-              {data.onlineOrdersSummary.deductions > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Potongan Lain</p>
-                  <p className="font-medium text-destructive">-{formatRupiah(data.onlineOrdersSummary.deductions)}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground">Pencairan Diterima</p>
-                <p className="font-medium text-primary">{formatRupiah(data.onlineOrdersSummary.disbursedRevenue)}</p>
-              </div>
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {data.onlineOrdersSummary.settledCount} sudah cair / {data.onlineOrdersSummary.unsettledCount} belum cair
-              {data.onlineOrdersSummary.unsettledAmount > 0 && (
-                <span> ({formatRupiah(data.onlineOrdersSummary.unsettledAmount)})</span>
-              )}
-            </div>
-            {data.onlineOrdersSummary.byService.length > 0 && (
-              <div className="divide-y divide-foreground/5">
-                {data.onlineOrdersSummary.byService.map((svc, i) => (
-                  <div key={i} className="flex items-center justify-between py-1.5 text-sm">
-                    <span>{SERVICE_LABEL[svc.service] ?? svc.service} ({svc.count})</span>
-                    <div className="text-right">
-                      <span className="text-muted-foreground">{formatRupiah(svc.gross)}</span>
-                      {svc.disbursed > 0 && (
-                        <span className="ml-2 text-primary">{formatRupiah(svc.disbursed)}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <Segmented<TabKey> value={tab} onChange={setTab} options={tabs} />
 
-      {/* Charts Row 1: Revenue + Payment Methods */}
-      <div className="grid gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">{revenueChartTitle}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.revenueByDay.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={data.revenueByDay}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" tickFormatter={xAxisFormatter} fontSize={11} />
-                  <YAxis tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`} fontSize={11} />
-                  <Tooltip
-                    formatter={(value) => formatRupiah(value as number)}
-                    labelFormatter={(label) => xAxisFormatter(String(label))}
-                  />
-                  <Bar dataKey="revenue" fill={chartColors[0]} radius={[4, 4, 0, 0]} name="Pendapatan" />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Metode Pembayaran</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.paymentMethods.length > 0 ? (
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={data.paymentMethods}
-                    dataKey="amount"
-                    nameKey="method"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    label={(props) => { const p = props as unknown as Record<string, string>; return METHOD_LABEL[p.method] ?? p.method; }}
-                    fontSize={11}
-                  >
-                    {data.paymentMethods.map((_, i) => (
-                      <Cell key={i} fill={chartColors[i % chartColors.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => formatRupiah(value as number)} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts Row 2: Top Items + Service Channels */}
-      <div className="grid gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Item Terlaris</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.topItems.length > 0 ? (
-              <div className="divide-y divide-foreground/5">
-                {data.topItems.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between py-2">
-                    <span className="text-sm">{item.name}</span>
-                    <div className="text-right text-sm shrink-0 ml-3">
-                      <span className="text-muted-foreground">{item.qty}×</span>
-                      <span className="ml-2 font-medium">{formatRupiah(item.revenue)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Channel Layanan</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {data.serviceChannels.length > 0 ? (
-              <>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={data.serviceChannels}
-                      dataKey="netAmount"
-                      nameKey="service"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      label={(props) => { const p = props as unknown as Record<string, string>; return SERVICE_LABEL[p.service] ?? p.service; }}
-                      fontSize={11}
-                    >
-                      {data.serviceChannels.map((_, i) => (
-                        <Cell key={i} fill={chartColors[i % chartColors.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip formatter={(value) => formatRupiah(value as number)} labelFormatter={(l) => SERVICE_LABEL[l] ?? l} />
-                  </PieChart>
-                </ResponsiveContainer>
-                {/* Commission breakdown table */}
-                <div className="divide-y divide-foreground/5">
-                  {data.serviceChannels.map((ch, i) => (
-                    <div key={i} className="py-2 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{SERVICE_LABEL[ch.service] ?? ch.service}</span>
-                        <span>{formatRupiah(ch.netAmount)}</span>
-                      </div>
-                      {ch.commission > 0 && (
-                        <div className="flex items-center justify-between text-xs text-muted-foreground mt-0.5">
-                          <span>Kotor: {formatRupiah(ch.amount)}</span>
-                          <span className="text-destructive">−{formatRupiah(ch.commission)} komisi</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Cash Register (owner only) */}
-      {isOwner && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Kas Harian</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.cashRegisterSummary.length > 0 ? (
-              <div className="divide-y divide-foreground/5">
-                {data.cashRegisterSummary.map((c, i) => (
-                  <div key={i} className="py-2 space-y-0.5">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{shortDate(c.date)}</span>
-                      <span className={c.difference !== null && c.difference < 0 ? "text-destructive" : ""}>
-                        {c.difference !== null ? formatRupiah(c.difference) : "—"}
-                      </span>
-                    </div>
-                    <div className="flex gap-3 text-xs text-muted-foreground">
-                      <span>Awal: {formatRupiah(c.openingCash)}</span>
-                      <span>Akhir: {c.closingCash !== null ? formatRupiah(c.closingCash) : "—"}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada kas terdaftar.</p>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Pengeluaran Detail (owner only) */}
-      {isOwner && (data.expenses.length > 0 || data.staffSalary.length > 0) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Rincian Pengeluaran</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {data.staffSalary.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Gaji Karyawan</p>
-                <div className="divide-y divide-foreground/5">
-                  {data.staffSalary.map((s, i) => (
-                    <div key={i} className="py-1.5 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span>{s.name}</span>
-                        <span className="text-destructive">{formatRupiah(s.total)}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {s.presentDays} hari × {formatRupiah(s.dailySalary)}
-                      </p>
-                    </div>
-                  ))}
-                  <div className="flex items-center justify-between py-1.5 text-sm font-medium">
-                    <span>Total Gaji</span>
-                    <span className="text-destructive">{formatRupiah(data.totalSalary)}</span>
-                  </div>
-                </div>
-              </div>
-            )}
-            {data.expenses.length > 0 && (
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">Pengeluaran Operasional</p>
-                <div className="divide-y divide-foreground/5">
-                  {data.expenses.map((e) => (
-                    <div key={e.id} className="py-1.5 text-sm">
-                      <div className="flex items-center justify-between">
-                        <span className="truncate">{e.description ?? "-"}</span>
-                        <span className="text-destructive shrink-0 ml-2">{formatRupiah(e.total)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Attendance Summary (if available) */}
-      {data.attendanceSummary.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">Ringkasan Kehadiran</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="divide-y divide-foreground/5">
-              {data.attendanceSummary.map((a, i) => (
-                <div key={i} className="flex items-center justify-between py-2 text-sm">
-                  <span>{shortDate(a.date)}</span>
-                  <div className="flex gap-3">
-                    <span className="text-primary">{a.present} hadir</span>
-                    <span className="text-destructive">{a.absent} absen</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Transaction Details (Collapsible) — owner only */}
-      {isOwner && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm">Detail Transaksi ({data.transactions.length})</CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => setShowTransactions(!showTransactions)}>
-                {showTransactions ? "Sembunyikan" : "Tampilkan"}
-              </Button>
-            </div>
-          </CardHeader>
-          {showTransactions && (
-            <CardContent>
-              {data.transactions.length > 0 ? (
-                <div className="divide-y divide-foreground/5">
-                  {data.transactions.map((t) => (
-                    <div key={t.id} className="py-2 space-y-0.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{t.sessionName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(t.paidAt).toLocaleString("id-ID", { hour: "2-digit", minute: "2-digit", day: "numeric", month: "short" })}
-                            {t.processedBy && <> · {t.processedBy}</>}
-                          </p>
-                        </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-sm font-medium">{formatRupiah(t.totalAmount)}</p>
-                          <span className="rounded-full px-2 py-0.5 text-xs bg-primary/10 text-primary">
-                            {METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground py-4 text-center">Tidak ada transaksi.</p>
-              )}
-            </CardContent>
-          )}
-        </Card>
-      )}
-
-      {/* Voided indicator */}
-      {isOwner && data.voidedCount > 0 && (
-        <p className="text-xs text-muted-foreground text-center">
-          {data.voidedCount} transaksi void tidak termasuk dalam perhitungan.
-        </p>
-      )}
+      {tab === "summary" && <RingkasanTab data={data} period={currentPeriod} />}
+      {tab === "sales" && <PenjualanTab data={data} />}
+      {tab === "ops" && <OperasionalTab data={data} isOwner={isOwner} />}
+      {tab === "txn" && isOwner && <TransaksiTab data={data} />}
     </div>
-  );
-}
-
-function SummaryCard({ label, value, className }: { label: string; value: string; className?: string }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground font-normal">{label}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className={`text-xl font-bold tabular-nums ${className ?? ""}`}>{value}</p>
-      </CardContent>
-    </Card>
   );
 }
