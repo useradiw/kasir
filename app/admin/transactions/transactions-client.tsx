@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner, AdminPageHeader } from "@/components/admin/ui";
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { formatRupiah, formatDateTime, formatTransactionShortId } from "@/lib/format";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { voidTransaction } from "@/app/actions/admin/transactions";
 
@@ -156,9 +156,12 @@ export default function TransactionsClient({
                 {/* Top row: session + amount */}
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="text-sm font-medium">
-                      {r.sessionName}
-                      {r.service && <span className="ml-1 text-xs text-muted-foreground">({r.service})</span>}
+                    <p className="text-sm font-medium flex items-center gap-2">
+                      <span>{r.sessionName}</span>
+                      <span className="font-mono text-[10px] text-muted-foreground" title={r.id}>
+                        {formatTransactionShortId(r.id)}
+                      </span>
+                      {r.service && <span className="text-xs text-muted-foreground">({r.service})</span>}
                     </p>
                     {r.externalOrderId && (
                       <p className="text-xs text-muted-foreground">ID: {r.externalOrderId}</p>

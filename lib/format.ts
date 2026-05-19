@@ -26,6 +26,15 @@ export function formatPaymentMethod(method: string): string {
   return method;
 }
 
+/** Short, human-friendly identifier derived from a transaction UUID.
+ *  First 8 hex chars uppercased and prefixed with "#" — e.g., "#A1B2C3D4".
+ *  Same UUID always yields the same short id. Use this everywhere a
+ *  transaction needs to be identifiable by humans (admin lists, detail
+ *  pages, printed receipts). */
+export function formatTransactionShortId(id: string): string {
+  return `#${id.slice(0, 8).toUpperCase()}`;
+}
+
 /** YYYY-MM-DD key in the server's local timezone. Use this for day-bucketing
  *  CashRegister.date (stored as local midnight) against transaction.paidAt /
  *  expense.recordedAt — `.toISOString()` would bucket in UTC and split days. */

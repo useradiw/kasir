@@ -22,6 +22,8 @@ export interface PrintReceiptData {
   isPaid: boolean;
   isOnline?: boolean;
   splitGroupLabel?: string;
+  /** Short human-friendly transaction id (e.g. "#A1B2C3D4"). */
+  shortId?: string;
 }
 
 export interface PrintChecklistData {
@@ -111,6 +113,7 @@ export function buildReceipt(
   //   b.push(...line(`HP: ${data.customerPhone}`));
   // }
   b.push(...line(formatDateTime(data.paidAt, "short")));
+  if (data.shortId) b.push(...line(`ID: ${data.shortId}`));
 
   // Total (large, centered)
   b.push(...divider(w));

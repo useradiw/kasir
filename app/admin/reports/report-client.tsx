@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell,
@@ -74,7 +75,10 @@ export function ReportClient({
 }) {
   const router = useRouter();
   const [showTransactions, setShowTransactions] = useState(false);
+  const [isRefreshing, startRefresh] = useTransition();
   const chartColors = useChartColors(6);
+
+  const handleRefresh = () => startRefresh(() => router.refresh());
 
   function navigate(period: string, date: string) {
     router.push(`/admin/reports?period=${period}&date=${date}`);
@@ -257,6 +261,16 @@ export function ReportClient({
             &rarr;
           </Button>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={isRefreshing}
+          aria-label="Refresh"
+          title="Refresh"
+        >
+          <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
+        </Button>
         {isOwner && (
           <>
             <Button variant="outline" size="sm" onClick={handleCSV}>
@@ -276,6 +290,22 @@ export function ReportClient({
 
       {/* Summary Cards */}
       <div className="grid grid-cols-2 gap-3">
+        {currentPeriod === "daily" && (() => {
+          const cash = data.paymentMethods.find((p) => p.method === "CASH");
+          const qris = data.paymentMethods.find((p) => p.method === "QRIS");
+          return (
+            <>
+              <SummaryCard
+                label={`Cash (${cash?.count ?? 0} trx)`}
+                value={formatRupiah(cash?.amount ?? 0)}
+              />
+              <SummaryCard
+                label={`QRIS (${qris?.count ?? 0} trx)`}
+                value={formatRupiah(qris?.amount ?? 0)}
+              />
+            </>
+          );
+        })()}
         <SummaryCard label="Total Pendapatan" value={formatRupiah(data.revenue.total)} />
         <SummaryCard label="Transaksi" value={`${data.revenue.count} (avg ${formatRupiah(data.revenue.average)})`} />
         {isOwner && <SummaryCard label="Pengeluaran" value={formatRupiah(data.totalExpenses)} />}

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
-import { formatRupiah, formatDateTime, formatPaymentMethod } from "@/lib/format";
+import { formatRupiah, formatDateTime, formatPaymentMethod, formatTransactionShortId } from "@/lib/format";
 import type { StoreInfo } from "@/lib/settings";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateTransaction } from "@/app/actions/admin/transactions";
@@ -149,6 +149,12 @@ export default function TransactionDetailClient({
             Kembali
           </Button>
           <h1 className="text-2xl font-bold">{data.session.name}</h1>
+          <span
+            className="font-mono text-xs text-muted-foreground bg-muted rounded-md px-2 py-0.5"
+            title={data.id}
+          >
+            {formatTransactionShortId(data.id)}
+          </span>
         </div>
         {isOwner && (
           <div className="flex items-center gap-2">

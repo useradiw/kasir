@@ -6,7 +6,7 @@ import { useBluetoothPrinter } from "@/hooks/use-bluetooth-printer";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import type { ServiceEnum } from "@/lib/db";
-import { formatRupiah, formatDateTime, formatPaymentMethod } from "@/lib/format";
+import { formatRupiah, formatDateTime, formatPaymentMethod, formatTransactionShortId } from "@/lib/format";
 import type { StoreInfo } from "@/lib/settings";
 import { calcSubtotal, getServiceLabel } from "@/lib/kasir-utils";
 import { buildReceipt, buildChecklist } from "@/lib/escpos";
@@ -91,6 +91,7 @@ export function ReceiptPreview({
             qrisAmount: tx?.qrisAmount ?? 0,
             isPaid,
             splitGroupLabel,
+            shortId: tx && "id" in tx && tx.id ? formatTransactionShortId(tx.id) : undefined,
           }, storeInfo);
     await print(data);
   }
@@ -137,6 +138,7 @@ export function ReceiptPreview({
               serviceLabel={serviceLabel}
               isPaid={isPaid}
               storeInfo={storeInfo}
+              shortId={tx && "id" in tx && tx.id ? formatTransactionShortId(tx.id) : undefined}
               splitGroupLabel={
                 splitGroup !== undefined && splitTotalGroups
                   ? `Orang ${splitGroup}/${splitTotalGroups}`
@@ -237,6 +239,7 @@ function ReceiptContent({
   isPaid,
   storeInfo,
   splitGroupLabel,
+  shortId,
 }: {
   session: { name: string; paidAt: string | null; service: ServiceEnum | null; customerAlias: string | null } | undefined;
   activeItems: { nameSnapshot: string; qty: number; price: number }[];
@@ -247,6 +250,7 @@ function ReceiptContent({
   isPaid: boolean;
   storeInfo: StoreInfo;
   splitGroupLabel?: string;
+  shortId?: string;
 }) {
   return (
     <div className="font-mono text-xs space-y-2">
@@ -274,6 +278,7 @@ function ReceiptContent({
           <div>Pelanggan: {session.customerAlias}</div>
         )}
         {tx && <div>{formatDateTime(tx.paidAt, "short")}</div>}
+        {shortId && <div>ID: {shortId}</div>}
       </div>
 
       <Divider />
