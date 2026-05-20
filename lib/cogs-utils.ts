@@ -1,91 +1,193 @@
 /**
  * COGS (Cost of Goods Sold) and inventory stock utilities.
- *
- * All functions operate inside a Prisma interactive transaction (`PrismaTx`)
- * so they can be composed safely with other DB operations.
+ * Uses weighted moving average (WMA) cost stored on Ingredient.averageUnitCost.
+ * All functions that write to the DB operate inside a Prisma interactive transaction.
  */
 
 import { Prisma } from "@/generated/prisma";
 
 export type PrismaTx = Prisma.TransactionClient;
 
-// ─── Unit conversion ─────────────────────────────────────────────────────────
+// ─── Pack unit conversion ─────────────────────────────────────────────────────
 
 /**
- * Predefined metric conversion factors.
- * Key: `${fromUnit}→${toUnit}`, value: multiplier.
- *
- * Rules:
- * - Weight base unit: gr  (kg = 1000 gr)
- * - Volume base unit: ml  (ltr = 1000 ml)
- * - All other units (pcs, btl, bks, dus, lbr, lbr) are 1:1 — no auto-conversion.
- *
- * Always convert purchase amounts → template's defaultUnit before updating stock.
+ * Resolve base quantity for a purchase given a pack label.
+ * Looks up IngredientPack by (ingredientId, label).
+ * Returns { baseQty, packBaseQty } where baseQty = packQty * packBaseQty.
+ * Falls back to 1:1 if no pack found.
  */
-const CONVERSION: Record<string, number> = {
-  "kg→gr": 1000,
-  "gr→kg": 0.001,
-  "ltr→ml": 1000,
-  "ml→ltr": 0.001,
-};
-
-/**
- * Returns the factor to multiply `amount` in `fromUnit` to get the equivalent
- * in `toUnit`. Returns 1 when units are identical or no conversion is defined
- * (i.e., treat as compatible 1:1 units).
- */
-export function getUnitConversionFactor(
-  fromUnit: string | null | undefined,
-  toUnit: string | null | undefined,
-): number {
-  if (!fromUnit || !toUnit || fromUnit === toUnit) return 1;
-  return CONVERSION[`${fromUnit}→${toUnit}`] ?? 1;
-}
-
-// ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface StockMovement {
-  templateId: string;
-  quantity: number; // positive = stock IN, negative = stock OUT, in template's defaultUnit
-  unitCost: number; // Rp per template's defaultUnit
-}
-
-// ─── Cost lookup ─────────────────────────────────────────────────────────────
-
-/**
- * Returns the most recent unit purchase cost (Rp) for an ingredient template.
- * Falls back to 0 if no purchases have ever been recorded.
- */
-export async function getLatestIngredientCost(
+export async function resolvePackQty(
   tx: PrismaTx,
-  templateId: string,
-): Promise<number> {
-  const latest = await tx.expenseItem.findFirst({
-    where: { templateId },
-    orderBy: { expense: { recordedAt: "desc" } },
-    select: { cost: true },
+  ingredientId: string,
+  packLabel: string | null | undefined,
+  packQty: number,
+): Promise<{ baseQty: number; packBaseQty: number }> {
+  if (!packLabel) return { baseQty: packQty, packBaseQty: 1 };
+  const pack = await tx.ingredientPack.findUnique({
+    where: { ingredientId_label: { ingredientId, label: packLabel } },
+    select: { baseQty: true },
   });
-  return latest?.cost ?? 0;
+  const packBaseQty = pack?.baseQty ?? 1;
+  return { baseQty: packQty * packBaseQty, packBaseQty };
+}
+
+// ─── WMA cost read ────────────────────────────────────────────────────────────
+
+/**
+ * Returns the current weighted-average unit cost (Rp) for an ingredient.
+ * O(1) — reads the denormalized field directly from the Ingredient row.
+ */
+export async function getIngredientAvgCost(
+  tx: PrismaTx,
+  ingredientId: string,
+): Promise<number> {
+  const row = await tx.ingredient.findUnique({
+    where: { id: ingredientId },
+    select: { averageUnitCost: true },
+  });
+  return row?.averageUnitCost ?? 0;
+}
+
+// ─── Purchase recording ───────────────────────────────────────────────────────
+
+export interface PurchaseInput {
+  ingredientId: string;
+  supplierId?: string | null;
+  expenseItemId?: string | null;
+  source: "EXPENSE" | "ADJUSTMENT" | "OPNAME_GAIN";
+  packLabel?: string | null;
+  packQty: number;       // qty in pack unit (e.g. 2 if buying 2 dus)
+  totalCost: number;     // total Rp paid for this line
+  purchasedAt?: Date;
+  recordedById?: string | null;
+  notes?: string | null;
+}
+
+/**
+ * Records a purchase of an ingredient:
+ * 1. Resolves base quantity from pack definition (or 1:1 if no pack).
+ * 2. Computes unitCost = round(totalCost / baseQty).
+ * 3. Updates Ingredient WMA: newAvg = (oldAvg × oldStock + totalCost) / (oldStock + baseQty).
+ * 4. Updates Ingredient.currentStock, lastUnitCost, lastPurchasedAt.
+ * 5. Inserts IngredientPurchase row with snapshot fields.
+ * 6. Inserts IngredientLog PURCHASE entry.
+ */
+export async function recordPurchase(
+  tx: PrismaTx,
+  input: PurchaseInput,
+): Promise<void> {
+  const { ingredientId, supplierId, expenseItemId, source, packLabel, packQty,
+          totalCost, purchasedAt, recordedById, notes } = input;
+
+  // Resolve base quantity
+  const { baseQty } = await resolvePackQty(tx, ingredientId, packLabel, packQty);
+  const unitCost = baseQty > 0 ? Math.round(totalCost / baseQty) : 0;
+
+  // Fetch current ingredient state
+  const ing = await tx.ingredient.findUniqueOrThrow({
+    where: { id: ingredientId },
+    select: { currentStock: true, averageUnitCost: true },
+  });
+
+  // Weighted moving average
+  const oldStock = ing.currentStock;
+  const oldAvg = ing.averageUnitCost;
+  const newStock = oldStock + baseQty;
+  const newAvg = newStock > 0
+    ? Math.round((oldAvg * oldStock + totalCost) / newStock)
+    : unitCost;
+
+  const ts = purchasedAt ?? new Date();
+
+  // Update ingredient denormalized fields
+  await tx.ingredient.update({
+    where: { id: ingredientId },
+    data: {
+      currentStock:    newStock,
+      averageUnitCost: newAvg,
+      lastUnitCost:    unitCost,
+      lastPurchasedAt: ts,
+    },
+  });
+
+  // Insert IngredientPurchase snapshot
+  await tx.ingredientPurchase.create({
+    data: {
+      ingredientId,
+      supplierId:       supplierId ?? null,
+      expenseItemId:    expenseItemId ?? null,
+      source,
+      packLabel:        packLabel ?? null,
+      packQty,
+      baseQty,
+      totalCost,
+      unitCost,
+      avgUnitCostAfter: newAvg,
+      stockAfter:       newStock,
+      purchasedAt:      ts,
+      recordedById:     recordedById ?? null,
+      notes:            notes ?? null,
+    },
+  });
+
+  // IngredientLog entry
+  await tx.ingredientLog.create({
+    data: {
+      ingredientId,
+      templateId:  ingredientId, // keep templateId in sync (same UUID) until migration 2
+      type:        "PURCHASE",
+      quantity:    baseQty,
+      unitCost,
+      referenceId: expenseItemId ?? null,
+      note:        notes ?? null,
+    },
+  });
+}
+
+/**
+ * Reverses a purchase (e.g. on expense edit/delete).
+ * Decrements stock by baseQty. WMA is NOT recalculated backward to avoid
+ * distorting historical averages; only stock is adjusted.
+ * Writes an ADJUSTMENT log.
+ */
+export async function reversePurchase(
+  tx: PrismaTx,
+  ingredientId: string,
+  baseQty: number,
+  unitCost: number,
+  referenceNote?: string,
+): Promise<void> {
+  await tx.ingredient.update({
+    where: { id: ingredientId },
+    data: { currentStock: { decrement: baseQty } },
+  });
+
+  await tx.ingredientLog.create({
+    data: {
+      ingredientId,
+      templateId:  ingredientId,
+      type:        "ADJUSTMENT",
+      quantity:    -baseQty,
+      unitCost,
+      note:        referenceNote ?? "Purchase reversed",
+    },
+  });
 }
 
 // ─── COGS computation ─────────────────────────────────────────────────────────
 
 export interface OrderItemLike {
   menuItemId: string | null | undefined;
-  packageId: string | null | undefined;
-  variantId: string | null | undefined;
-  qty: number;
-  status: string;
+  packageId:  string | null | undefined;
+  variantId:  string | null | undefined;
+  qty:        number;
+  status:     string;
 }
 
 /**
- * Computes COGS (in Rp, rounded to integer) and per-ingredient stock movements
- * for a set of order items. Skips CANCELLED items and ingredients without a template.
- *
- * For menu items: looks up the Recipe for (menuItemId, variantId).
- * For packages:   sums the COGS of each member MenuItem's recipe.
- *
- * Returns `{ totalCogs, movements }`. If no recipes are configured, cogs = 0.
+ * Computes COGS (Rp, rounded) and per-ingredient stock movements for a set
+ * of order items. Uses Ingredient.averageUnitCost (WMA) — O(1) per ingredient.
+ * Skips CANCELLED items and recipe ingredients without an ingredientId.
  */
 export async function computeOrderCogs(
   tx: PrismaTx,
@@ -95,102 +197,91 @@ export async function computeOrderCogs(
   let totalCogs = 0;
   const movements: StockMovement[] = [];
 
-  // ── Direct menu items ────────────────────────────────────────────────────
-  for (const item of active.filter((i) => i.menuItemId)) {
-    // Use findFirst to handle nullable variantId in compound unique
+  async function processRecipe(menuItemId: string, variantId: string | null, qty: number) {
     const recipe = await tx.recipe.findFirst({
-      where: {
-        menuItemId: item.menuItemId!,
-        variantId: item.variantId ?? null,
-      },
+      where: { menuItemId, variantId: variantId ?? null },
       include: { ingredients: true },
     });
-    if (!recipe) continue;
+    if (!recipe) return;
 
     for (const ing of recipe.ingredients) {
-      if (!ing.templateId) continue;
-      const unitCost = await getLatestIngredientCost(tx, ing.templateId);
-      const qty = ing.quantity * item.qty;
-      totalCogs += qty * unitCost;
-      movements.push({ templateId: ing.templateId, quantity: -qty, unitCost });
+      // Support both new ingredientId and legacy templateId (same UUID during transition)
+      const ingId = ing.ingredientId ?? ing.templateId;
+      if (!ingId) continue;
+      const avgCost = await getIngredientAvgCost(tx, ingId);
+      const useQty = ing.quantity * qty;
+      totalCogs += useQty * avgCost;
+      movements.push({ ingredientId: ingId, quantity: -useQty, unitCost: avgCost });
     }
   }
 
-  // ── Package items — sum member MenuItem recipes ──────────────────────────
+  for (const item of active.filter((i) => i.menuItemId)) {
+    await processRecipe(item.menuItemId!, item.variantId ?? null, item.qty);
+  }
+
   for (const item of active.filter((i) => i.packageId)) {
     const members = await tx.packageItem.findMany({
       where: { packageId: item.packageId! },
       select: { menuItemId: true, variantId: true },
     });
-
-    for (const member of members) {
-      const recipe = await tx.recipe.findFirst({
-        where: {
-          menuItemId: member.menuItemId,
-          variantId: member.variantId ?? null,
-        },
-        include: { ingredients: true },
-      });
-      if (!recipe) continue;
-
-      for (const ing of recipe.ingredients) {
-        if (!ing.templateId) continue;
-        const unitCost = await getLatestIngredientCost(tx, ing.templateId);
-        const qty = ing.quantity * item.qty;
-        totalCogs += qty * unitCost;
-        movements.push({ templateId: ing.templateId, quantity: -qty, unitCost });
-      }
+    for (const m of members) {
+      await processRecipe(m.menuItemId, m.variantId ?? null, item.qty);
     }
   }
 
   return { totalCogs: Math.round(totalCogs), movements };
 }
 
-// ─── Stock application ────────────────────────────────────────────────────────
+// ─── Stock movements (SALE / WASTE / ADJUSTMENT) ──────────────────────────────
+
+export interface StockMovement {
+  ingredientId: string;
+  quantity:     number; // positive = IN, negative = OUT
+  unitCost:     number; // Rp per baseUnit
+}
 
 /**
- * Writes IngredientLog entries and updates ExpenseTemplate.currentStock for
- * each movement. Call this inside the same transaction as the triggering event.
+ * Writes IngredientLog entries and updates Ingredient.currentStock for each
+ * movement. Does NOT update WMA (WMA only changes on purchases).
  */
 export async function applyStockMovements(
   tx: PrismaTx,
   movements: StockMovement[],
-  type: "PURCHASE" | "SALE" | "ADJUSTMENT" | "WASTE",
+  type: "SALE" | "ADJUSTMENT" | "WASTE",
   referenceId?: string | null,
   note?: string | null,
 ): Promise<void> {
   for (const m of movements) {
     await tx.ingredientLog.create({
       data: {
-        templateId: m.templateId,
+        ingredientId: m.ingredientId,
+        templateId:   m.ingredientId, // keep in sync until migration 2
         type,
-        quantity: m.quantity,
-        unitCost: m.unitCost,
-        referenceId: referenceId ?? null,
-        note: note ?? null,
+        quantity:     m.quantity,
+        unitCost:     m.unitCost,
+        referenceId:  referenceId ?? null,
+        note:         note ?? null,
       },
     });
 
-    // Update denormalized stock: always use increment/decrement to be safe
-    // with concurrent operations.
     if (m.quantity >= 0) {
-      await tx.expenseTemplate.update({
-        where: { id: m.templateId },
-        data: { currentStock: { increment: m.quantity } },
+      await tx.ingredient.update({
+        where: { id: m.ingredientId },
+        data:  { currentStock: { increment: m.quantity } },
       });
     } else {
-      await tx.expenseTemplate.update({
-        where: { id: m.templateId },
-        data: { currentStock: { decrement: -m.quantity } },
+      await tx.ingredient.update({
+        where: { id: m.ingredientId },
+        data:  { currentStock: { decrement: -m.quantity } },
       });
     }
   }
 }
 
 /**
- * Reverses all SALE stock movements for a given transaction.
- * Creates ADJUSTMENT logs (positive quantity) for each original SALE log.
- * Call this when voiding a transaction.
+ * Reverses all SALE stock movements for a given transaction (called on void).
+ * Restores stock via ADJUSTMENT logs at the original unitCost.
+ * Does NOT recalculate WMA.
  */
 export async function reverseTransactionStock(
   tx: PrismaTx,
@@ -198,25 +289,125 @@ export async function reverseTransactionStock(
 ): Promise<void> {
   const saleLogs = await tx.ingredientLog.findMany({
     where: { referenceId: transactionId, type: "SALE" },
-    select: { templateId: true, quantity: true, unitCost: true },
+    select: { ingredientId: true, quantity: true, unitCost: true },
   });
 
   for (const log of saleLogs) {
-    // log.quantity is negative (stock OUT); reversal is positive
-    const reversal = -log.quantity;
+    if (!log.ingredientId) continue;
+    const reversal = -log.quantity; // log.quantity is negative; reversal is positive
     await tx.ingredientLog.create({
       data: {
-        templateId: log.templateId,
-        type: "ADJUSTMENT",
-        quantity: reversal,
-        unitCost: log.unitCost,
-        referenceId: transactionId,
-        note: "Void reversal",
+        ingredientId: log.ingredientId,
+        templateId:   log.ingredientId,
+        type:         "ADJUSTMENT",
+        quantity:     reversal,
+        unitCost:     log.unitCost,
+        referenceId:  transactionId,
+        note:         "Void reversal",
       },
     });
-    await tx.expenseTemplate.update({
-      where: { id: log.templateId },
-      data: { currentStock: { increment: reversal } },
+    await tx.ingredient.update({
+      where: { id: log.ingredientId },
+      data:  { currentStock: { increment: reversal } },
     });
   }
+}
+
+// ─── Waste recording ──────────────────────────────────────────────────────────
+
+/**
+ * Records ingredient waste. Decrements stock at current WMA cost.
+ * Does NOT affect WMA.
+ */
+export async function recordWaste(
+  tx: PrismaTx,
+  ingredientId: string,
+  quantity: number,
+  reason?: string | null,
+): Promise<void> {
+  const avgCost = await getIngredientAvgCost(tx, ingredientId);
+
+  await tx.ingredient.update({
+    where: { id: ingredientId },
+    data:  { currentStock: { decrement: quantity } },
+  });
+
+  await tx.ingredientLog.create({
+    data: {
+      ingredientId,
+      templateId:  ingredientId,
+      type:        "WASTE",
+      quantity:    -quantity,
+      unitCost:    avgCost,
+      note:        reason ?? null,
+    },
+  });
+}
+
+// ─── Opname line recording ────────────────────────────────────────────────────
+
+/**
+ * Applies a single opname line result.
+ * Sets stock to the counted quantity and writes an ADJUSTMENT log for the delta.
+ * If delta > 0 (gain), also records as OPNAME_GAIN IngredientPurchase at current WMA
+ * so the purchase history is complete.
+ */
+export async function recordOpnameLine(
+  tx: PrismaTx,
+  ingredientId: string,
+  systemQty: number,
+  countedQty: number,
+  opnameId: string,
+): Promise<void> {
+  const delta = countedQty - systemQty;
+  if (delta === 0) return;
+
+  const avgCost = await getIngredientAvgCost(tx, ingredientId);
+
+  await tx.ingredient.update({
+    where: { id: ingredientId },
+    data:  { currentStock: countedQty },
+  });
+
+  await tx.ingredientLog.create({
+    data: {
+      ingredientId,
+      templateId:  ingredientId,
+      type:        "ADJUSTMENT",
+      quantity:    delta,
+      unitCost:    avgCost,
+      referenceId: opnameId,
+      note:        delta > 0 ? "Opname gain" : "Opname shrinkage",
+    },
+  });
+
+  if (delta > 0) {
+    const totalCost = Math.round(delta * avgCost);
+    await tx.ingredientPurchase.create({
+      data: {
+        ingredientId,
+        source:          "OPNAME_GAIN",
+        packQty:         delta,
+        baseQty:         delta,
+        totalCost,
+        unitCost:        avgCost,
+        avgUnitCostAfter: avgCost,
+        stockAfter:      countedQty,
+        purchasedAt:     new Date(),
+        notes:           "Opname gain",
+      },
+    });
+  }
+}
+
+// ─── Legacy compatibility shim ────────────────────────────────────────────────
+// Used by old code that may still reference templateId during the transition.
+// Remove after migration 2 drops ExpenseTemplate.
+
+/** @deprecated Use getIngredientAvgCost instead */
+export async function getLatestIngredientCost(
+  tx: PrismaTx,
+  templateId: string,
+): Promise<number> {
+  return getIngredientAvgCost(tx, templateId);
 }

@@ -6,45 +6,57 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatRupiah } from "@/lib/format";
 
-const UNIT_SUGGESTIONS = ["pcs", "gr", "kg", "ml", "ltr", "btl", "bks", "dus", "lbr"];
+export type IngredientOption = {
+  id:              string;
+  name:            string;
+  baseUnit:        string;
+  averageUnitCost: number;
+  category:        string;
+  packs:           { label: string; baseQty: number; isDefault: boolean }[];
+};
 
+// Legacy shape kept for backward compat during transition
 export type Template = { id: string; name: string; defaultUnit: string | null; defaultCost: number | null };
 
 export type ExpenseItemRow = {
-  id: string;
-  description: string;
-  amount: number;
-  cost: number;
-  unit: string;
-  templateId: string | null;
+  id:           string;
+  description:  string;
+  amount:       number;
+  cost:         number;
+  unit:         string;
+  templateId:   string | null; // legacy
+  ingredientId: string | null; // new
 };
 
 export function ItemRow({
   item,
-  templates,
+  ingredients,
   uniquePastNames,
   isPending,
   onUpdate,
-  onApplyTemplate,
+  onApplyIngredient,
   onApplyPastName,
   onRemove,
   canRemove,
 }: {
-  item: ExpenseItemRow;
-  templates: Template[];
-  uniquePastNames: string[];
-  isPending: boolean;
-  onUpdate: (id: string, field: keyof Omit<ExpenseItemRow, "id">, value: string | number | null) => void;
-  onApplyTemplate: (rowId: string, template: Template) => void;
-  onApplyPastName: (rowId: string, name: string) => void;
-  onRemove: (id: string) => void;
-  canRemove: boolean;
+  item:             ExpenseItemRow;
+  ingredients:      IngredientOption[];
+  uniquePastNames:  string[];
+  isPending:        boolean;
+  onUpdate:         (id: string, field: keyof Omit<ExpenseItemRow, "id">, value: string | number | null) => void;
+  onApplyIngredient:(rowId: string, ing: IngredientOption) => void;
+  onApplyPastName:  (rowId: string, name: string) => void;
+  onRemove:         (id: string) => void;
+  canRemove:        boolean;
 }) {
-  const [query, setQuery] = useState(item.description);
+  const [query, setQuery]           = useState(item.description);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown on outside click
+  const selectedIngredient = item.ingredientId
+    ? ingredients.find((i) => i.id === item.ingredientId)
+    : null;
+
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
@@ -55,21 +67,22 @@ export function ItemRow({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const q = query.toLowerCase();
-  const filteredTemplates = templates.filter((t) => t.name.toLowerCase().includes(q));
-  const filteredPast = uniquePastNames.filter((n) => n.toLowerCase().includes(q));
-  const hasSuggestions = filteredTemplates.length > 0 || filteredPast.length > 0;
+  const q               = query.toLowerCase();
+  const filteredIngs    = ingredients.filter((i) => i.name.toLowerCase().includes(q));
+  const filteredPast    = uniquePastNames.filter((n) => n.toLowerCase().includes(q));
+  const hasSuggestions  = filteredIngs.length > 0 || filteredPast.length > 0;
 
   function handleDescriptionChange(val: string) {
     setQuery(val);
     onUpdate(item.id, "description", val);
+    onUpdate(item.id, "ingredientId", null);
     onUpdate(item.id, "templateId", null);
     setShowDropdown(true);
   }
 
-  function selectTemplate(t: Template) {
-    setQuery(t.name);
-    onApplyTemplate(item.id, t);
+  function selectIngredient(ing: IngredientOption) {
+    setQuery(ing.name);
+    onApplyIngredient(item.id, ing);
     setShowDropdown(false);
   }
 
@@ -79,33 +92,46 @@ export function ItemRow({
     setShowDropdown(false);
   }
 
+  const categoryLabel: Record<string, string> = {
+    BAHAN: "Bahan", KEMASAN: "Kemasan", PERLENGKAPAN: "Perlengkapan", LAINNYA: "Lainnya",
+  };
+
   return (
     <div className="space-y-2 rounded-lg border border-foreground/10 p-2.5">
       {/* Description with autocomplete */}
       <div className="relative" ref={dropdownRef}>
         <Input
-          placeholder="Nama item"
+          placeholder="Nama item / bahan"
           value={query}
           onChange={(e) => handleDescriptionChange(e.target.value)}
           onFocus={() => setShowDropdown(true)}
           required
           disabled={isPending}
         />
+        {item.ingredientId && (
+          <div className="mt-0.5 flex items-center gap-1.5 text-xs text-primary">
+            <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5">
+              {categoryLabel[selectedIngredient?.category ?? ""] ?? ""}
+            </span>
+            <span>· HPP rata-rata {formatRupiah(selectedIngredient?.averageUnitCost ?? 0)}/{selectedIngredient?.baseUnit ?? ""}</span>
+          </div>
+        )}
         {showDropdown && hasSuggestions && (
-          <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-md max-h-48 overflow-y-auto">
-            {filteredTemplates.length > 0 && (
+          <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-popover border border-border rounded-lg shadow-md max-h-52 overflow-y-auto">
+            {filteredIngs.length > 0 && (
               <>
-                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Template</p>
-                {filteredTemplates.map((t) => (
+                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Bahan / Kemasan</p>
+                {filteredIngs.map((ing) => (
                   <button
-                    key={t.id}
+                    key={ing.id}
                     type="button"
-                    onMouseDown={(e) => { e.preventDefault(); selectTemplate(t); }}
-                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent flex items-center justify-between"
+                    onMouseDown={(e) => { e.preventDefault(); selectIngredient(ing); }}
+                    className="w-full text-left px-3 py-1.5 text-sm hover:bg-accent flex items-center justify-between gap-2"
                   >
-                    <span>{t.name}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {t.defaultUnit ?? ""}{t.defaultCost != null ? ` · ${formatRupiah(t.defaultCost)}` : ""}
+                    <span className="truncate">{ing.name}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">
+                      {ing.baseUnit}
+                      {ing.averageUnitCost > 0 ? ` · ${formatRupiah(ing.averageUnitCost)}` : ""}
                     </span>
                   </button>
                 ))}
@@ -130,7 +156,33 @@ export function ItemRow({
         )}
       </div>
 
-      {/* Amount, Unit, Cost, Remove */}
+      {/* Pack selector (if ingredient has packs) */}
+      {selectedIngredient && selectedIngredient.packs.length > 0 && (
+        <div className="flex items-center gap-2 text-sm">
+          <span className="text-muted-foreground text-xs">Satuan:</span>
+          <div className="flex flex-wrap gap-1">
+            <button
+              type="button"
+              onClick={() => onUpdate(item.id, "unit", selectedIngredient.baseUnit)}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${item.unit === selectedIngredient.baseUnit ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
+            >
+              {selectedIngredient.baseUnit} (satuan dasar)
+            </button>
+            {selectedIngredient.packs.map((p) => (
+              <button
+                key={p.label}
+                type="button"
+                onClick={() => onUpdate(item.id, "unit", p.label)}
+                className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${item.unit === p.label ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
+              >
+                {p.label} (×{p.baseQty})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Amount, Unit (text fallback), Cost, Remove */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1">
           <Input
@@ -144,17 +196,28 @@ export function ItemRow({
             disabled={isPending}
             className="w-20"
           />
-          <input
-            list={`units-${item.id}`}
-            value={item.unit}
-            onChange={(e) => onUpdate(item.id, "unit", e.target.value)}
-            placeholder="satuan"
-            disabled={isPending}
-            className="h-9 w-20 rounded-4xl border border-input bg-input/30 px-2 text-sm focus:outline-none"
-          />
-          <datalist id={`units-${item.id}`}>
-            {UNIT_SUGGESTIONS.map((u) => <option key={u} value={u} />)}
-          </datalist>
+          {/* Show unit text input only when no pack buttons available */}
+          {(!selectedIngredient || selectedIngredient.packs.length === 0) && (
+            <input
+              list={`units-${item.id}`}
+              value={item.unit}
+              onChange={(e) => onUpdate(item.id, "unit", e.target.value)}
+              placeholder="satuan"
+              disabled={isPending}
+              className="h-9 w-20 rounded-4xl border border-input bg-input/30 px-2 text-sm focus:outline-none"
+            />
+          )}
+          {selectedIngredient && selectedIngredient.packs.length === 0 && (
+            <datalist id={`units-${item.id}`}>
+              {["pcs", "gr", "kg", "ml", "ltr", "btl", "bks", "dus", "lbr"].map((u) => (
+                <option key={u} value={u} />
+              ))}
+            </datalist>
+          )}
+          {/* Show selected pack label as read-only badge when pack is chosen */}
+          {selectedIngredient && selectedIngredient.packs.length > 0 && item.unit && (
+            <span className="text-xs text-muted-foreground font-medium">{item.unit}</span>
+          )}
         </div>
         <span className="text-muted-foreground text-sm">×</span>
         <Input

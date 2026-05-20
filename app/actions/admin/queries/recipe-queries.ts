@@ -1,17 +1,16 @@
 "use server";
 
-import { Prisma } from "@/generated/prisma";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 
 export async function getRecipeData() {
   await requireRole("OWNER", "MANAGER");
 
-  const [templates, recipes] = await Promise.all([
-    prisma.expenseTemplate.findMany({
-      where: { isActive: true },
+  const [ingredients, recipes] = await Promise.all([
+    prisma.ingredient.findMany({
+      where:   { isActive: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, defaultUnit: true, defaultCost: true },
+      select:  { id: true, name: true, baseUnit: true, averageUnitCost: true, lastUnitCost: true, category: true },
     }),
     prisma.recipe.findMany({
       include: {
@@ -19,7 +18,7 @@ export async function getRecipeData() {
         variant:  { select: { id: true, label: true, priceModifier: true } },
         ingredients: {
           include: {
-            template: { select: { name: true, defaultUnit: true, defaultCost: true } },
+            ingredient: { select: { name: true, baseUnit: true, averageUnitCost: true, lastUnitCost: true } },
           },
           orderBy: { id: "asc" },
         },
@@ -28,63 +27,56 @@ export async function getRecipeData() {
     }),
   ]);
 
-  // Get latest purchase cost per template for COGS calculation
-  const templateIds = [...new Set(
-    recipes.flatMap((r) => r.ingredients.map((i) => i.templateId).filter(Boolean) as string[])
-  )];
-
-  const costMap = new Map<string, number>();
-  if (templateIds.length > 0) {
-    const latestCosts = await prisma.$queryRaw<{ templateId: string; cost: number }[]>`
-      SELECT DISTINCT ON ("templateId") "templateId", "cost"
-      FROM "ExpenseItem" ei
-      JOIN "Expense" e ON ei."expenseId" = e."id"
-      WHERE ei."templateId" IN (${Prisma.join(templateIds)})
-      ORDER BY "templateId", e."recordedAt" DESC
-    `;
-    for (const c of latestCosts) costMap.set(c.templateId, c.cost);
-  }
+  // Build cost map from Ingredient.averageUnitCost (O(1) per ingredient — no raw SQL needed)
+  const ingMap = new Map(ingredients.map((i) => [i.id, i]));
 
   return {
-    templates: templates.map((t) => ({
-      id: t.id,
-      name: t.name,
-      defaultUnit: t.defaultUnit,
-      defaultCost: t.defaultCost,
+    ingredients: ingredients.map((i) => ({
+      id:              i.id,
+      name:            i.name,
+      baseUnit:        i.baseUnit,
+      averageUnitCost: i.averageUnitCost,
+      category:        i.category,
     })),
     recipes: recipes.map((r) => {
       const sellingPrice = r.menuItem.price + (r.variant?.priceModifier ?? 0);
 
-      // Compute COGS from latest ingredient costs
       const cogs = r.ingredients.reduce((sum, ing) => {
-        if (!ing.templateId) return sum;
-        const unitCost = costMap.get(ing.templateId) ?? 0;
+        const ingId = ing.ingredientId ?? ing.templateId;
+        if (!ingId) return sum;
+        const ingRow = ing.ingredient ?? ingMap.get(ingId);
+        const unitCost = ingRow?.averageUnitCost ?? 0;
         return sum + ing.quantity * unitCost;
       }, 0);
+
       const cogsRounded = Math.round(cogs);
       const margin = sellingPrice > 0 ? ((sellingPrice - cogsRounded) / sellingPrice) * 100 : null;
 
       return {
-        id: r.id,
-        menuItemId: r.menuItemId,
+        id:           r.id,
+        menuItemId:   r.menuItemId,
         menuItemName: r.menuItem.name,
         sellingPrice,
-        variantId: r.variantId,
+        variantId:    r.variantId,
         variantLabel: r.variant?.label ?? null,
-        notes: r.notes,
-        cogs: cogsRounded,
-        marginPct: margin !== null ? Math.round(margin * 10) / 10 : null,
-        ingredients: r.ingredients.map((i) => ({
-          id: i.id,
-          templateId: i.templateId,
-          templateName: i.template?.name ?? null,
-          templateUnit: i.template?.defaultUnit ?? null,
-          templateCost: i.template?.defaultCost ?? null,
-          latestCost: i.templateId ? (costMap.get(i.templateId) ?? 0) : 0,
-          customName: i.customName,
-          customUnit: i.customUnit,
-          quantity: i.quantity,
-        })),
+        notes:        r.notes,
+        cogs:         cogsRounded,
+        marginPct:    margin !== null ? Math.round(margin * 10) / 10 : null,
+        ingredients: r.ingredients.map((i) => {
+          const ingId  = i.ingredientId ?? i.templateId;
+          const ingRow = i.ingredient ?? (ingId ? ingMap.get(ingId) : null);
+          return {
+            id:              i.id,
+            ingredientId:    ingId,
+            ingredientName:  ingRow?.name ?? i.customName ?? null,
+            ingredientUnit:  ingRow?.baseUnit ?? i.customUnit ?? null,
+            averageUnitCost: ingRow?.averageUnitCost ?? 0,
+            lastUnitCost:    ingRow?.lastUnitCost ?? null,
+            customName:      i.customName,
+            customUnit:      i.customUnit,
+            quantity:        i.quantity,
+          };
+        }),
       };
     }),
   };

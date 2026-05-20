@@ -36,7 +36,7 @@ type Props = {
   packages: Package[];
   packageItems: PackageItem[];
   onlinePrices: OnlinePrice[];
-  templates: RecipeData["templates"];
+  ingredients: RecipeData["ingredients"];
   recipes: RecipeData["recipes"];
   isOwner: boolean;
 };
@@ -52,7 +52,7 @@ const TABS = [
 
 const SERVICES = ["GoFood", "ShopeeFood", "GrabFood"] as const;
 
-export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, onlinePrices, templates, recipes, isOwner }: Props) {
+export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, onlinePrices, ingredients, recipes, isOwner }: Props) {
   const router = useRouter();
   const { isPending, run, error, setError } = useAdminAction();
   const confirm = useConfirm();
@@ -477,7 +477,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
       {/* ─── RECIPES ─── */}
       {tab === "recipes" && (
         <RecipeTab
-          templates={templates}
+          ingredients={ingredients}
           recipes={recipes}
           menuItems={menuItems}
           variants={variants}

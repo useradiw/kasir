@@ -1,13 +1,23 @@
 import { Container } from "@/components/shared/container";
 import { requireAuth } from "@/lib/admin-auth";
+import { prisma } from "@/lib/prisma";
 import ExpenseInputClient from "./expense-input-client";
 
 export default async function ExpensesPage() {
   await requireAuth();
 
+  const ingredients = await prisma.ingredient.findMany({
+    where:   { isActive: true },
+    orderBy: [{ category: "asc" }, { name: "asc" }],
+    select: {
+      id: true, name: true, baseUnit: true, averageUnitCost: true, category: true,
+      packs: { select: { label: true, baseQty: true, isDefault: true }, orderBy: { label: "asc" } },
+    },
+  });
+
   return (
     <Container id="expenses" className="py-6">
-      <ExpenseInputClient />
+      <ExpenseInputClient ingredients={ingredients} />
     </Container>
   );
 }

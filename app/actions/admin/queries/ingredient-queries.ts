@@ -8,72 +8,114 @@ import { requireRole } from "@/lib/admin-auth";
 export async function getIngredientStockData() {
   await requireRole("OWNER", "MANAGER");
 
-  const templates = await prisma.expenseTemplate.findMany({
-    orderBy: { name: "asc" },
+  const ingredients = await prisma.ingredient.findMany({
+    orderBy: [{ category: "asc" }, { name: "asc" }],
     select: {
-      id: true,
-      name: true,
-      defaultUnit: true,
-      defaultCost: true,
-      currentStock: true,
-      lowStockAlert: true,
-      isActive: true,
+      id:              true,
+      name:            true,
+      category:        true,
+      baseUnit:        true,
+      currentStock:    true,
+      averageUnitCost: true,
+      lastUnitCost:    true,
+      lastPurchasedAt: true,
+      lowStockAlert:   true,
+      isActive:        true,
     },
   });
 
-  // Latest purchase cost per template (for display)
-  const latestCosts = await Promise.all(
-    templates.map(async (t) => {
-      const latest = await prisma.expenseItem.findFirst({
-        where: { templateId: t.id },
-        orderBy: { expense: { recordedAt: "desc" } },
-        select: { cost: true, expense: { select: { recordedAt: true } } },
-      });
-      return { templateId: t.id, latestCost: latest?.cost ?? null, lastPurchasedAt: latest?.expense.recordedAt ?? null };
-    }),
-  );
-
-  const costMap = new Map(latestCosts.map((c) => [c.templateId, c]));
-
-  return templates.map((t) => {
-    const costInfo = costMap.get(t.id);
-    return {
-      id: t.id,
-      name: t.name,
-      unit: t.defaultUnit,
-      currentStock: t.currentStock,
-      lowStockAlert: t.lowStockAlert,
-      isActive: t.isActive,
-      latestCost: costInfo?.latestCost ?? null,
-      lastPurchasedAt: costInfo?.lastPurchasedAt ?? null,
-      isLow: t.lowStockAlert !== null && t.currentStock <= t.lowStockAlert,
-    };
-  });
+  return ingredients.map((i) => ({
+    id:              i.id,
+    name:            i.name,
+    category:        i.category,
+    unit:            i.baseUnit,
+    currentStock:    i.currentStock,
+    averageUnitCost: i.averageUnitCost,
+    lastUnitCost:    i.lastUnitCost,
+    lastPurchasedAt: i.lastPurchasedAt,
+    lowStockAlert:   i.lowStockAlert,
+    isActive:        i.isActive,
+    isLow:           i.lowStockAlert !== null && i.currentStock <= i.lowStockAlert,
+  }));
 }
 
 export type IngredientStockData = Awaited<ReturnType<typeof getIngredientStockData>>;
 
-// ─── Ingredient log history ───────────────────────────────────────────────────
+// ─── Ingredient detail + packs ────────────────────────────────────────────────
 
-export async function getIngredientLogs(templateId: string, limit = 50) {
+export async function getIngredientDetail(id: string) {
   await requireRole("OWNER", "MANAGER");
 
-  const logs = await prisma.ingredientLog.findMany({
-    where: { templateId },
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: {
-      id: true,
-      type: true,
-      quantity: true,
-      unitCost: true,
-      referenceId: true,
-      note: true,
-      createdAt: true,
+  const ing = await prisma.ingredient.findUniqueOrThrow({
+    where: { id },
+    include: {
+      packs: { orderBy: { label: "asc" } },
     },
   });
 
-  return logs;
+  return {
+    id:              ing.id,
+    name:            ing.name,
+    category:        ing.category,
+    baseUnit:        ing.baseUnit,
+    currentStock:    ing.currentStock,
+    averageUnitCost: ing.averageUnitCost,
+    lastUnitCost:    ing.lastUnitCost,
+    lastPurchasedAt: ing.lastPurchasedAt,
+    lowStockAlert:   ing.lowStockAlert,
+    isActive:        ing.isActive,
+    notes:           ing.notes,
+    packs:           ing.packs,
+  };
+}
+
+// ─── Ingredient purchase history (for price chart + history tab) ──────────────
+
+export async function getIngredientPurchaseHistory(ingredientId: string, limit = 50) {
+  await requireRole("OWNER", "MANAGER");
+
+  return prisma.ingredientPurchase.findMany({
+    where:   { ingredientId },
+    orderBy: { purchasedAt: "desc" },
+    take:    limit,
+    select: {
+      id:               true,
+      source:           true,
+      packLabel:        true,
+      packQty:          true,
+      baseQty:          true,
+      totalCost:        true,
+      unitCost:         true,
+      avgUnitCostAfter: true,
+      stockAfter:       true,
+      purchasedAt:      true,
+      notes:            true,
+      supplier:         { select: { name: true } },
+    },
+  });
+}
+
+export type IngredientPurchaseHistory = Awaited<ReturnType<typeof getIngredientPurchaseHistory>>;
+
+// ─── Ingredient log history ───────────────────────────────────────────────────
+
+export async function getIngredientLogs(ingredientId: string, limit = 60) {
+  await requireRole("OWNER", "MANAGER");
+
+  return prisma.ingredientLog.findMany({
+    where:   { ingredientId },
+    orderBy: { createdAt: "desc" },
+    take:    limit,
+    select: {
+      id:          true,
+      type:        true,
+      quantity:    true,
+      unitCost:    true,
+      referenceId: true,
+      note:        true,
+      createdAt:   true,
+    },
+  });
 }
 
 export type IngredientLog = Awaited<ReturnType<typeof getIngredientLogs>>[number];
@@ -81,42 +123,39 @@ export type IngredientLog = Awaited<ReturnType<typeof getIngredientLogs>>[number
 // ─── Manual stock adjustment ──────────────────────────────────────────────────
 
 export async function adjustIngredientStock(
-  templateId: string,
+  ingredientId: string,
   quantity: number,
   note: string,
 ): Promise<void> {
   await requireRole("OWNER", "MANAGER");
-
   if (quantity === 0) throw new Error("Jumlah penyesuaian tidak boleh 0");
 
-  // Get current cost for reference
-  const latest = await prisma.expenseItem.findFirst({
-    where: { templateId },
-    orderBy: { expense: { recordedAt: "desc" } },
-    select: { cost: true },
+  const ing = await prisma.ingredient.findUniqueOrThrow({
+    where:  { id: ingredientId },
+    select: { averageUnitCost: true },
   });
-  const unitCost = latest?.cost ?? 0;
 
   await prisma.$transaction(async (tx) => {
     await tx.ingredientLog.create({
       data: {
-        templateId,
-        type: quantity > 0 ? "PURCHASE" : "ADJUSTMENT",
+        ingredientId,
+        templateId: ingredientId,
+        type:       quantity > 0 ? "PURCHASE" : "ADJUSTMENT",
         quantity,
-        unitCost,
-        note: note.trim() || null,
+        unitCost:   ing.averageUnitCost,
+        note:       note.trim() || null,
       },
     });
 
     if (quantity > 0) {
-      await tx.expenseTemplate.update({
-        where: { id: templateId },
-        data: { currentStock: { increment: quantity } },
+      await tx.ingredient.update({
+        where: { id: ingredientId },
+        data:  { currentStock: { increment: quantity } },
       });
     } else {
-      await tx.expenseTemplate.update({
-        where: { id: templateId },
-        data: { currentStock: { decrement: -quantity } },
+      await tx.ingredient.update({
+        where: { id: ingredientId },
+        data:  { currentStock: { decrement: -quantity } },
       });
     }
   });
@@ -125,13 +164,12 @@ export async function adjustIngredientStock(
 // ─── Low stock alert threshold ────────────────────────────────────────────────
 
 export async function setLowStockAlert(
-  templateId: string,
+  ingredientId: string,
   threshold: number | null,
 ): Promise<void> {
   await requireRole("OWNER", "MANAGER");
-
-  await prisma.expenseTemplate.update({
-    where: { id: templateId },
-    data: { lowStockAlert: threshold },
+  await prisma.ingredient.update({
+    where: { id: ingredientId },
+    data:  { lowStockAlert: threshold },
   });
 }

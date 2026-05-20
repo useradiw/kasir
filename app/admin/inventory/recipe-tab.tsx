@@ -18,55 +18,50 @@ import {
 } from "@/app/actions/admin/recipes";
 import type { RecipeData } from "@/app/actions/admin/queries";
 
-type Template = RecipeData["templates"][number];
-type Recipe = RecipeData["recipes"][number];
-type Ingredient = Recipe["ingredients"][number];
+type IngredientOption = RecipeData["ingredients"][number];
+type Recipe           = RecipeData["recipes"][number];
+type RecipeIng        = Recipe["ingredients"][number];
 
 type MenuItem = { id: string; name: string; categoryId: string; categoryName: string; price: number; isHidden: boolean; createdAt: string; updatedAt: string };
-type Variant = { id: string; menuItemId: string; menuItemName: string; label: string; priceModifier: number };
+type Variant  = { id: string; menuItemId: string; menuItemName: string; label: string; priceModifier: number };
 
 type Props = {
-  templates: Template[];
-  recipes: Recipe[];
-  menuItems: MenuItem[];
-  variants: Variant[];
-  isOwner: boolean;
+  ingredients: IngredientOption[];
+  recipes:     Recipe[];
+  menuItems:   MenuItem[];
+  variants:    Variant[];
+  isOwner:     boolean;
 };
 
-function ingredientDisplayName(ing: Ingredient): string {
-  return ing.templateName ?? ing.customName ?? "—";
+function ingDisplayName(ing: RecipeIng): string {
+  return ing.ingredientName ?? ing.customName ?? "—";
 }
 
-function ingredientUnit(ing: Ingredient): string {
-  return ing.templateUnit ?? ing.customUnit ?? "";
+function ingUnit(ing: RecipeIng): string {
+  return ing.ingredientUnit ?? ing.customUnit ?? "";
 }
 
-function ingredientCost(ing: Ingredient): number | null {
-  // Prefer actual latest purchase cost over the default cost
-  if (ing.latestCost !== undefined && ing.latestCost > 0) return ing.latestCost;
-  return ing.templateCost ?? null;
+function ingCost(ing: RecipeIng): number | null {
+  return ing.averageUnitCost > 0 ? ing.averageUnitCost : null;
 }
 
-export default function RecipeTab({ templates, recipes, menuItems, variants, isOwner }: Props) {
+export default function RecipeTab({ ingredients, recipes, menuItems, variants, isOwner }: Props) {
   const { isPending, run, error, setError } = useAdminAction();
   const confirm = useConfirm();
   const [view, setView] = useState<"list" | "add">("list");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [editIngId, setEditIngId] = useState<string | null>(null);
 
-  // "add recipe" form state
   const [newMenuItemId, setNewMenuItemId] = useState("");
-  const [newVariantId, setNewVariantId] = useState(""); // "" means base item
+  const [newVariantId, setNewVariantId]   = useState("");
 
-  // For each expanded recipe, show the add-ingredient form
   const [showAddIng, setShowAddIng] = useState<string | null>(null);
-  const [ingType, setIngType] = useState<"template" | "custom">("template");
+  const [ingType, setIngType]       = useState<"ingredient" | "custom">("ingredient");
 
   function variantsForItem(menuItemId: string) {
     return variants.filter((v) => v.menuItemId === menuItemId);
   }
 
-  // Find recipes that cover a given menuItemId+variantId combo
   function hasRecipe(menuItemId: string, variantId: string | null) {
     return recipes.some(
       (r) => r.menuItemId === menuItemId && r.variantId === (variantId || null)
@@ -85,7 +80,6 @@ export default function RecipeTab({ templates, recipes, menuItems, variants, isO
     }, { successMessage: "Resep berhasil dibuat." });
   }
 
-  // Group recipes by menuItemId for display
   const byItem = menuItems
     .map((item) => ({
       item,
@@ -93,23 +87,21 @@ export default function RecipeTab({ templates, recipes, menuItems, variants, isO
     }))
     .filter((g) => g.recipes.length > 0);
 
+  const categoryLabel: Record<string, string> = {
+    BAHAN: "Bahan", KEMASAN: "Kemasan", PERLENGKAPAN: "Perlengkapan", LAINNYA: "Lainnya",
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <h2 className="text-xl font-bold flex-1">Resep Menu</h2>
         <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant={view === "list" ? "default" : "outline"}
-            onClick={() => { setView("list"); setError(null); }}
-          >
+          <Button size="sm" variant={view === "list" ? "default" : "outline"}
+            onClick={() => { setView("list"); setError(null); }}>
             Daftar Resep
           </Button>
-          <Button
-            size="sm"
-            variant={view === "add" ? "default" : "outline"}
-            onClick={() => { setView("add"); setError(null); }}
-          >
+          <Button size="sm" variant={view === "add" ? "default" : "outline"}
+            onClick={() => { setView("add"); setError(null); }}>
             + Buat Resep
           </Button>
         </div>
@@ -117,17 +109,14 @@ export default function RecipeTab({ templates, recipes, menuItems, variants, isO
 
       <ErrorBanner error={error} />
 
-      {/* ─── CREATE RECIPE FORM ─── */}
       {view === "add" && (
         <Card>
           <CardHeader><CardTitle>Buat Resep Baru</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-1.5">
               <Label>Menu Item</Label>
-              <AdminSelect
-                value={newMenuItemId}
-                onChange={(e) => { setNewMenuItemId(e.target.value); setNewVariantId(""); }}
-              >
+              <AdminSelect value={newMenuItemId}
+                onChange={(e) => { setNewMenuItemId(e.target.value); setNewVariantId(""); }}>
                 <option value="">— Pilih menu item —</option>
                 {menuItems.map((m) => (
                   <option key={m.id} value={m.id}>{m.name}</option>
@@ -153,11 +142,9 @@ export default function RecipeTab({ templates, recipes, menuItems, variants, isO
             )}
 
             <div className="flex gap-2">
-              <Button
-                size="sm"
+              <Button size="sm"
                 disabled={isPending || !newMenuItemId || hasRecipe(newMenuItemId, newVariantId || null)}
-                onClick={handleCreateRecipe}
-              >
+                onClick={handleCreateRecipe}>
                 Buat Resep
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setView("list")}>Batal</Button>
@@ -166,7 +153,6 @@ export default function RecipeTab({ templates, recipes, menuItems, variants, isO
         </Card>
       )}
 
-      {/* ─── RECIPE LIST ─── */}
       {view === "list" && (
         <>
           {byItem.length === 0 ? (
@@ -183,7 +169,7 @@ export default function RecipeTab({ templates, recipes, menuItems, variants, isO
                   <RecipeCard
                     key={recipe.id}
                     recipe={recipe}
-                    templates={templates}
+                    ingredients={ingredients}
                     isOwner={isOwner}
                     isExpanded={expandedId === recipe.id}
                     onToggle={() => setExpandedId(expandedId === recipe.id ? null : recipe.id)}
@@ -196,6 +182,7 @@ export default function RecipeTab({ templates, recipes, menuItems, variants, isO
                     isPending={isPending}
                     run={run}
                     confirm={confirm}
+                    categoryLabel={categoryLabel}
                   />
                 ))}
               </div>
@@ -207,63 +194,44 @@ export default function RecipeTab({ templates, recipes, menuItems, variants, isO
   );
 }
 
-// ─── RecipeCard sub-component ──────────────────────────────────────────────────
-
 function RecipeCard({
-  recipe,
-  templates,
-  isOwner,
-  isExpanded,
-  onToggle,
-  showAddIng,
-  onToggleAddIng,
-  ingType,
-  setIngType,
-  editIngId,
-  setEditIngId,
-  isPending,
-  run,
-  confirm,
+  recipe, ingredients, isOwner, isExpanded, onToggle, showAddIng, onToggleAddIng,
+  ingType, setIngType, editIngId, setEditIngId, isPending, run, confirm, categoryLabel,
 }: {
-  recipe: Recipe;
-  templates: Template[];
-  isOwner: boolean;
-  isExpanded: boolean;
-  onToggle: () => void;
-  showAddIng: boolean;
+  recipe:         Recipe;
+  ingredients:    IngredientOption[];
+  isOwner:        boolean;
+  isExpanded:     boolean;
+  onToggle:       () => void;
+  showAddIng:     boolean;
   onToggleAddIng: () => void;
-  ingType: "template" | "custom";
-  setIngType: (t: "template" | "custom") => void;
-  editIngId: string | null;
-  setEditIngId: (id: string | null) => void;
-  isPending: boolean;
-  run: ReturnType<typeof useAdminAction>["run"];
-  confirm: ReturnType<typeof useConfirm>;
+  ingType:        "ingredient" | "custom";
+  setIngType:     (t: "ingredient" | "custom") => void;
+  editIngId:      string | null;
+  setEditIngId:   (id: string | null) => void;
+  isPending:      boolean;
+  run:            ReturnType<typeof useAdminAction>["run"];
+  confirm:        ReturnType<typeof useConfirm>;
+  categoryLabel:  Record<string, string>;
 }) {
   const displayLabel = recipe.variantLabel
     ? `${recipe.menuItemName} — ${recipe.variantLabel}`
     : `${recipe.menuItemName} (Base)`;
 
-  const hasCogs = recipe.cogs > 0;
+  const hasCogs     = recipe.cogs > 0;
   const marginColor =
     recipe.marginPct === null ? "" :
-    recipe.marginPct >= 60 ? "text-green-600 dark:text-green-400" :
-    recipe.marginPct >= 30 ? "text-yellow-600 dark:text-yellow-400" :
+    recipe.marginPct >= 60    ? "text-green-600 dark:text-green-400" :
+    recipe.marginPct >= 30    ? "text-yellow-600 dark:text-yellow-400" :
     "text-destructive";
 
   return (
     <Card>
-      {/* Header row */}
-      <div
-        className="flex items-center justify-between px-4 py-3 cursor-pointer"
-        onClick={onToggle}
-      >
+      <div className="flex items-center justify-between px-4 py-3 cursor-pointer" onClick={onToggle}>
         <div>
           <p className="font-medium text-sm">{displayLabel}</p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-0.5">
-            <span className="text-xs text-muted-foreground">
-              {recipe.ingredients.length} bahan
-            </span>
+            <span className="text-xs text-muted-foreground">{recipe.ingredients.length} bahan</span>
             {hasCogs && (
               <>
                 <span className="text-xs text-muted-foreground">·</span>
@@ -295,17 +263,13 @@ function RecipeCard({
         </div>
         <div className="flex items-center gap-2">
           {isOwner && (
-            <Button
-              size="xs"
-              variant="destructive"
-              disabled={isPending}
+            <Button size="xs" variant="destructive" disabled={isPending}
               onClick={async (e) => {
                 e.stopPropagation();
                 if (await confirm({ title: `Hapus resep "${displayLabel}"?`, destructive: true, confirmLabel: "Hapus" })) {
                   run(() => deleteRecipe(recipe.id));
                 }
-              }}
-            >
+              }}>
               Hapus
             </Button>
           )}
@@ -313,12 +277,9 @@ function RecipeCard({
         </div>
       </div>
 
-      {/* Expanded ingredient list */}
       {isExpanded && (
         <CardContent className="space-y-3 pt-0">
-          {recipe.notes && (
-            <p className="text-xs text-muted-foreground italic">{recipe.notes}</p>
-          )}
+          {recipe.notes && <p className="text-xs text-muted-foreground italic">{recipe.notes}</p>}
 
           {recipe.ingredients.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-2">Belum ada bahan. Tambahkan bahan di bawah.</p>
@@ -327,12 +288,17 @@ function RecipeCard({
               {recipe.ingredients.map((ing) => (
                 <div key={ing.id} className="py-2 flex items-center gap-3">
                   <div className="flex-1 text-sm">
-                    <span className="font-medium">{ingredientDisplayName(ing)}</span>
-                    {ingredientCost(ing) !== null && (
+                    <span className="font-medium">{ingDisplayName(ing)}</span>
+                    {!ing.ingredientId && (
+                      <span className="ml-1 inline-flex items-center rounded-full bg-warning/10 px-1.5 py-0.5 text-[10px] font-medium text-warning-foreground">
+                        lepas · tidak terhitung di HPP
+                      </span>
+                    )}
+                    {ingCost(ing) !== null && (
                       <span className="text-muted-foreground text-xs ml-1">
-                        ({formatRupiah(ingredientCost(ing)!)}/{ingredientUnit(ing)})
-                        {ing.latestCost !== undefined && ing.latestCost > 0 && ing.latestCost !== ing.templateCost && (
-                          <span className="text-primary"> ↑ harga terkini</span>
+                        (HPP avg {formatRupiah(ingCost(ing)!)}/{ingUnit(ing)})
+                        {ing.lastUnitCost !== null && ing.lastUnitCost !== ing.averageUnitCost && (
+                          <span className="text-muted-foreground"> · terakhir {formatRupiah(ing.lastUnitCost)}</span>
                         )}
                       </span>
                     )}
@@ -343,38 +309,27 @@ function RecipeCard({
                       action={(fd) => run(async () => { await updateRecipeIngredient(ing.id, fd); setEditIngId(null); })}
                       className="flex items-center gap-2"
                     >
-                      <Input
-                        name="quantity"
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        defaultValue={ing.quantity}
-                        className="h-7 w-20 text-sm"
-                        required
-                      />
-                      <span className="text-xs text-muted-foreground">{ingredientUnit(ing)}</span>
+                      <Input name="quantity" type="number" step="0.01" min="0.01"
+                        defaultValue={ing.quantity} className="h-7 w-20 text-sm" required />
+                      <span className="text-xs text-muted-foreground">{ingUnit(ing)}</span>
                       <Button type="submit" size="xs" disabled={isPending}>Simpan</Button>
                       <Button type="button" size="xs" variant="ghost" onClick={() => setEditIngId(null)}>Batal</Button>
                     </form>
                   ) : (
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm">{ing.quantity} {ingredientUnit(ing)}</span>
-                      {ingredientCost(ing) !== null && (
+                      <span className="text-sm">{ing.quantity} {ingUnit(ing)}</span>
+                      {ingCost(ing) !== null && (
                         <span className="text-xs text-muted-foreground">
-                          = {formatRupiah(ing.quantity * ingredientCost(ing)!)}
+                          = {formatRupiah(ing.quantity * ingCost(ing)!)}
                         </span>
                       )}
                       <Button size="xs" variant="outline" onClick={() => setEditIngId(ing.id)}>Edit</Button>
-                      <Button
-                        size="xs"
-                        variant="destructive"
-                        disabled={isPending}
+                      <Button size="xs" variant="destructive" disabled={isPending}
                         onClick={async () => {
-                          if (await confirm({ title: `Hapus bahan "${ingredientDisplayName(ing)}"?`, destructive: true, confirmLabel: "Hapus" })) {
+                          if (await confirm({ title: `Hapus bahan "${ingDisplayName(ing)}"?`, destructive: true, confirmLabel: "Hapus" })) {
                             run(() => deleteRecipeIngredient(ing.id));
                           }
-                        }}
-                      >
+                        }}>
                         Hapus
                       </Button>
                     </div>
@@ -384,7 +339,6 @@ function RecipeCard({
             </div>
           )}
 
-          {/* Add ingredient form toggle */}
           <Button size="sm" variant="outline" onClick={onToggleAddIng}>
             {showAddIng ? "Batal" : "+ Tambah Bahan"}
           </Button>
@@ -392,12 +346,13 @@ function RecipeCard({
           {showAddIng && (
             <AddIngredientForm
               recipeId={recipe.id}
-              templates={templates}
+              ingredients={ingredients}
               ingType={ingType}
               setIngType={setIngType}
               isPending={isPending}
               run={run}
               onSuccess={onToggleAddIng}
+              categoryLabel={categoryLabel}
             />
           )}
         </CardContent>
@@ -406,24 +361,17 @@ function RecipeCard({
   );
 }
 
-// ─── AddIngredientForm ─────────────────────────────────────────────────────────
-
 function AddIngredientForm({
-  recipeId,
-  templates,
-  ingType,
-  setIngType,
-  isPending,
-  run,
-  onSuccess,
+  recipeId, ingredients, ingType, setIngType, isPending, run, onSuccess, categoryLabel,
 }: {
-  recipeId: string;
-  templates: Template[];
-  ingType: "template" | "custom";
-  setIngType: (t: "template" | "custom") => void;
-  isPending: boolean;
-  run: ReturnType<typeof useAdminAction>["run"];
-  onSuccess: () => void;
+  recipeId:      string;
+  ingredients:   IngredientOption[];
+  ingType:       "ingredient" | "custom";
+  setIngType:    (t: "ingredient" | "custom") => void;
+  isPending:     boolean;
+  run:           ReturnType<typeof useAdminAction>["run"];
+  onSuccess:     () => void;
+  categoryLabel: Record<string, string>;
 }) {
   return (
     <form
@@ -435,63 +383,55 @@ function AddIngredientForm({
       }
       className="space-y-3 border border-foreground/10 rounded-lg p-3"
     >
-      {/* Type selector */}
       <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setIngType("template")}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors ${ingType === "template" ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
-        >
-          Dari Template Pengeluaran
+        <button type="button" onClick={() => setIngType("ingredient")}
+          className={`text-xs px-3 py-1 rounded-full border transition-colors ${ingType === "ingredient" ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}>
+          Pilih Bahan
         </button>
-        <button
-          type="button"
-          onClick={() => setIngType("custom")}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors ${ingType === "custom" ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
-        >
-          Bahan Baru (tanpa template)
+        <button type="button" onClick={() => setIngType("custom")}
+          className={`text-xs px-3 py-1 rounded-full border transition-colors ${ingType === "custom" ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}>
+          Bahan Lepas (tanpa link)
         </button>
       </div>
 
-      {ingType === "template" ? (
+      {ingType === "ingredient" ? (
         <div className="grid gap-1.5">
-          <Label>Pilih Bahan (dari Template Pengeluaran)</Label>
-          <AdminSelect name="templateId" required>
+          <Label>Pilih Bahan</Label>
+          <AdminSelect name="ingredientId" required>
             <option value="">— Pilih bahan —</option>
-            {templates.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}{t.defaultUnit ? ` (${t.defaultUnit})` : ""}{t.defaultCost ? ` — ${formatRupiah(t.defaultCost)}/${t.defaultUnit ?? "unit"}` : ""}
+            {ingredients.map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name} ({categoryLabel[i.category] ?? i.category}) · {i.baseUnit}
+                {i.averageUnitCost > 0 ? ` · HPP avg ${formatRupiah(i.averageUnitCost)}` : ""}
               </option>
             ))}
           </AdminSelect>
           <p className="text-xs text-muted-foreground">
-            Hanya template aktif yang tampil. Kelola di menu Keuangan → Template Pengeluaran.
+            HPP rata-rata diambil dari riwayat pembelian. Kelola di menu Bahan Baku.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="grid gap-1.5 col-span-2">
-            <Label>Nama Bahan</Label>
-            <Input name="customName" placeholder="cth: Daging sapi" required />
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-1.5 col-span-2">
+              <Label>Nama Bahan</Label>
+              <Input name="customName" placeholder="cth: Daging sapi" required />
+            </div>
+            <div className="grid gap-1.5">
+              <Label>Satuan</Label>
+              <Input name="customUnit" placeholder="cth: kg, liter, pcs" />
+            </div>
           </div>
-          <div className="grid gap-1.5">
-            <Label>Satuan</Label>
-            <Input name="customUnit" placeholder="cth: kg, liter, pcs" />
-          </div>
-        </div>
+          <p className="text-xs text-warning-foreground bg-warning/10 rounded px-2 py-1">
+            Bahan lepas tidak memiliki data HPP dan tidak mempengaruhi stok.
+          </p>
+        </>
       )}
 
       <div className="grid gap-1.5">
         <Label>Jumlah</Label>
-        <Input
-          name="quantity"
-          type="number"
-          step="0.01"
-          min="0.01"
-          placeholder="cth: 0.5"
-          required
-          className="w-32"
-        />
+        <Input name="quantity" type="number" step="0.01" min="0.01"
+          placeholder="cth: 0.5" required className="w-32" />
       </div>
 
       <Button type="submit" size="sm" disabled={isPending}>Tambah Bahan</Button>

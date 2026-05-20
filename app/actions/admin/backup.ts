@@ -11,6 +11,9 @@ const ALL_TABLES = [
   "packageItems",
   "menuItemOnlinePrices",
   "staff",
+  "suppliers",
+  "ingredients",
+  "ingredientPacks",
   "expenses",
   "expenseItems",
   "expenseTemplates",
@@ -27,7 +30,10 @@ const ALL_TABLES = [
   "onlineSettlements",
   "settlementItems",
   "settlementDeductions",
+  "ingredientPurchases",
   "ingredientLogs",
+  "stockOpnames",
+  "stockOpnameLines",
 ] as const;
 
 export type BackupTableKey = (typeof ALL_TABLES)[number];
@@ -63,6 +69,15 @@ export async function exportDatabase(tables: string[]) {
         break;
       case "staff":
         result.staff = await prisma.staff.findMany();
+        break;
+      case "suppliers":
+        result.suppliers = await prisma.supplier.findMany();
+        break;
+      case "ingredients":
+        result.ingredients = await prisma.ingredient.findMany();
+        break;
+      case "ingredientPacks":
+        result.ingredientPacks = await prisma.ingredientPack.findMany();
         break;
       case "expenses":
         result.expenses = await prisma.expense.findMany();
@@ -112,14 +127,23 @@ export async function exportDatabase(tables: string[]) {
       case "settlementDeductions":
         result.settlementDeductions = await prisma.settlementDeduction.findMany();
         break;
+      case "ingredientPurchases":
+        result.ingredientPurchases = await prisma.ingredientPurchase.findMany({ orderBy: { purchasedAt: "asc" } });
+        break;
       case "ingredientLogs":
         result.ingredientLogs = await prisma.ingredientLog.findMany({ orderBy: { createdAt: "asc" } });
+        break;
+      case "stockOpnames":
+        result.stockOpnames = await prisma.stockOpname.findMany({ orderBy: { performedAt: "asc" } });
+        break;
+      case "stockOpnameLines":
+        result.stockOpnameLines = await prisma.stockOpnameLine.findMany();
         break;
     }
   }
 
   return {
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     tables: result,
   };

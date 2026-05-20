@@ -16,7 +16,7 @@ import { addExpense, updateExpense, deleteExpense } from "@/app/actions/admin/ex
 import { exportPDF } from "@/lib/export-pdf";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 
-type ExpenseItem = { id: string; description: string; amount: number; cost: number; unit?: string | null; templateId?: string | null };
+type ExpenseItem = { id: string; description: string; amount: number; cost: number; unit?: string | null; templateId?: string | null; ingredientId?: string | null };
 type Expense = {
   id: string;
   description: string | null;
@@ -28,16 +28,23 @@ type Expense = {
   items: ExpenseItem[];
 };
 
+type IngredientOption = {
+  id: string; name: string; baseUnit: string; averageUnitCost: number; category: string;
+  packs: { label: string; baseQty: number; isDefault: boolean }[];
+};
+
 export default function ExpensesClient({
   expenses,
   totalAmount,
   filters,
   isOwner,
+  ingredients,
 }: {
   expenses: Expense[];
   totalAmount: number;
   filters: { from: string; to: string };
   isOwner: boolean;
+  ingredients: IngredientOption[];
 }) {
   const router = useRouter();
   const { isPending, run, error } = useAdminAction();
@@ -113,6 +120,7 @@ export default function ExpensesClient({
               key={addFormKey}
               mode="add"
               isPending={isPending}
+              ingredients={ingredients}
               onSubmit={(data) =>
                 run(() => addExpense(data), {
                   successMessage: "Pengeluaran berhasil ditambahkan",
@@ -164,6 +172,7 @@ export default function ExpensesClient({
                       <ExpenseForm
                         mode="edit"
                         isPending={isPending}
+                        ingredients={ingredients}
                         defaultValues={{
                           description: e.description ?? undefined,
                           deductFromCash: e.deductFromCash,
@@ -174,6 +183,7 @@ export default function ExpensesClient({
                             cost: i.cost,
                             unit: i.unit ?? undefined,
                             templateId: i.templateId ?? null,
+                            ingredientId: i.ingredientId ?? i.templateId ?? null,
                           })),
                         }}
                         onSubmit={(data) =>

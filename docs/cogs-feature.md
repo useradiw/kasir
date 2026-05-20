@@ -1,186 +1,167 @@
-# Panduan Fitur COGS & Stok Bahan Baku
+# Panduan Stok Bahan, Supplier & Opname
 
-## Ringkasan
+## Apa yang Berubah
 
-Fitur ini menghubungkan pembelian bahan baku ke resep menu, sehingga sistem bisa menghitung **HPP (Harga Pokok Penjualan / COGS)** per transaksi secara otomatis dan melacak **stok bahan baku** secara real-time.
+Sistem stok dan HPP sekarang berpusat pada **Bahan Baku** (Ingredient), bukan lagi Template Pengeluaran. Ini membawa beberapa kemampuan baru:
+
+- **HPP rata-rata tertimbang (WMA)** — harga bahan dihitung otomatis dari semua pembelian, bukan hanya pembelian terakhir.
+- **Supplier** — catat dari siapa Anda membeli, lihat riwayat per supplier.
+- **Pack/Satuan Pembelian** — beli "1 dus" → otomatis dikonversi ke "12 pcs" di stok.
+- **Opname Stok bulanan** — hitung fisik vs sistem, selisih masuk ke log otomatis.
+- **Riwayat HPP per bahan** — grafik harga, daftar semua pembelian, semua pergerakan stok.
+
+> Data lama tetap aman. Migrasi sudah menyalin semua Template lama menjadi Bahan Baku dengan ID yang sama, dan semua riwayat pembelian sudah diisi ulang sebagai IngredientPurchase.
 
 ---
 
-## Cara Kerja — Alur Data
+## Ringkasan Alur
 
 ```
-Pembelian (Expense) → ExpenseTemplate (identitas bahan) → RecipeIngredient (komposisi)
-                                                                    ↓
-                                          OrderItem (item terjual) → COGS + Deducted Stock
+Pembelian (Expense)  ─►  Bahan (Ingredient)  ─►  Resep  ─►  Penjualan  ─►  HPP & Stok
+        │                       ▲
+        ▼                       │
+    Supplier               Opname Stok
 ```
 
-Setiap penjualan yang tersinkronisasi ke server akan otomatis:
-1. Menghitung HPP berdasarkan resep item yang terjual × harga beli terkini per bahan
-2. Mengurangi stok bahan sesuai kebutuhan resep
-3. Menyimpan log pergerakan stok untuk audit
+Setiap kali penjualan tersinkronisasi ke server:
+1. Sistem membaca resep dari menu yang terjual
+2. Stok bahan dikurangi sesuai resep × jumlah porsi
+3. HPP dihitung dari **harga rata-rata bahan** × kuantitas
 
 ---
 
-## Setup Awal (Wajib Dilakukan Berurutan)
+## Setup Awal
 
-### Langkah 1 — Buat Template Pengeluaran per Bahan Baku
+### 1. Bahan Baku
+**Di mana:** Admin → Barang → Bahan Baku (`/admin/ingredients`)
 
-**Di mana:** Admin → Keuangan → Template Pengeluaran
+Tiap bahan punya:
+- **Nama** — contoh: "Telur", "Gula Pasir"
+- **Kategori** — Bahan / Kemasan / Perlengkapan / Lainnya (memudahkan filter)
+- **Satuan Dasar** — satuan terkecil untuk hitung stok, contoh: `gr`, `ml`, `pcs`
+- **Batas Stok Min** (opsional) — peringatan jika stok ≤ angka ini
 
-Setiap bahan baku harus punya satu template. Contoh:
-- "Arang" (satuan: kg)
-- "Daging Sapi" (satuan: kg)
-- "Bumbu Rahasia" (satuan: pcs)
+Klik tombol **+ Tambah** untuk membuat bahan baru. Klik baris untuk masuk ke halaman detail (Pembelian, Pemakaian, Pengaturan).
 
-**Penting:** Gunakan nama yang konsisten dan jelas. Template ini adalah "identitas permanen" bahan. Setelah dibuat, jangan membuat template baru dengan nama berbeda untuk bahan yang sama — selalu gunakan template yang sudah ada.
+### 2. Pack/Satuan Pembelian (opsional tapi disarankan)
+**Di mana:** Halaman detail bahan → tab **Pengaturan** → kartu **Satuan Pack**
 
-### Langkah 2 — Catat Pembelian via Pengeluaran
+Pack adalah satuan saat beli. Contoh untuk bahan "Telur" (satuan dasar `pcs`):
+- Pack `kg` → `baseQty = 16` (1 kg ≈ 16 butir)
+- Pack `tray` → `baseQty = 30`
+- Pack `pcs` → `baseQty = 1` (default)
 
-**Di mana:** Admin → Keuangan → Pengeluaran, atau Kasir → Pengeluaran
+Saat catat pengeluaran "2 kg telur Rp 60.000", sistem otomatis: `2 × 16 = 32 pcs` masuk ke stok dengan HPP `60.000 / 32 = Rp 1.875/pcs`.
 
-Saat mencatat pengeluaran, pastikan setiap item bahan baku dipilih dari template (bukan diketik manual), dan isi:
-- **Jumlah (amount):** berapa unit yang dibeli (misalnya: 10 kg)
-- **Harga/unit (cost):** harga per unit dalam Rupiah (misalnya: 50.000/kg)
+Tandai satu pack sebagai **Default** — itu yang otomatis dipilih saat catat pengeluaran.
 
-Saat pengeluaran disimpan, sistem otomatis:
-- Menambah stok template tersebut sebesar jumlah yang dibeli
-- Mencatat log pergerakan stok dengan tipe PURCHASE
+### 3. Supplier (opsional)
+**Di mana:** Admin → Keuangan → Supplier (`/admin/suppliers`)
 
-### Langkah 3 — Buat Resep untuk Menu Item
+Daftar penjual/toko langganan. Saat catat pengeluaran, pilih supplier dari dropdown — riwayat per supplier bisa dilihat nanti.
 
-**Di mana:** Admin → Inventori → Tab Resep
+### 4. Resep Menu
+**Di mana:** Admin → Barang → Inventori → tab **Resep**
 
-Untuk setiap menu yang ingin dihitung HPP-nya:
-1. Klik "Buat Resep" → pilih menu item (dan varian jika perlu)
-2. Tambah bahan: pilih dari Template Pengeluaran, masukkan jumlah per porsi
-   - Contoh: Ayam Bakar → Daging Ayam 0.25 kg + Arang 0.1 kg + Bumbu 1 pcs
-3. Simpan resep
-
-**Catatan:** Hanya bahan yang terhubung ke Template Pengeluaran yang akan masuk perhitungan HPP dan stok. Bahan "custom" (tanpa template) tidak dihitung.
-
-### Langkah 4 — Jalankan Backfill (Sekali Saja)
-
-**Di mana:** Admin → Stok Bahan Baku → tombol "Backfill dari riwayat"
-
-Ini mengisi stok awal dari semua riwayat pembelian yang sudah ada. Jalankan **satu kali saja** setelah setup. Sistem akan:
-- Membaca semua ExpenseItem yang memiliki templateId
-- Menjumlahkan total pembelian per template
-- Mengisi currentStock dengan total tersebut
-
-**Catatan:** Backfill hanya mengisi stok dari pembelian — tidak mengurangi stok dari penjualan historis (hanya penjualan baru yang akan mengurangi stok). Jika ingin stok akurat, perlu penyesuaian manual setelah backfill.
+1. **Buat Resep** → pilih menu (dan varian jika perlu)
+2. **+ Tambah Bahan** → pilih bahan dari daftar, isi kuantitas per porsi dalam satuan dasar bahan
+3. HPP per porsi langsung muncul; warna margin: hijau ≥60%, kuning 30–60%, merah <30%
 
 ---
 
-## Operasi Sehari-hari
+## Operasi Harian
 
-### Catat Pembelian Bahan Baku
-→ Pengeluaran → pastikan item menggunakan Template yang benar → Simpan  
-*Sistem otomatis menambah stok dan mencatat log.*
+### Catat Pembelian
+**Di mana:** `/expenses` (kasir/staff) atau Admin → Laporan → Pengeluaran (`/admin/expenses`)
 
-### Lihat Stok Bahan Baku
-**Di mana:** Admin → Stok Bahan Baku (`/admin/ingredients`)
+1. Klik **Tambah Pengeluaran**
+2. Pilih **Supplier** (opsional)
+3. Ketik nama bahan — pilih dari daftar bahan (autocomplete). Pack default ikut terpilih.
+4. Isi **Jumlah** (dalam satuan pack, mis. 2 dus) dan **Harga/satuan**
+5. Centang opsi:
+   - **Potong dari Kas** — kurangi saldo kas harian
+   - **Catat ke Kas Pak Har** — masuk ke jurnal pemilik (mutual exclusive)
+6. **Simpan**
 
-Menampilkan:
-- Stok saat ini per bahan
-- Harga beli terkini
-- Tanggal pembelian terakhir
-- Indikator merah jika stok di bawah batas minimum
+Sistem otomatis:
+- Tambah stok = `pack qty × baseQty pack`
+- Update **HPP rata-rata tertimbang**: `(stok lama × hpp lama + total bayar) / stok baru`
+- Catat **IngredientPurchase** dengan snapshot harga, supplier, dan stock-after
 
-### Set Batas Minimum Stok
-Di halaman Stok Bahan Baku → klik "Batas Min" → masukkan jumlah minimum → Simpan  
-Bahan yang stoknya di bawah batas akan disorot merah sebagai peringatan.
+### Lihat Detail Bahan
+Buka `/admin/ingredients/[id]` (klik baris di daftar bahan). Tiga tab:
 
-### Penyesuaian Manual (Stok Opname / Pemborosan)
-Di halaman Stok Bahan Baku → klik "Sesuaikan":
-- Masukkan jumlah positif (+) untuk menambah stok (misalnya: hasil stok opname lebih dari catatan)
-- Masukkan jumlah negatif (-) untuk mengurangi stok (misalnya: pemborosan, kerusakan)
-- Isi catatan untuk alasan penyesuaian
+- **Pembelian** — grafik HPP, daftar pembelian dengan supplier, sumber, dan HPP rata-rata setelah tiap transaksi
+- **Pemakaian** — semua log stok (PURCHASE, SALE, ADJUSTMENT, WASTE)
+- **Pengaturan** — edit info, kelola pack, sesuaikan stok manual, catat pemborosan, nonaktifkan bahan
 
-### Lihat Log Pergerakan Stok
-Di halaman Stok Bahan Baku → klik "Log" pada bahan yang ingin dilihat
+### Opname Stok (Bulanan)
+**Di mana:** Admin → Keuangan → Opname Stok (`/admin/stock-opname`)
 
-Tipe log:
-- **PURCHASE** — dari pencatatan pengeluaran pembelian
-- **SALE** — dikurangi otomatis saat transaksi tersinkronisasi dari kasir
-- **ADJUSTMENT** — penyesuaian manual, atau reversal saat pengeluaran diedit/dihapus
-- **WASTE** — (belum diimplementasi di UI, tersedia di schema)
+Dashboard akan menampilkan banner peringatan jika belum opname bulan ini.
 
----
+1. Klik **+ Mulai Opname**
+2. Untuk setiap bahan, isi **jumlah fisik** yang dihitung. Sistem otomatis hitung selisih vs stok tercatat.
+3. Tambahkan **catatan** jika perlu
+4. **Simpan Opname**
 
-## HPP di Laporan
+Apa yang terjadi setelah simpan:
+- Stok sistem disetel ke jumlah hasil hitung fisik
+- Selisih dicatat sebagai `ADJUSTMENT` (shrinkage) atau `OPNAME_GAIN` (kelebihan)
+- Riwayat opname tersimpan dan bisa di-expand kapan saja
 
-### Di Laporan (`/admin/reports`)
-Laporan menampilkan (hanya OWNER):
-- **HPP (COGS):** total harga pokok semua penjualan dalam periode
-- **Laba Kotor:** Pendapatan − HPP
-- **Margin Kotor (%):** (Laba Kotor / Pendapatan) × 100
-- **Laba Bersih:** Pendapatan − Total Pengeluaran (seperti sebelumnya)
+### Pemborosan / Waste
+Halaman detail bahan → tab Pengaturan → **+ Catat Pemborosan**. Isi jumlah dan alasan (basi, tumpah, dst.). Stok berkurang, log `WASTE` tercatat.
 
-### Di Detail Transaksi (`/admin/transactions/[id]`)
-Setiap transaksi yang memiliki resep akan menampilkan:
-- Daftar bahan yang digunakan, jumlah, harga per unit, dan subtotal
-- Total HPP transaksi tersebut
-- Laba Kotor transaksi
-
-### Di Tab Resep (`/admin/inventory` → Tab Resep)
-Setiap resep menampilkan:
-- **HPP:** biaya bahan per porsi (dari harga beli terkini)
-- **Harga:** harga jual menu
-- **Margin:** persentase margin kotor
-
-Warna margin:
-- Hijau: ≥ 60% (bagus)
-- Kuning: 30–60% (perlu perhatian)
-- Merah: < 30% (berbahaya)
+### Penyesuaian Stok Manual
+Halaman detail bahan → tab Pengaturan → **Sesuaikan Stok**. Masukkan nilai positif untuk tambah, negatif untuk kurangi. Selalu sertakan alasan.
 
 ---
 
 ## Tentang Perhitungan HPP
 
-**Metode:** Dynamic — menggunakan harga beli terkini saat transaksi tersinkronisasi ke server.
+**Metode: Weighted Moving Average (WMA)**
 
-**Rumus:**
+Setiap pembelian memperbarui HPP rata-rata bahan:
+
 ```
-HPP per item = Σ (jumlah_bahan_per_resep × harga_beli_terkini) × qty_item_terjual
-HPP transaksi = Σ HPP semua item
+HPP baru = (stok lama × HPP lama + total bayar pembelian) / (stok lama + jumlah dibeli)
 ```
 
-**Harga beli terkini** = `cost` dari ExpenseItem terakhir yang memiliki templateId tersebut, diurutkan berdasarkan `expense.recordedAt` DESC.
+Saat menu terjual:
+```
+HPP transaksi = Σ (kuantitas bahan dalam resep × HPP rata-rata bahan) × porsi
+```
 
-**Package:** HPP paket = jumlah HPP dari semua member item dalam paket tersebut.
-
-**Void:** Jika transaksi di-void, semua pengurangan stok dari transaksi tersebut akan dikembalikan (stock reversal), dan `cogs` di-set null.
+Catatan:
+- HPP rata-rata adalah O(1) — disimpan langsung di kolom `averageUnitCost` pada tabel `ingredients`
+- Edit/hapus pembelian: stok dikembalikan, tapi **HPP rata-rata tidak dihitung mundur** (untuk menjaga akurasi historis)
+- Void transaksi: stok yang sudah dikurangi dikembalikan lewat `ADJUSTMENT` log
 
 ---
 
-## Peringatan Penting
+## Tips & Peringatan
 
-1. **Gunakan Template secara konsisten.** Jika bahan yang sama dicatat dengan nama berbeda di ExpenseItem (tanpa template), pembelian tersebut tidak akan masuk ke stok dan HPP.
-
-2. **Backfill hanya sekali.** Menjalankan backfill berkali-kali aman (sudah ada guard idempotent per template), tapi tidak perlu.
-
-3. **Stok bisa negatif.** Sistem tidak memblokir penjualan meski stok habis — ia hanya mencatat. Pantau halaman Stok Bahan Baku secara rutin.
-
-4. **HPP 0 bukan error.** Jika menu item tidak punya resep, atau resepnya hanya menggunakan bahan "custom" (tanpa template), HPP akan 0. Ini normal.
-
-5. **Edit/hapus pengeluaran mempengaruhi stok.** Saat pengeluaran diedit atau dihapus, stok dari pembelian lama akan dikembalikan dulu, lalu stok baru dari pembelian yang diperbarui ditambahkan.
+- **Konsistensi nama bahan.** Hindari membuat dua bahan dengan nama mirip ("Telur" vs "Telor"). Gabungkan satu nama saja.
+- **Stok bisa negatif.** Sistem tidak memblokir penjualan saat stok habis — pantau halaman Bahan Baku dan jangan abaikan badge "hampir habis".
+- **Opname rutin.** Lakukan minimal sebulan sekali. Banner di dashboard akan mengingatkan.
+- **Pack default.** Selalu set pack default untuk bahan yang sering dibeli dengan kemasan tertentu — bikin input pengeluaran lebih cepat.
+- **HPP 0?** Kemungkinan: bahan belum pernah dibeli (averageUnitCost masih 0), atau resep menggunakan bahan custom (tanpa link ke Ingredient).
 
 ---
 
 ## Troubleshooting
 
-**HPP selalu 0 di transaksi:**
-- Cek apakah menu item memiliki resep di Tab Resep
-- Cek apakah semua bahan dalam resep menggunakan Template (bukan custom)
-- Cek apakah ada ekspense dengan template tersebut yang dicatat sebelum/saat penjualan
+**Stok tidak bertambah saat catat pengeluaran**
+Pastikan item dipilih dari dropdown bahan, bukan diketik manual. Item tanpa `ingredientId` tidak akan masuk stok.
 
-**Stok tidak bertambah saat catat pengeluaran:**
-- Pastikan item pengeluaran dipilih dari Template (ada templateId), bukan diketik manual
+**HPP rata-rata terasa "salah"**
+Cek tab Pembelian di halaman detail bahan — semua pembelian yang membentuk rata-rata terlihat di sana. Jika ada pembelian dengan harga ekstrem, itu yang menarik rata-rata.
 
-**Stok tidak berkurang setelah penjualan:**
-- COGS dan stock deduction hanya terjadi saat transaksi tersinkronisasi dari kasir ke server
-- Cek apakah transaksi sudah tersinkronisasi (lihat SyncBadge di kasir)
+**Stok tidak berkurang saat penjualan**
+- COGS dan deduksi stok terjadi saat transaksi tersinkronisasi dari kasir ke server
+- Cek apakah transaksi sudah sync (badge SyncBadge di kasir)
+- Cek apakah menu yang terjual punya resep dengan bahan yang ter-link ke Ingredient
 
-**Stok tidak akurat setelah backfill:**
-- Backfill hanya menghitung pembelian, tidak mengurangi stok dari penjualan historis
-- Lakukan penyesuaian manual: hitung stok fisik aktual, sesuaikan menggunakan fitur "Sesuaikan" di halaman Stok Bahan Baku
+**Stok fisik tidak cocok dengan sistem**
+Lakukan opname stok — selisih akan masuk ke log otomatis.

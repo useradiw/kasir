@@ -159,9 +159,11 @@ model Expense {
   recordedAt       DateTime      @default(now())
   createdAt        DateTime      @default(now())
   staffId          String?
+  supplierId       String?
   deductFromCash   Boolean       @default(true)
   countToKasPakHar Boolean       @default(false)
   staff            Staff?        @relation(fields: [staffId], references: [id])
+  supplier         Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
   items            ExpenseItem[]
   kasPakHarEntries KasPakHar[]
 
@@ -169,15 +171,18 @@ model Expense {
 }
 
 model ExpenseItem {
-  id          String           @id @default(uuid())
-  expenseId   String
-  expense     Expense          @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  description String
-  amount      Float
-  cost        Int
-  unit        String?
-  templateId  String?
-  template    ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  id           String           @id @default(uuid())
+  expenseId    String
+  expense      Expense          @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  description  String
+  amount       Float
+  cost         Int
+  unit         String?
+  templateId   String?          // legacy FK → ExpenseTemplate (kept until migration 2)
+  template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  ingredientId String?          // new FK → Ingredient
+  ingredient   Ingredient?      @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  purchase     IngredientPurchase?
 
   @@map("expense_items")
 }
@@ -213,15 +218,15 @@ model Setting {
 // --- STAFF & ATTENDANCE ---
 
 model Staff {
-  id                String             @id @default(uuid())
-  username          String?            @unique
-  name              String
-  role              RoleEnum
-  isActive          Boolean            @default(true)
-  supabaseUserId    String?            @unique
-  salary            Int?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id                  String             @id @default(uuid())
+  username            String?            @unique
+  name                String
+  role                RoleEnum
+  isActive            Boolean            @default(true)
+  supabaseUserId      String?            @unique
+  salary              Int?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
   attendanceRecords   AttendanceRecord[]
   transactions        Transaction[]      @relation("ProcessedTransactions")
   voidedTransactions  Transaction[]      @relation("VoidedTransactions")
@@ -233,6 +238,7 @@ model Staff {
   notifications       Notification[]
   kasPakHarEntries    KasPakHar[]
   onlineSettlements   OnlineSettlement[] @relation("SettledOnlineOrders")
+  stockOpnames        StockOpname[]
 
   @@map("staff")
 }
@@ -336,7 +342,7 @@ model SettlementDeduction {
   @@map("settlement_deductions")
 }
 
-// --- EXPENSE TEMPLATES ---
+// --- EXPENSE TEMPLATES (legacy — kept until migration 2) ---
 
 model ExpenseTemplate {
   id                String             @id @default(uuid())
@@ -354,12 +360,121 @@ model ExpenseTemplate {
   @@map("expense_templates")
 }
 
+// --- SUPPLIERS ---
+
+model Supplier {
+  id        String    @id @default(uuid())
+  name      String
+  phone     String?
+  notes     String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expenses  Expense[]
+  purchases IngredientPurchase[]
+
+  @@map("suppliers")
+}
+
+// --- INGREDIENTS (replaces ExpenseTemplate as the authoritative item master) ---
+
+model Ingredient {
+  id              String             @id @default(uuid())
+  name            String             @unique
+  category        IngredientCategory @default(BAHAN)
+  baseUnit        String             @default("pcs")
+  currentStock    Float              @default(0)
+  averageUnitCost Int                @default(0)
+  lastUnitCost    Int?
+  lastPurchasedAt DateTime?
+  lowStockAlert   Float?
+  isActive        Boolean            @default(true)
+  notes           String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  packs             IngredientPack[]
+  purchases         IngredientPurchase[]
+  recipeIngredients RecipeIngredient[]
+  ingredientLogs    IngredientLog[]
+  expenseItems      ExpenseItem[]
+  opnameLines       StockOpnameLine[]
+
+  @@map("ingredients")
+}
+
+model IngredientPack {
+  id           String     @id @default(uuid())
+  ingredientId String
+  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  label        String
+  baseQty      Float
+  isDefault    Boolean    @default(false)
+
+  @@unique([ingredientId, label])
+  @@map("ingredient_packs")
+}
+
+model IngredientPurchase {
+  id            String                  @id @default(uuid())
+  ingredientId  String
+  ingredient    Ingredient              @relation(fields: [ingredientId], references: [id])
+  supplierId    String?
+  supplier      Supplier?               @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  expenseItemId String?                 @unique
+  expenseItem   ExpenseItem?            @relation(fields: [expenseItemId], references: [id], onDelete: SetNull)
+  source        IngredientPurchaseSource
+
+  packLabel         String?
+  packQty           Float
+  baseQty           Float
+  totalCost         Int
+  unitCost          Int
+  avgUnitCostAfter  Int
+  stockAfter        Float
+
+  purchasedAt   DateTime  @default(now())
+  recordedById  String?
+  notes         String?
+
+  @@index([ingredientId, purchasedAt])
+  @@map("ingredient_purchases")
+}
+
+// --- STOCK OPNAME ---
+
+model StockOpname {
+  id            String            @id @default(uuid())
+  performedAt   DateTime          @default(now())
+  performedById String?
+  performedBy   Staff?            @relation(fields: [performedById], references: [id], onDelete: SetNull)
+  notes         String?
+  lines         StockOpnameLine[]
+
+  @@index([performedAt])
+  @@map("stock_opnames")
+}
+
+model StockOpnameLine {
+  id           String      @id @default(uuid())
+  opnameId     String
+  opname       StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id])
+  systemQty    Float
+  countedQty   Float
+  delta        Float
+  noteReason   String?
+
+  @@map("stock_opname_lines")
+}
+
 // --- RECIPES ---
 
 model Recipe {
   id          String             @id @default(uuid())
   menuItemId  String
-  variantId   String?            // null = base item; non-null = specific variant
+  variantId   String?
   notes       String?
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
@@ -374,12 +489,14 @@ model Recipe {
 model RecipeIngredient {
   id           String           @id @default(uuid())
   recipeId     String
-  templateId   String?          // FK to ExpenseTemplate; null = standalone ingredient
-  customName   String?          // required when templateId is null
+  templateId   String?          // legacy FK → ExpenseTemplate (kept until migration 2)
+  customName   String?
   customUnit   String?
   quantity     Float
+  ingredientId String?          // new FK → Ingredient
   recipe       Recipe           @relation(fields: [recipeId], references: [id], onDelete: Cascade)
   template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  ingredient   Ingredient?      @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
 
   @@map("recipe_ingredients")
 }
@@ -387,21 +504,37 @@ model RecipeIngredient {
 // --- INGREDIENT STOCK LEDGER ---
 
 model IngredientLog {
-  id          String            @id @default(uuid())
-  templateId  String
-  template    ExpenseTemplate   @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  type        StockMovementType
-  quantity    Float
-  unitCost    Int
-  referenceId String?
-  note        String?
-  createdAt   DateTime          @default(now())
+  id           String            @id @default(uuid())
+  templateId   String?           // legacy FK → ExpenseTemplate (nullable after migration 1)
+  template     ExpenseTemplate?  @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  ingredientId String?           // new FK → Ingredient
+  ingredient   Ingredient?       @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  type         StockMovementType
+  quantity     Float
+  unitCost     Int
+  referenceId  String?
+  note         String?
+  createdAt    DateTime          @default(now())
 
+  @@index([ingredientId, createdAt])
   @@index([templateId, createdAt])
   @@map("ingredient_logs")
 }
 
 // --- ENUMS ---
+
+enum IngredientCategory {
+  BAHAN
+  KEMASAN
+  PERLENGKAPAN
+  LAINNYA
+}
+
+enum IngredientPurchaseSource {
+  EXPENSE
+  ADJUSTMENT
+  OPNAME_GAIN
+}
 
 enum ServiceEnum {
   GoFood

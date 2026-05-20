@@ -6,16 +6,10 @@ import { requireRole, requireOwner } from "@/lib/admin-auth";
 import { revalidateInventory } from "@/lib/revalidate";
 import { runAction } from "@/lib/action-error";
 
-// ─── Recipe ───────────────────────────────────────────────────────────────────
-
 const RecipeSchema = z.object({
   notes: z.string().optional(),
 });
 
-/**
- * Upsert the recipe for a menuItem+variant combo.
- * variantId="" means null (base item, no variant).
- */
 export async function upsertRecipe(
   menuItemId: string,
   variantId: string | null,
@@ -28,7 +22,6 @@ export async function upsertRecipe(
     });
     const vid = variantId || null;
 
-    // Prisma nullable unique: use findFirst + create/update to avoid type issues
     const existing = await prisma.recipe.findFirst({
       where: { menuItemId, variantId: vid },
     });
@@ -55,37 +48,36 @@ export async function deleteRecipe(recipeId: string) {
   });
 }
 
-// ─── Recipe Ingredients ───────────────────────────────────────────────────────
-
 const IngredientLineSchema = z.object({
-  templateId: z.string().optional(),
-  customName: z.string().min(1).optional(),
-  customUnit: z.string().optional(),
-  quantity: z.coerce.number().positive(),
+  ingredientId: z.string().optional(),
+  customName:   z.string().min(1).optional(),
+  customUnit:   z.string().optional(),
+  quantity:     z.coerce.number().positive(),
 });
 
 export async function addRecipeIngredient(recipeId: string, formData: FormData) {
   return runAction(async () => {
     await requireRole("OWNER", "MANAGER");
     const raw = {
-      templateId: formData.get("templateId")?.toString() || undefined,
-      customName: formData.get("customName")?.toString() || undefined,
-      customUnit: formData.get("customUnit")?.toString() || undefined,
-      quantity: formData.get("quantity"),
+      ingredientId: formData.get("ingredientId")?.toString() || undefined,
+      customName:   formData.get("customName")?.toString() || undefined,
+      customUnit:   formData.get("customUnit")?.toString() || undefined,
+      quantity:     formData.get("quantity"),
     };
     const parsed = IngredientLineSchema.parse(raw);
 
-    if (!parsed.templateId && !parsed.customName) {
+    if (!parsed.ingredientId && !parsed.customName) {
       throw new Error("Pilih bahan dari daftar atau masukkan nama bahan baru.");
     }
 
     await prisma.recipeIngredient.create({
       data: {
         recipeId,
-        templateId: parsed.templateId || null,
-        customName: parsed.customName || null,
-        customUnit: parsed.customUnit || null,
-        quantity: parsed.quantity,
+        ingredientId: parsed.ingredientId || null,
+        templateId:   parsed.ingredientId || null, // keep in sync until migration 2
+        customName:   parsed.customName || null,
+        customUnit:   parsed.customUnit || null,
+        quantity:     parsed.quantity,
       },
     });
     revalidateInventory();

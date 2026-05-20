@@ -69,4 +69,17 @@ export function revalidateIngredients() {
   revalidatePath("/admin/ingredients");
   revalidatePath("/admin/inventory");
   revalidatePath("/admin/expense-templates");
+  revalidatePath("/admin");
+}
+
+/** Revalidate supplier pages. */
+export function revalidateSuppliers() {
+  revalidatePath("/admin/suppliers");
+}
+
+/** Revalidate stock opname page and dashboard. */
+export function revalidateOpname() {
+  revalidatePath("/admin/stock-opname");
+  revalidatePath("/admin/ingredients");
+  revalidatePath("/admin");
 }

@@ -65,7 +65,7 @@ export default async function PetunjukPage() {
       <h1 className="text-2xl font-bold mb-1">Petunjuk Penggunaan</h1>
       <p className="text-muted-foreground text-sm mb-6">
         Panduan cara menggunakan fitur-fitur aplikasi Kasir POS.
-        <span className="block mt-1 text-xs">Ditulis: 15 Mei 2026</span>
+        <span className="block mt-1 text-xs">Diperbarui: 20 Mei 2026</span>
       </p>
 
       {/* TOC at top */}
@@ -86,16 +86,19 @@ export default async function PetunjukPage() {
             <a href="#admin-inventori" className="text-foreground hover:text-primary transition-colors py-0.5">Inventori & Resep</a>
           )}
           {isAdmin && (
-            <a href="#admin-stok-bahan" className="text-foreground hover:text-primary transition-colors py-0.5">Stok Bahan (HPP)</a>
+            <a href="#admin-bahan-baku" className="text-foreground hover:text-primary transition-colors py-0.5">Bahan Baku & HPP</a>
+          )}
+          {isAdmin && (
+            <a href="#admin-supplier" className="text-foreground hover:text-primary transition-colors py-0.5">Supplier</a>
+          )}
+          {isAdmin && (
+            <a href="#admin-opname" className="text-foreground hover:text-primary transition-colors py-0.5">Opname Stok</a>
           )}
           {isAdmin && (
             <a href="#admin-transaksi" className="text-foreground hover:text-primary transition-colors py-0.5">Transaksi</a>
           )}
           {isAdmin && (
             <a href="#admin-pengeluaran" className="text-foreground hover:text-primary transition-colors py-0.5">Pengeluaran Admin</a>
-          )}
-          {isAdmin && (
-            <a href="#admin-template" className="text-foreground hover:text-primary transition-colors py-0.5">Template Pengeluaran</a>
           )}
           <a href="#akses-peran" className="text-foreground hover:text-primary transition-colors py-0.5">Akses Peran</a>
         </div>
@@ -153,13 +156,15 @@ export default async function PetunjukPage() {
         <Steps>
           <li>Buka <Link href="/expenses" className="text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
           <li>Ketuk <strong>Tambah Pengeluaran</strong>.</li>
-          <li>Mulai ketik nama item — pilih dari autocomplete template yang tersedia.</li>
-          <li>Isi jumlah, satuan, dan harga total.</li>
-          <li>Centang <strong>Potongan Kas</strong> jika pengeluaran ini mengurangi saldo kas harian.</li>
+          <li>Pilih <strong>Supplier</strong> dari dropdown jika sudah dibuat (opsional).</li>
+          <li>Mulai ketik nama bahan — pilih dari daftar Bahan Baku. Pack default akan otomatis terpilih.</li>
+          <li>Isi <strong>Jumlah</strong> (dalam satuan pack, misal: 2 dus) dan <strong>Harga/satuan</strong>.</li>
+          <li>Centang <strong>Potongan Kas</strong> bila mengurangi saldo kas harian, atau <strong>Catat ke Kas Pak Har</strong> untuk jurnal pemilik.</li>
           <li>Ketuk <strong>Simpan</strong>.</li>
         </Steps>
         <Tips>
-          <li>Jika template terhubung ke bahan baku, stok akan <strong>otomatis bertambah</strong> saat pengeluaran disimpan.</li>
+          <li>Saat item terhubung ke Bahan Baku, stok <strong>otomatis bertambah</strong> dan <strong>HPP rata-rata</strong> diperbarui.</li>
+          <li>Pack mengubah jumlah pack menjadi satuan dasar (mis. 1 dus = 12 pcs) — tidak perlu hitung manual.</li>
         </Tips>
       </section>
 
@@ -252,49 +257,88 @@ export default async function PetunjukPage() {
             <Steps>
               <li>Buka tab <strong>Resep</strong> di halaman Inventori.</li>
               <li>Pilih item menu yang ingin ditambahkan resep.</li>
-              <li>Ketuk <strong>Tambah Bahan</strong>, pilih bahan baku, dan isi kuantitas per porsi.</li>
-              <li>HPP otomatis terhitung dari harga beli terkini bahan × kuantitas. Margin kotor ditampilkan di samping.</li>
+              <li>Ketuk <strong>Tambah Bahan</strong>, pilih bahan dari daftar Bahan Baku, dan isi kuantitas per porsi (dalam satuan dasar bahan).</li>
+              <li>HPP otomatis terhitung dari <strong>HPP rata-rata bahan</strong> × kuantitas. Margin kotor ditampilkan di samping.</li>
             </Steps>
 
-            {/* Stok Bahan */}
-            <SubHeading id="admin-stok-bahan">Stok Bahan (HPP / COGS)</SubHeading>
+            {/* Bahan Baku */}
+            <SubHeading id="admin-bahan-baku">Bahan Baku &amp; HPP</SubHeading>
             <p className="text-sm text-muted-foreground mb-3">
-              Lacak stok bahan baku dan hitung Harga Pokok Penjualan (HPP) secara otomatis.
-              Bahan baku terhubung ke <strong>Template Pengeluaran</strong> — pastikan template sudah
-              ada sebelum mengaktifkan bahan baku.
+              Daftar pusat semua bahan, kemasan, dan perlengkapan. Setiap pembelian
+              memperbarui stok dan <strong>HPP rata-rata tertimbang (WMA)</strong> bahan,
+              jadi laporan HPP selalu akurat.
             </p>
 
-            <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Setup awal bahan baku</p>
+            <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Tambah bahan baru</p>
             <Steps>
-              <li>Buka <Link href="/admin/ingredients" className="text-primary hover:underline">Stok Bahan</Link>.</li>
-              <li>Pastikan Template Pengeluaran untuk bahan tersebut sudah dibuat di menu <strong>Template Pengeluaran</strong>.</li>
-              <li>Di halaman Stok Bahan, temukan bahan yang ingin diaktifkan dan atur <strong>Batas Minimum Stok</strong> via tombol <strong>Batas Min</strong> — sistem akan memberi peringatan jika stok turun di bawah nilai ini.</li>
-              <li>Jika sudah ada data pengeluaran historis, ketuk <strong>Backfill dari Riwayat</strong> untuk mengisi ulang log stok dari data lama. <em>Jalankan sekali saja saat setup pertama kali.</em></li>
+              <li>Buka <Link href="/admin/ingredients" className="text-primary hover:underline">Bahan Baku</Link>.</li>
+              <li>Ketuk <strong>+ Tambah</strong> dan isi: nama, kategori (Bahan/Kemasan/Perlengkapan/Lainnya), satuan dasar (mis. <code>gr</code>, <code>ml</code>, <code>pcs</code>), batas stok minimum (opsional).</li>
+              <li>Klik baris bahan untuk masuk ke halaman detail.</li>
             </Steps>
 
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Pergerakan stok otomatis</p>
+            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Pack / Satuan Pembelian</p>
+            <p className="text-sm text-muted-foreground">
+              Pack adalah satuan saat beli (mis. <code>dus</code>, <code>kg</code>, <code>tray</code>) yang dikonversi otomatis ke satuan dasar.
+            </p>
+            <Steps>
+              <li>Di halaman detail bahan, buka tab <strong>Pengaturan</strong>.</li>
+              <li>Pada kartu <strong>Satuan Pack</strong>, ketuk <strong>+ Tambah Pack</strong>.</li>
+              <li>Isi label (mis. <code>tray</code>) dan qty per pack (mis. <code>30</code> jika 1 tray = 30 pcs).</li>
+              <li>Tandai satu pack sebagai <strong>Default</strong> — itu yang otomatis dipilih saat catat pengeluaran.</li>
+            </Steps>
+
+            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Halaman detail bahan</p>
             <Tips>
-              <li><strong>PURCHASE</strong> — stok bertambah otomatis setiap kali pengeluaran dicatat dengan template yang terhubung ke bahan ini.</li>
-              <li><strong>SALE</strong> — stok berkurang otomatis setiap transaksi kasir selesai, jika item yang terjual memiliki resep yang terdefinisi.</li>
+              <li><strong>Tab Pembelian</strong> — grafik tren HPP, daftar semua pembelian dengan supplier, sumber, dan HPP rata-rata setelah tiap pembelian.</li>
+              <li><strong>Tab Pemakaian</strong> — semua log stok (PURCHASE, SALE, ADJUSTMENT, WASTE) dari mana pun.</li>
+              <li><strong>Tab Pengaturan</strong> — edit info, kelola pack, sesuaikan stok manual, catat pemborosan, nonaktifkan bahan.</li>
             </Tips>
 
             <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Koreksi stok manual</p>
             <Steps>
-              <li>Temukan bahan di halaman Stok Bahan.</li>
-              <li>Untuk koreksi umum: ketuk <strong>Sesuaikan</strong>, masukkan nilai (positif = tambah, negatif = kurangi).</li>
-              <li>Untuk pemborosan/kerusakan: ketuk <strong>Catat Waste</strong> dan isi jumlah yang terbuang.</li>
+              <li>Buka halaman detail bahan → tab <strong>Pengaturan</strong>.</li>
+              <li>Untuk koreksi umum: ketuk <strong>Sesuaikan Stok</strong>, isi nilai (positif = tambah, negatif = kurangi).</li>
+              <li>Untuk pemborosan/kerusakan: ketuk <strong>+ Catat Pemborosan</strong>, isi jumlah dan alasan.</li>
             </Steps>
 
             <Tips>
-              <li>Harga bahan yang digunakan untuk menghitung HPP diambil dari transaksi <strong>PURCHASE terakhir</strong>, bukan dari harga default template.</li>
+              <li>HPP dihitung dengan <strong>rata-rata tertimbang</strong> dari semua pembelian — bukan harga pembelian terakhir saja.</li>
+              <li>Edit/hapus pengeluaran akan mengembalikan stok, tapi HPP rata-rata <strong>tidak dihitung mundur</strong> agar laporan historis tetap akurat.</li>
             </Tips>
 
             <Link
               href="/petunjuk/cogs"
               className="inline-flex items-center gap-1.5 mt-4 text-sm text-primary hover:underline font-medium"
             >
-              Baca panduan lengkap COGS &amp; Stok Bahan →
+              Baca panduan lengkap Bahan, Supplier &amp; Opname →
             </Link>
+
+            {/* Supplier */}
+            <SubHeading id="admin-supplier">Supplier</SubHeading>
+            <p className="text-sm text-muted-foreground mb-2">
+              Daftar penjual/toko langganan. Saat catat pengeluaran, pilih supplier dari dropdown — riwayat pembelian per supplier tersimpan otomatis.
+            </p>
+            <Steps>
+              <li>Buka <Link href="/admin/suppliers" className="text-primary hover:underline">Supplier</Link>.</li>
+              <li>Ketuk <strong>+ Tambah</strong>, isi nama (wajib), nomor HP dan catatan (opsional).</li>
+              <li>Untuk mengubah atau menonaktifkan: ketuk <strong>Edit</strong> atau <strong>Hapus</strong> di baris supplier.</li>
+            </Steps>
+
+            {/* Opname */}
+            <SubHeading id="admin-opname">Opname Stok</SubHeading>
+            <p className="text-sm text-muted-foreground mb-2">
+              Hitung fisik stok bahan dan bandingkan dengan catatan sistem. Lakukan minimal sebulan sekali — dashboard akan memunculkan peringatan jika belum opname bulan ini.
+            </p>
+            <Steps>
+              <li>Buka <Link href="/admin/stock-opname" className="text-primary hover:underline">Opname Stok</Link>.</li>
+              <li>Ketuk <strong>+ Mulai Opname</strong>.</li>
+              <li>Untuk setiap bahan, isi <strong>jumlah fisik</strong> hasil hitung. Selisih vs sistem ditampilkan di samping.</li>
+              <li>Tambah catatan opname (opsional), lalu ketuk <strong>Simpan Opname</strong>.</li>
+              <li>Stok sistem disetel ke jumlah fisik; selisih masuk ke log sebagai ADJUSTMENT (kurang) atau OPNAME_GAIN (lebih).</li>
+            </Steps>
+            <Tips>
+              <li>Riwayat opname tersimpan dan bisa di-expand kapan saja untuk lihat detail penyesuaian per bahan.</li>
+            </Tips>
 
             {/* Transaksi */}
             <SubHeading id="admin-transaksi">Transaksi</SubHeading>
@@ -311,19 +355,6 @@ export default async function PetunjukPage() {
               <li>Buka <Link href="/admin/expenses" className="text-primary hover:underline">Pengeluaran</Link> di panel admin.</li>
               <li>Atur filter rentang tanggal untuk melihat pengeluaran pada periode tertentu.</li>
               <li>Lihat ringkasan total per kategori template di bagian atas halaman.</li>
-            </Steps>
-
-            {/* Template Pengeluaran */}
-            <SubHeading id="admin-template">Template Pengeluaran</SubHeading>
-            <p className="text-sm text-muted-foreground mb-2">
-              Template adalah daftar preset untuk pengeluaran berulang. Nama template muncul sebagai
-              autocomplete di form pengeluaran kasir.
-            </p>
-            <Steps>
-              <li>Buka <Link href="/admin/expense-templates" className="text-primary hover:underline">Template Pengeluaran</Link>.</li>
-              <li>Ketuk <strong>+ Template</strong>, isi nama, satuan default, dan harga default.</li>
-              <li>Untuk menghubungkan ke Stok Bahan, aktifkan toggle <strong>Bahan Baku</strong> pada template tersebut.</li>
-              <li>Simpan — template langsung tersedia di autocomplete pengeluaran kasir.</li>
             </Steps>
 
             {/* Sesi & Absensi — brief */}
@@ -422,10 +453,11 @@ export default async function PetunjukPage() {
                   ["Profil Pengguna", true, true, true, true],
                   ["Panel Admin (Dashboard)", true, true, true, false],
                   ["Inventori & Resep", true, true, false, false],
-                  ["Stok Bahan (HPP)", true, true, false, false],
+                  ["Bahan Baku & HPP", true, true, false, false],
+                  ["Supplier", true, true, false, false],
+                  ["Opname Stok", true, true, false, false],
                   ["Transaksi & Void", true, true, false, false],
                   ["Pengeluaran (admin)", true, true, false, false],
-                  ["Template Pengeluaran", true, true, false, false],
                   ["Pencairan Online (admin)", true, true, false, false],
                   ["Hapus Pencairan", true, false, false, false],
                   ["Sesi Login", true, true, false, false],

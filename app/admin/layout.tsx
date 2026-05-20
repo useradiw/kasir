@@ -16,13 +16,14 @@ const navItemsBase = [
   ]},
   { trigger: "Barang", content: [
     { href: "/admin/inventory", label: "Inventori" },
-    { href: "/admin/ingredients", label: "Stok Bahan" },
+    { href: "/admin/ingredients", label: "Bahan Baku" },
     { href: "/admin/menu-performance", label: "Performa Menu", ownerOnly: true },
   ]},
   { trigger: "Keuangan", content: [
     { href: "/admin/cash-register", label: "Kas Harian" },
     { href: "/admin/kas-pak-har", label: "Kas Pak Har", ownerOnly: true },
-    { href: "/admin/expense-templates", label: "Template Pengeluaran" },
+    { href: "/admin/suppliers", label: "Supplier" },
+    { href: "/admin/stock-opname", label: "Opname Stok" },
     { href: "/admin/settlement", label: "Pencairan Online" },
   ]},
   { trigger: "Laporan", content: [

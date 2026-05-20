@@ -6,47 +6,72 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
+import { AdminSelect } from "@/components/admin/ui";
 import { formatRupiah } from "@/lib/format";
 import { computeExpenseTotal } from "@/lib/expense-utils";
-import {
-  getExpenseTemplates,
-  getDistinctExpenseItemNames,
-} from "@/app/actions/admin/expense-templates";
-import { ItemRow, type ExpenseItemRow, type Template } from "./expense-item-row";
+import { getDistinctExpenseItemNames } from "@/app/actions/admin/expense-templates";
+import { getSuppliers } from "@/app/actions/admin/suppliers";
+import { ItemRow, type ExpenseItemRow, type IngredientOption } from "./expense-item-row";
+
+type Supplier = { id: string; name: string; phone: string | null };
 
 type Props = {
   mode: "add" | "edit";
   isPending: boolean;
+  ingredients: IngredientOption[];  // passed in from parent (server-fetched or client-loaded)
   onSubmit: (data: {
     description?: string;
+    supplierId?: string | null;
     deductFromCash: boolean;
     countToKasPakHar: boolean;
-    items: { description: string; amount: number; cost: number; unit?: string; templateId?: string | null }[];
+    items: {
+      description:  string;
+      amount:       number;
+      cost:         number;
+      unit?:        string;
+      templateId?:  string | null;
+      ingredientId?: string | null;
+    }[];
   }) => void;
   defaultValues?: {
     description?: string;
+    supplierId?: string | null;
     deductFromCash?: boolean;
     countToKasPakHar?: boolean;
-    items: { description: string; amount: number; cost: number; unit?: string; templateId?: string | null }[];
+    items: {
+      description:  string;
+      amount:       number;
+      cost:         number;
+      unit?:        string;
+      templateId?:  string | null;
+      ingredientId?: string | null;
+    }[];
   };
   onCancel?: () => void;
 };
 
 let nextId = 0;
-function createRow(defaults?: { description: string; amount: number; cost: number; unit?: string; templateId?: string | null }): ExpenseItemRow {
+function createRow(defaults?: {
+  description: string; amount: number; cost: number;
+  unit?: string; templateId?: string | null; ingredientId?: string | null;
+}): ExpenseItemRow {
   return {
-    id: `row-${++nextId}`,
-    description: defaults?.description ?? "",
-    amount: defaults?.amount ?? 1,
-    cost: defaults?.cost ?? 0,
-    unit: defaults?.unit ?? "",
-    templateId: defaults?.templateId ?? null,
+    id:           `row-${++nextId}`,
+    description:  defaults?.description ?? "",
+    amount:       defaults?.amount ?? 1,
+    cost:         defaults?.cost ?? 0,
+    unit:         defaults?.unit ?? "",
+    templateId:   defaults?.templateId ?? null,
+    ingredientId: defaults?.ingredientId ?? defaults?.templateId ?? null,
   };
 }
 
-export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel }: Props) {
-  const [description, setDescription] = useState(defaultValues?.description ?? "");
-  const [deductFromCash, setDeductFromCash] = useState(defaultValues?.deductFromCash ?? true);
+export function ExpenseForm({
+  mode, isPending, ingredients, onSubmit, defaultValues, onCancel,
+}: Props) {
+  const [description,      setDescription]      = useState(defaultValues?.description ?? "");
+  const [supplierId,       setSupplierId]        = useState<string>(defaultValues?.supplierId ?? "");
+  const [deductFromCash,   setDeductFromCash]    = useState(defaultValues?.deductFromCash ?? true);
   const [countToKasPakHar, setCountToKasPakHar] = useState(defaultValues?.countToKasPakHar ?? false);
   const [items, setItems] = useState<ExpenseItemRow[]>(() =>
     defaultValues?.items?.length
@@ -54,11 +79,11 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
       : [createRow()],
   );
 
-  // Suggestions: templates + distinct past item names
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [pastNames, setPastNames] = useState<string[]>([]);
+  const [suppliers,    setSuppliers]    = useState<Supplier[]>([]);
+  const [pastNames,    setPastNames]    = useState<string[]>([]);
+
   useEffect(() => {
-    getExpenseTemplates().then(setTemplates).catch(() => {});
+    getSuppliers().then(setSuppliers).catch(() => {});
     getDistinctExpenseItemNames().then(setPastNames).catch(() => {});
   }, []);
 
@@ -68,16 +93,18 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
     );
   }
 
-  function applyTemplate(rowId: string, template: Template) {
+  function applyIngredient(rowId: string, ing: IngredientOption) {
+    const defaultPack = ing.packs.find((p) => p.isDefault);
     setItems((prev) =>
       prev.map((item) =>
         item.id === rowId
           ? {
               ...item,
-              description: template.name,
-              unit: template.defaultUnit ?? item.unit,
-              cost: template.defaultCost ?? item.cost,
-              templateId: template.id,
+              description:  ing.name,
+              unit:         defaultPack?.label ?? ing.baseUnit,
+              cost:         ing.averageUnitCost > 0 ? ing.averageUnitCost : item.cost,
+              ingredientId: ing.id,
+              templateId:   ing.id, // keep in sync
             }
           : item,
       ),
@@ -87,7 +114,9 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
   function applyPastName(rowId: string, name: string) {
     setItems((prev) =>
       prev.map((item) =>
-        item.id === rowId ? { ...item, description: name, templateId: null } : item,
+        item.id === rowId
+          ? { ...item, description: name, ingredientId: null, templateId: null }
+          : item,
       ),
     );
   }
@@ -102,25 +131,27 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
 
   const grandTotal = computeExpenseTotal(items);
 
+  // Past names not already in ingredient list
+  const ingNames      = new Set(ingredients.map((i) => i.name));
+  const uniquePastNames = pastNames.filter((n) => !ingNames.has(n));
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit({
-      description: description || undefined,
+      description:      description || undefined,
+      supplierId:       supplierId || null,
       deductFromCash,
       countToKasPakHar,
-      items: items.map(({ description, amount, cost, unit, templateId }) => ({
+      items: items.map(({ description, amount, cost, unit, templateId, ingredientId }) => ({
         description,
         amount,
         cost,
-        unit: unit || undefined,
-        templateId: templateId || null,
+        unit:         unit || undefined,
+        templateId:   ingredientId ?? templateId ?? null,
+        ingredientId: ingredientId ?? templateId ?? null,
       })),
     });
   }
-
-  // Build suggestion list: templates first, then unique past names not already in templates
-  const templateNames = new Set(templates.map((t) => t.name));
-  const uniquePastNames = pastNames.filter((n) => !templateNames.has(n));
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -135,15 +166,24 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
         />
       </div>
 
+      {suppliers.length > 0 && (
+        <div className="grid gap-1.5">
+          <Label>Supplier (opsional)</Label>
+          <AdminSelect value={supplierId} onChange={(e) => setSupplierId(e.target.value)} disabled={isPending}>
+            <option value="">— Pilih supplier —</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}{s.phone ? ` · ${s.phone}` : ""}</option>
+            ))}
+          </AdminSelect>
+        </div>
+      )}
+
       <div className="space-y-1.5">
         <label className="flex items-center gap-2 text-sm cursor-pointer">
           <input
             type="checkbox"
             checked={deductFromCash}
-            onChange={(e) => {
-              setDeductFromCash(e.target.checked);
-              if (e.target.checked) setCountToKasPakHar(false);
-            }}
+            onChange={(e) => { setDeductFromCash(e.target.checked); if (e.target.checked) setCountToKasPakHar(false); }}
             disabled={isPending}
             className="rounded"
           />
@@ -153,10 +193,7 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
           <input
             type="checkbox"
             checked={countToKasPakHar}
-            onChange={(e) => {
-              setCountToKasPakHar(e.target.checked);
-              if (e.target.checked) setDeductFromCash(false);
-            }}
+            onChange={(e) => { setCountToKasPakHar(e.target.checked); if (e.target.checked) setDeductFromCash(false); }}
             disabled={isPending}
             className="rounded"
           />
@@ -170,11 +207,11 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
           <ItemRow
             key={item.id}
             item={item}
-            templates={templates}
+            ingredients={ingredients}
             uniquePastNames={uniquePastNames}
             isPending={isPending}
             onUpdate={updateItem}
-            onApplyTemplate={applyTemplate}
+            onApplyIngredient={applyIngredient}
             onApplyPastName={applyPastName}
             onRemove={removeRow}
             canRemove={items.length > 1}
@@ -199,10 +236,7 @@ export function ExpenseForm({ mode, isPending, onSubmit, defaultValues, onCancel
           )}
           <Button type="submit" disabled={isPending || items.every((i) => !i.description)}>
             {isPending ? (
-              <>
-                <Spinner />
-                Menyimpan...
-              </>
+              <><Spinner /> Menyimpan...</>
             ) : mode === "add" ? (
               "Tambah Pengeluaran"
             ) : (

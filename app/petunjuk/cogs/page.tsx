@@ -8,7 +8,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { BackToTop } from "../back-to-top";
 
-export const metadata = { title: "Panduan COGS & Stok Bahan" };
+export const metadata = { title: "Panduan Bahan, Supplier & Opname" };
 
 export default async function CogsGuidePage() {
   const staff = await requireAuth();
@@ -27,7 +27,7 @@ export default async function CogsGuidePage() {
           </Button>
         </Link>
         <Link
-          href="/petunjuk#admin-stok-bahan"
+          href="/petunjuk#admin-bahan-baku"
           className="text-sm text-muted-foreground hover:text-primary transition-colors"
         >
           Petunjuk Penggunaan
@@ -127,7 +127,7 @@ export default async function CogsGuidePage() {
 
       <p className="text-xs text-muted-foreground mt-10 pt-6 border-t border-border">
         Sumber: <code className="font-mono">docs/cogs-feature.md</code>
-        <span className="block mt-1">Ditulis: 15 Mei 2026</span>
+        <span className="block mt-1">Diperbarui: 20 Mei 2026</span>
       </p>
 
       <BackToTop />

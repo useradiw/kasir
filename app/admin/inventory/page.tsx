@@ -17,7 +17,7 @@ export default async function InventoryPage({
       <InventoryClient
         tab={tab}
         {...data}
-        templates={recipeData.templates}
+        ingredients={recipeData.ingredients}
         recipes={recipeData.recipes}
         isOwner={staff.role === "OWNER"}
       />
