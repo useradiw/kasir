@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,9 @@ const TABLE_OPTIONS = [
   { key: "packageItems", label: "Item Paket" },
   { key: "menuItemOnlinePrices", label: "Harga Online" },
   { key: "staff", label: "Staff" },
+  { key: "suppliers", label: "Supplier" },
+  { key: "ingredients", label: "Bahan" },
+  { key: "ingredientPacks", label: "Kemasan Bahan" },
   { key: "expenses", label: "Pengeluaran" },
   { key: "expenseItems", label: "Item Pengeluaran" },
   { key: "expenseTemplates", label: "Template Pengeluaran" },
@@ -33,8 +36,29 @@ const TABLE_OPTIONS = [
   { key: "onlineSettlements", label: "Pencairan Online" },
   { key: "settlementItems", label: "Item Pencairan" },
   { key: "settlementDeductions", label: "Potongan Pencairan" },
+  { key: "ingredientPurchases", label: "Pembelian Bahan" },
   { key: "ingredientLogs", label: "Log Stok Bahan" },
+  { key: "stockOpnames", label: "Stock Opname" },
+  { key: "stockOpnameLines", label: "Detail Stock Opname" },
 ] as const;
+
+const LAST_BACKUP_KEY = "lastBackupDate";
+const LAST_BACKUP_EVENT = "kasir:last-backup-changed";
+
+function subscribeLastBackup(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(LAST_BACKUP_EVENT, callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(LAST_BACKUP_EVENT, callback);
+  };
+}
+function getLastBackupSnapshot() {
+  return localStorage.getItem(LAST_BACKUP_KEY);
+}
+function getLastBackupServerSnapshot(): string | null {
+  return null;
+}
 
 function downloadJson(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -49,8 +73,10 @@ function downloadJson(data: unknown, filename: string) {
 export default function BackupClient() {
   const { isPending, run, error } = useAdminAction();
   const [selected, setSelected] = useState<Set<string>>(new Set(TABLE_OPTIONS.map((t) => t.key)));
-  const [lastBackup, setLastBackup] = useState<string | null>(
-    () => (typeof window !== "undefined" ? localStorage.getItem("lastBackupDate") : null),
+  const lastBackup = useSyncExternalStore(
+    subscribeLastBackup,
+    getLastBackupSnapshot,
+    getLastBackupServerSnapshot,
   );
 
   function toggleTable(key: string) {
@@ -78,7 +104,7 @@ export default function BackupClient() {
         downloadJson(data, `backup-${date}.json`);
         const now = new Date().toLocaleString("id-ID");
         localStorage.setItem("lastBackupDate", now);
-        setLastBackup(now);
+        window.dispatchEvent(new Event(LAST_BACKUP_EVENT));
       },
       { successMessage: "Backup berhasil diunduh" },
     );

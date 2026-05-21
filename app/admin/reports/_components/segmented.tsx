@@ -18,7 +18,7 @@ export function Segmented<T extends string>({
     <div
       role="tablist"
       className={cn(
-        "inline-flex w-full items-center gap-1 rounded-full border border-border bg-input/30 p-1",
+        "flex w-full items-center gap-1 rounded-full border border-border bg-input/30 p-1",
         className
       )}
     >
@@ -32,9 +32,9 @@ export function Segmented<T extends string>({
             variant={active ? "default" : "ghost"}
             size="sm"
             onClick={() => onChange(opt.value)}
-            className="flex-1 rounded-full"
+            className="flex-1 min-w-0 rounded-full px-2"
           >
-            {opt.label}
+            <span className="truncate text-xs sm:text-sm">{opt.label}</span>
           </Button>
         );
       })}

@@ -229,8 +229,7 @@ export async function getReportData(opts: {
   const totalSalary = staffSalaryBreakdown.reduce((s, x) => s + x.total, 0);
 
   // --- Expense summary ---
-  const totalExpenseItems = expenses.reduce((s, e) => s + computeExpenseTotal(e.items), 0);
-  const totalExpenses = totalExpenseItems + totalSalary;
+  const totalExpenses = expenses.reduce((s, e) => s + computeExpenseTotal(e.items), 0);
 
   // --- Cash register summary (offline only) ---
   const cashByDate: Record<string, number> = {};
@@ -356,7 +355,7 @@ export async function getReportData(opts: {
     totalExpenses: isOwner ? totalExpenses : 0,
     totalSalary: isOwner ? totalSalary : 0,
     staffSalary: isOwner ? staffSalaryBreakdown : [],
-    netProfit: isOwner ? totalRevenueCombined - totalExpenses : 0,
+    netProfit: isOwner ? grossProfit - totalSalary - totalExpenses : 0,
     cogs: isOwner ? totalCogs : 0,
     grossProfit: isOwner ? grossProfit : 0,
     grossMarginPct: isOwner ? grossMarginPct : null,
