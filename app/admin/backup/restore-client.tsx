@@ -18,6 +18,9 @@ const TABLE_LABELS: Record<string, string> = {
   packageItems: "Item Paket",
   menuItemOnlinePrices: "Harga Online",
   staff: "Staff",
+  suppliers: "Supplier",
+  ingredients: "Bahan",
+  ingredientPacks: "Kemasan Bahan",
   expenses: "Pengeluaran",
   expenseItems: "Item Pengeluaran",
   expenseTemplates: "Template Pengeluaran",
@@ -34,6 +37,10 @@ const TABLE_LABELS: Record<string, string> = {
   onlineSettlements: "Pencairan Online",
   settlementItems: "Item Pencairan",
   settlementDeductions: "Potongan Pencairan",
+  ingredientPurchases: "Pembelian Bahan",
+  ingredientLogs: "Log Stok Bahan",
+  stockOpnames: "Stock Opname",
+  stockOpnameLines: "Detail Stock Opname",
 };
 
 export default function RestoreClient() {
