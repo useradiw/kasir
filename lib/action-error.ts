@@ -27,6 +27,8 @@ function prismaMessage(e: Prisma.PrismaClientKnownRequestError): string {
       return "Data tidak ditemukan.";
     case "P2003":
       return "Data masih terhubung dengan catatan lain.";
+    case "P2028":
+      return "Basis data sibuk, coba simpan lagi.";
     default:
       return "Kesalahan basis data.";
   }

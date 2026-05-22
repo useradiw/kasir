@@ -64,55 +64,75 @@ export interface PurchaseInput {
 }
 
 /**
- * Records a purchase of an ingredient:
- * 1. Resolves base quantity from pack definition (or 1:1 if no pack).
- * 2. Computes unitCost = round(totalCost / baseQty).
- * 3. Updates Ingredient WMA: newAvg = (oldAvg × oldStock + totalCost) / (oldStock + baseQty).
- * 4. Updates Ingredient.currentStock, lastUnitCost, lastPurchasedAt.
- * 5. Inserts IngredientPurchase row with snapshot fields.
- * 6. Inserts IngredientLog PURCHASE entry.
+ * Records a batch of ingredient purchases in a fixed number of DB round trips,
+ * regardless of how many items are passed. Behaviour is identical to applying
+ * the legacy per-item recordPurchase sequentially:
+ * 1. Prefetches pack definitions and ingredient states (2 queries total).
+ * 2. Folds the WMA per ingredient in memory, in input order, so repeated
+ *    ingredients chain their average correctly.
+ * 3. Inserts all IngredientPurchase + IngredientLog rows via createMany.
+ * 4. Writes one Ingredient.update per distinct ingredient with final values.
  */
-export async function recordPurchase(
+export async function recordPurchasesBatch(
   tx: PrismaTx,
-  input: PurchaseInput,
+  inputs: PurchaseInput[],
 ): Promise<void> {
-  const { ingredientId, supplierId, expenseItemId, source, packLabel, packQty,
-          totalCost, purchasedAt, recordedById, notes } = input;
+  if (inputs.length === 0) return;
 
-  // Resolve base quantity
-  const { baseQty } = await resolvePackQty(tx, ingredientId, packLabel, packQty);
-  const unitCost = baseQty > 0 ? Math.round(totalCost / baseQty) : 0;
+  const ingredientIds = [...new Set(inputs.map((i) => i.ingredientId))];
 
-  // Fetch current ingredient state
-  const ing = await tx.ingredient.findUniqueOrThrow({
-    where: { id: ingredientId },
-    select: { currentStock: true, averageUnitCost: true },
+  const packs = await tx.ingredientPack.findMany({
+    where: { ingredientId: { in: ingredientIds } },
+    select: { ingredientId: true, label: true, baseQty: true },
   });
+  const packMap = new Map<string, number>();
+  for (const p of packs) packMap.set(`${p.ingredientId}::${p.label}`, p.baseQty);
 
-  // Weighted moving average
-  const oldStock = ing.currentStock;
-  const oldAvg = ing.averageUnitCost;
-  const newStock = oldStock + baseQty;
-  const newAvg = newStock > 0
-    ? Math.round((oldAvg * oldStock + totalCost) / newStock)
-    : unitCost;
-
-  const ts = purchasedAt ?? new Date();
-
-  // Update ingredient denormalized fields
-  await tx.ingredient.update({
-    where: { id: ingredientId },
-    data: {
-      currentStock:    newStock,
-      averageUnitCost: newAvg,
-      lastUnitCost:    unitCost,
-      lastPurchasedAt: ts,
-    },
+  const ings = await tx.ingredient.findMany({
+    where: { id: { in: ingredientIds } },
+    select: { id: true, currentStock: true, averageUnitCost: true },
   });
+  const state = new Map<
+    string,
+    { stock: number; avg: number; lastUnitCost: number; lastPurchasedAt: Date }
+  >();
+  for (const ing of ings) {
+    state.set(ing.id, {
+      stock: ing.currentStock,
+      avg: ing.averageUnitCost,
+      lastUnitCost: 0,
+      lastPurchasedAt: new Date(0),
+    });
+  }
+  for (const id of ingredientIds) {
+    if (!state.has(id)) throw new Error("Bahan tidak ditemukan.");
+  }
 
-  // Insert IngredientPurchase snapshot
-  await tx.ingredientPurchase.create({
-    data: {
+  const now = new Date();
+  const purchaseRows: Prisma.IngredientPurchaseCreateManyInput[] = [];
+  const logRows: Prisma.IngredientLogCreateManyInput[] = [];
+
+  for (const input of inputs) {
+    const { ingredientId, supplierId, expenseItemId, source, packLabel, packQty,
+            totalCost, purchasedAt, recordedById, notes } = input;
+
+    const packBaseQty = packLabel
+      ? packMap.get(`${ingredientId}::${packLabel}`) ?? 1
+      : 1;
+    const baseQty = packQty * packBaseQty;
+    const unitCost = baseQty > 0 ? Math.round(totalCost / baseQty) : 0;
+
+    const s = state.get(ingredientId)!;
+    const oldStock = s.stock;
+    const oldAvg = s.avg;
+    const newStock = oldStock + baseQty;
+    const newAvg = newStock > 0
+      ? Math.round((oldAvg * oldStock + totalCost) / newStock)
+      : unitCost;
+
+    const ts = purchasedAt ?? now;
+
+    purchaseRows.push({
       ingredientId,
       supplierId:       supplierId ?? null,
       expenseItemId:    expenseItemId ?? null,
@@ -127,49 +147,99 @@ export async function recordPurchase(
       purchasedAt:      ts,
       recordedById:     recordedById ?? null,
       notes:            notes ?? null,
-    },
-  });
+    });
 
-  // IngredientLog entry
-  await tx.ingredientLog.create({
-    data: {
+    logRows.push({
       ingredientId,
       type:        "PURCHASE",
       quantity:    baseQty,
       unitCost,
       referenceId: expenseItemId ?? null,
       note:        notes ?? null,
-    },
-  });
+    });
+
+    s.stock = newStock;
+    s.avg = newAvg;
+    s.lastUnitCost = unitCost;
+    s.lastPurchasedAt = ts;
+  }
+
+  await tx.ingredientPurchase.createMany({ data: purchaseRows });
+  await tx.ingredientLog.createMany({ data: logRows });
+
+  for (const id of ingredientIds) {
+    const s = state.get(id)!;
+    await tx.ingredient.update({
+      where: { id },
+      data: {
+        currentStock:    s.stock,
+        averageUnitCost: s.avg,
+        lastUnitCost:    s.lastUnitCost,
+        lastPurchasedAt: s.lastPurchasedAt,
+      },
+    });
+  }
+}
+
+export interface ReversePurchaseInput {
+  ingredientId: string;
+  packLabel?: string | null;
+  packQty: number;   // qty in pack unit, as stored on the expense item
+  unitCost: number;
+  note?: string | null;
 }
 
 /**
- * Reverses a purchase (e.g. on expense edit/delete).
- * Decrements stock by baseQty. WMA is NOT recalculated backward to avoid
- * distorting historical averages; only stock is adjusted.
- * Writes an ADJUSTMENT log.
+ * Reverses a batch of purchases (e.g. on expense edit/delete) in a fixed number
+ * of round trips. Decrements stock by the resolved base quantity. WMA is NOT
+ * recalculated backward to avoid distorting historical averages; only stock is
+ * adjusted. Writes one ADJUSTMENT log per item.
  */
-export async function reversePurchase(
+export async function reversePurchasesBatch(
   tx: PrismaTx,
-  ingredientId: string,
-  baseQty: number,
-  unitCost: number,
-  referenceNote?: string,
+  items: ReversePurchaseInput[],
 ): Promise<void> {
-  await tx.ingredient.update({
-    where: { id: ingredientId },
-    data: { currentStock: { decrement: baseQty } },
-  });
+  if (items.length === 0) return;
 
-  await tx.ingredientLog.create({
-    data: {
-      ingredientId,
+  const ingredientIds = [...new Set(items.map((i) => i.ingredientId))];
+
+  const packs = await tx.ingredientPack.findMany({
+    where: { ingredientId: { in: ingredientIds } },
+    select: { ingredientId: true, label: true, baseQty: true },
+  });
+  const packMap = new Map<string, number>();
+  for (const p of packs) packMap.set(`${p.ingredientId}::${p.label}`, p.baseQty);
+
+  const decrements = new Map<string, number>();
+  const logRows: Prisma.IngredientLogCreateManyInput[] = [];
+
+  for (const item of items) {
+    const packBaseQty = item.packLabel
+      ? packMap.get(`${item.ingredientId}::${item.packLabel}`) ?? 1
+      : 1;
+    const baseQty = item.packQty * packBaseQty;
+
+    decrements.set(
+      item.ingredientId,
+      (decrements.get(item.ingredientId) ?? 0) + baseQty,
+    );
+    logRows.push({
+      ingredientId: item.ingredientId,
       type:        "ADJUSTMENT",
       quantity:    -baseQty,
-      unitCost,
-      note:        referenceNote ?? "Purchase reversed",
-    },
-  });
+      unitCost:    item.unitCost,
+      note:        item.note ?? "Purchase reversed",
+    });
+  }
+
+  await tx.ingredientLog.createMany({ data: logRows });
+
+  for (const [id, total] of decrements) {
+    await tx.ingredient.update({
+      where: { id },
+      data: { currentStock: { decrement: total } },
+    });
+  }
 }
 
 // ─── COGS computation ─────────────────────────────────────────────────────────
@@ -249,29 +319,28 @@ export async function applyStockMovements(
   referenceId?: string | null,
   note?: string | null,
 ): Promise<void> {
-  for (const m of movements) {
-    await tx.ingredientLog.create({
-      data: {
-        ingredientId: m.ingredientId,
-        type,
-        quantity:     m.quantity,
-        unitCost:     m.unitCost,
-        referenceId:  referenceId ?? null,
-        note:         note ?? null,
-      },
-    });
+  if (movements.length === 0) return;
 
-    if (m.quantity >= 0) {
-      await tx.ingredient.update({
-        where: { id: m.ingredientId },
-        data:  { currentStock: { increment: m.quantity } },
-      });
-    } else {
-      await tx.ingredient.update({
-        where: { id: m.ingredientId },
-        data:  { currentStock: { decrement: -m.quantity } },
-      });
-    }
+  await tx.ingredientLog.createMany({
+    data: movements.map((m) => ({
+      ingredientId: m.ingredientId,
+      type,
+      quantity:     m.quantity,
+      unitCost:     m.unitCost,
+      referenceId:  referenceId ?? null,
+      note:         note ?? null,
+    })),
+  });
+
+  const net = new Map<string, number>();
+  for (const m of movements) {
+    net.set(m.ingredientId, (net.get(m.ingredientId) ?? 0) + m.quantity);
+  }
+  for (const [id, delta] of net) {
+    await tx.ingredient.update({
+      where: { id },
+      data:  { currentStock: { increment: delta } },
+    });
   }
 }
 
@@ -289,22 +358,28 @@ export async function reverseTransactionStock(
     select: { ingredientId: true, quantity: true, unitCost: true },
   });
 
-  for (const log of saleLogs) {
-    if (!log.ingredientId) continue;
-    const reversal = -log.quantity; // log.quantity is negative; reversal is positive
-    await tx.ingredientLog.create({
-      data: {
-        ingredientId: log.ingredientId,
-        type:         "ADJUSTMENT",
-        quantity:     reversal,
-        unitCost:     log.unitCost,
-        referenceId:  transactionId,
-        note:         "Void reversal",
-      },
-    });
+  const valid = saleLogs.filter((l) => l.ingredientId);
+  if (valid.length === 0) return;
+
+  await tx.ingredientLog.createMany({
+    data: valid.map((log) => ({
+      ingredientId: log.ingredientId,
+      type:         "ADJUSTMENT",
+      quantity:     -log.quantity, // log.quantity is negative; reversal is positive
+      unitCost:     log.unitCost,
+      referenceId:  transactionId,
+      note:         "Void reversal",
+    })),
+  });
+
+  const net = new Map<string, number>();
+  for (const log of valid) {
+    net.set(log.ingredientId!, (net.get(log.ingredientId!) ?? 0) + -log.quantity);
+  }
+  for (const [id, delta] of net) {
     await tx.ingredient.update({
-      where: { id: log.ingredientId },
-      data:  { currentStock: { increment: reversal } },
+      where: { id },
+      data:  { currentStock: { increment: delta } },
     });
   }
 }

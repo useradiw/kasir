@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
-import { recordPurchase } from "@/lib/cogs-utils";
+import { recordPurchasesBatch } from "@/lib/cogs-utils";
 
 const expenseItemSchema = z.object({
   description:  z.string().min(1, "Deskripsi item harus diisi"),
@@ -86,22 +86,23 @@ export async function addExpenseForStaff(data: {
         });
       }
 
-      // Stock IN via recordPurchase for items linked to an ingredient
-      for (const item of expense.items) {
-        const ingId = item.ingredientId;
-        if (!ingId || item.amount <= 0) continue;
-        await recordPurchase(tx, {
-          ingredientId:  ingId,
-          supplierId:    parsed.supplierId ?? null,
-          expenseItemId: item.id,
-          source:        "EXPENSE",
-          packLabel:     item.unit,
-          packQty:       item.amount,
-          totalCost:     Math.round(item.amount * item.cost),
-          purchasedAt:   expense.recordedAt,
-          recordedById:  staff.id,
-        });
-      }
+      // Stock IN for items linked to an ingredient
+      await recordPurchasesBatch(
+        tx,
+        expense.items
+          .filter((item) => item.ingredientId && item.amount > 0)
+          .map((item) => ({
+            ingredientId:  item.ingredientId!,
+            supplierId:    parsed.supplierId ?? null,
+            expenseItemId: item.id,
+            source:        "EXPENSE" as const,
+            packLabel:     item.unit,
+            packQty:       item.amount,
+            totalCost:     Math.round(item.amount * item.cost),
+            purchasedAt:   expense.recordedAt,
+            recordedById:  staff.id,
+          })),
+      );
     });
 
     revalidatePath("/expenses");

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireOwner, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
-import { recordPurchase, reversePurchase } from "@/lib/cogs-utils";
+import { recordPurchasesBatch, reversePurchasesBatch } from "@/lib/cogs-utils";
 
 const expenseItemSchema = z.object({
   description:  z.string().min(1, "Deskripsi item harus diisi"),
@@ -87,21 +87,22 @@ export async function addExpense(data: ExpenseData) {
         });
       }
 
-      for (const item of expense.items) {
-        const ingId = item.ingredientId;
-        if (!ingId || item.amount <= 0) continue;
-        await recordPurchase(tx, {
-          ingredientId:  ingId,
-          supplierId:    parsed.supplierId ?? null,
-          expenseItemId: item.id,
-          source:        "EXPENSE",
-          packLabel:     item.unit,
-          packQty:       item.amount,
-          totalCost:     Math.round(item.amount * item.cost),
-          purchasedAt:   expense.recordedAt,
-          recordedById:  staff.id,
-        });
-      }
+      await recordPurchasesBatch(
+        tx,
+        expense.items
+          .filter((item) => item.ingredientId && item.amount > 0)
+          .map((item) => ({
+            ingredientId:  item.ingredientId!,
+            supplierId:    parsed.supplierId ?? null,
+            expenseItemId: item.id,
+            source:        "EXPENSE" as const,
+            packLabel:     item.unit,
+            packQty:       item.amount,
+            totalCost:     Math.round(item.amount * item.cost),
+            purchasedAt:   expense.recordedAt,
+            recordedById:  staff.id,
+          })),
+      );
     });
 
     revalidateExpenses();
@@ -128,14 +129,18 @@ export async function updateExpense(id: string, data: ExpenseData) {
         select: { ingredientId: true, amount: true, cost: true, unit: true },
       });
 
-      for (const old of oldItems) {
-        if (!old.ingredientId) continue;
-        // Resolve base qty for reversal (use stored unit as packLabel)
-        const { baseQty } = await (await import("@/lib/cogs-utils")).resolvePackQty(
-          tx, old.ingredientId, old.unit, old.amount
-        );
-        await reversePurchase(tx, old.ingredientId, baseQty, old.cost, "Expense edited");
-      }
+      await reversePurchasesBatch(
+        tx,
+        oldItems
+          .filter((old) => old.ingredientId)
+          .map((old) => ({
+            ingredientId: old.ingredientId!,
+            packLabel:    old.unit,
+            packQty:      old.amount,
+            unitCost:     old.cost,
+            note:         "Expense edited",
+          })),
+      );
 
       // Also clean up linked IngredientPurchase rows
       const oldItemIds = await tx.expenseItem.findMany({
@@ -194,20 +199,22 @@ export async function updateExpense(id: string, data: ExpenseData) {
         select: { recordedAt: true, supplierId: true },
       });
 
-      for (const item of newItems) {
-        if (!item.ingredientId || item.amount <= 0) continue;
-        await recordPurchase(tx, {
-          ingredientId:  item.ingredientId,
-          supplierId:    expense.supplierId,
-          expenseItemId: item.id,
-          source:        "EXPENSE",
-          packLabel:     item.unit,
-          packQty:       item.amount,
-          totalCost:     Math.round(item.amount * item.cost),
-          purchasedAt:   expense.recordedAt,
-          recordedById:  staff.id,
-        });
-      }
+      await recordPurchasesBatch(
+        tx,
+        newItems
+          .filter((item) => item.ingredientId && item.amount > 0)
+          .map((item) => ({
+            ingredientId:  item.ingredientId!,
+            supplierId:    expense.supplierId,
+            expenseItemId: item.id,
+            source:        "EXPENSE" as const,
+            packLabel:     item.unit,
+            packQty:       item.amount,
+            totalCost:     Math.round(item.amount * item.cost),
+            purchasedAt:   expense.recordedAt,
+            recordedById:  staff.id,
+          })),
+      );
     });
 
     revalidateExpenses();
@@ -226,13 +233,18 @@ export async function deleteExpense(id: string) {
         select: { ingredientId: true, amount: true, cost: true, unit: true },
       });
 
-      for (const item of items) {
-        if (!item.ingredientId) continue;
-        const { baseQty } = await (await import("@/lib/cogs-utils")).resolvePackQty(
-          tx, item.ingredientId, item.unit, item.amount
-        );
-        await reversePurchase(tx, item.ingredientId, baseQty, item.cost, "Expense deleted");
-      }
+      await reversePurchasesBatch(
+        tx,
+        items
+          .filter((item) => item.ingredientId)
+          .map((item) => ({
+            ingredientId: item.ingredientId!,
+            packLabel:    item.unit,
+            packQty:      item.amount,
+            unitCost:     item.cost,
+            note:         "Expense deleted",
+          })),
+      );
 
       await tx.expense.delete({ where: { id } });
     });
