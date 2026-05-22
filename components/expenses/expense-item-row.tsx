@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { formatRupiah } from "@/lib/format";
 
 export type IngredientOption = {
@@ -185,13 +186,10 @@ export function ItemRow({
       {/* Amount, Unit (text fallback), Cost, Remove */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1">
-          <Input
-            type="number"
+          <DecimalInput
             placeholder="Qty"
-            min={0.001}
-            step="any"
-            value={item.amount || ""}
-            onChange={(e) => onUpdate(item.id, "amount", parseFloat(e.target.value) || 0)}
+            defaultValue={item.amount}
+            onValueChange={(v) => onUpdate(item.id, "amount", v ?? 0)}
             required
             disabled={isPending}
             className="w-20"

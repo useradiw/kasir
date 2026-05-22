@@ -65,8 +65,8 @@ export async function addExpenseForStaff(data: {
               amount:       i.amount,
               cost:         i.cost,
               unit:         i.unit || null,
-              templateId:   i.ingredientId ?? i.templateId ?? null, // keep templateId in sync
-              ingredientId: i.ingredientId ?? i.templateId ?? null,
+              templateId:   null,
+              ingredientId: i.ingredientId ?? null,
             })),
           },
         },

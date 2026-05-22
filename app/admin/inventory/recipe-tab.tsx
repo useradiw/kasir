@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
@@ -309,8 +310,8 @@ function RecipeCard({
                       action={(fd) => run(async () => { await updateRecipeIngredient(ing.id, fd); setEditIngId(null); })}
                       className="flex items-center gap-2"
                     >
-                      <Input name="quantity" type="number" step="0.01" min="0.01"
-                        defaultValue={ing.quantity} className="h-7 w-20 text-sm" required />
+                      <DecimalInput name="quantity" defaultValue={ing.quantity}
+                        className="h-7 w-20 text-sm" required />
                       <span className="text-xs text-muted-foreground">{ingUnit(ing)}</span>
                       <Button type="submit" size="xs" disabled={isPending}>Simpan</Button>
                       <Button type="button" size="xs" variant="ghost" onClick={() => setEditIngId(null)}>Batal</Button>
@@ -430,8 +431,7 @@ function AddIngredientForm({
 
       <div className="grid gap-1.5">
         <Label>Jumlah</Label>
-        <Input name="quantity" type="number" step="0.01" min="0.01"
-          placeholder="cth: 0.5" required className="w-32" />
+        <DecimalInput name="quantity" placeholder="cth: 0,5" required className="w-32" />
       </div>
 
       <Button type="submit" size="sm" disabled={isPending}>Tambah Bahan</Button>

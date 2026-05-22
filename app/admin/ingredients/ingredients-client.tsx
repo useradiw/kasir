@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { AdminSelect, AdminPageHeader, ErrorBanner } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
@@ -90,7 +91,7 @@ export default function IngredientsClient({ data }: { data: IngredientStockData 
                 </div>
                 <div className="grid gap-1">
                   <Label>Batas Stok Min</Label>
-                  <Input name="lowStockAlert" type="number" step="0.01" min="0" placeholder="—" className="w-28" />
+                  <DecimalInput name="lowStockAlert" placeholder="—" className="w-28" />
                 </div>
                 <div className="grid gap-1 flex-1 min-w-40">
                   <Label>Catatan</Label>

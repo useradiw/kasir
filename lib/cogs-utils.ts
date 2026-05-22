@@ -134,7 +134,6 @@ export async function recordPurchase(
   await tx.ingredientLog.create({
     data: {
       ingredientId,
-      templateId:  ingredientId, // keep templateId in sync (same UUID) until migration 2
       type:        "PURCHASE",
       quantity:    baseQty,
       unitCost,
@@ -165,7 +164,6 @@ export async function reversePurchase(
   await tx.ingredientLog.create({
     data: {
       ingredientId,
-      templateId:  ingredientId,
       type:        "ADJUSTMENT",
       quantity:    -baseQty,
       unitCost,
@@ -255,7 +253,6 @@ export async function applyStockMovements(
     await tx.ingredientLog.create({
       data: {
         ingredientId: m.ingredientId,
-        templateId:   m.ingredientId, // keep in sync until migration 2
         type,
         quantity:     m.quantity,
         unitCost:     m.unitCost,
@@ -298,7 +295,6 @@ export async function reverseTransactionStock(
     await tx.ingredientLog.create({
       data: {
         ingredientId: log.ingredientId,
-        templateId:   log.ingredientId,
         type:         "ADJUSTMENT",
         quantity:     reversal,
         unitCost:     log.unitCost,
@@ -335,7 +331,6 @@ export async function recordWaste(
   await tx.ingredientLog.create({
     data: {
       ingredientId,
-      templateId:  ingredientId,
       type:        "WASTE",
       quantity:    -quantity,
       unitCost:    avgCost,
@@ -372,7 +367,6 @@ export async function recordOpnameLine(
   await tx.ingredientLog.create({
     data: {
       ingredientId,
-      templateId:  ingredientId,
       type:        "ADJUSTMENT",
       quantity:    delta,
       unitCost:    avgCost,

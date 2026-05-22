@@ -139,7 +139,6 @@ export async function adjustIngredientStock(
     await tx.ingredientLog.create({
       data: {
         ingredientId,
-        templateId: ingredientId,
         type:       quantity > 0 ? "PURCHASE" : "ADJUSTMENT",
         quantity,
         unitCost:   ing.averageUnitCost,

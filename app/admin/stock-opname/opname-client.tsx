@@ -4,13 +4,14 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { AdminPageHeader, ErrorBanner } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { formatDateTime } from "@/lib/format";
 import { submitOpname } from "@/app/actions/admin/opname";
 
 type Ingredient = { id: string; name: string; category: string; baseUnit: string; currentStock: number };
-type OpnameLine = { ingredientId: string; countedQty: string };
+type OpnameLine = { ingredientId: string; countedQty: number | null };
 
 type HistoryLine = {
   id: string;
@@ -41,18 +42,18 @@ export default function OpnameClient({
   const [mode, setMode] = useState<"list" | "form">("list");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [lines, setLines] = useState<OpnameLine[]>(() =>
-    ingredients.map((i) => ({ ingredientId: i.id, countedQty: i.currentStock.toString() }))
+    ingredients.map((i) => ({ ingredientId: i.id, countedQty: i.currentStock }))
   );
   const [opnameNotes, setOpnameNotes] = useState("");
 
-  function updateLine(ingredientId: string, value: string) {
+  function updateLine(ingredientId: string, value: number | null) {
     setLines((prev) => prev.map((l) => l.ingredientId === ingredientId ? { ...l, countedQty: value } : l));
   }
 
   async function handleSubmit() {
-    const parsed = lines
-      .map((l) => ({ ingredientId: l.ingredientId, countedQty: parseFloat(l.countedQty) }))
-      .filter((l) => !isNaN(l.countedQty));
+    const parsed = lines.filter(
+      (l): l is { ingredientId: string; countedQty: number } => l.countedQty !== null,
+    );
 
     await run(
       () => submitOpname({ notes: opnameNotes || undefined, lines: parsed }),
@@ -94,8 +95,8 @@ export default function OpnameClient({
             {sortedIngredients.map((ing, idx) => {
               const line = lines.find((l) => l.ingredientId === ing.id);
               if (!line) return null;
-              const counted = parseFloat(line.countedQty);
-              const delta   = isNaN(counted) ? null : counted - ing.currentStock;
+              const counted = line.countedQty;
+              const delta   = counted === null ? null : counted - ing.currentStock;
               const prevCat = idx > 0 ? sortedIngredients[idx - 1].category : null;
               const showCat = prevCat !== ing.category;
 
@@ -114,12 +115,9 @@ export default function OpnameClient({
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={line.countedQty}
-                        onChange={(e) => updateLine(ing.id, e.target.value)}
+                      <DecimalInput
+                        defaultValue={line.countedQty}
+                        onValueChange={(v) => updateLine(ing.id, v)}
                         className="w-24 h-8 text-sm tabular-nums text-right"
                       />
                       <span className="text-xs text-muted-foreground w-8">{ing.baseUnit}</span>

@@ -74,7 +74,6 @@ export async function addRecipeIngredient(recipeId: string, formData: FormData) 
       data: {
         recipeId,
         ingredientId: parsed.ingredientId || null,
-        templateId:   parsed.ingredientId || null, // keep in sync until migration 2
         customName:   parsed.customName || null,
         customUnit:   parsed.customUnit || null,
         quantity:     parsed.quantity,

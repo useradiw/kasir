@@ -7,6 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
@@ -293,15 +294,15 @@ function SettingsTab({
   const [showAddPack, setShowAddPack] = useState(false);
   const [showWaste, setShowWaste] = useState(false);
   const [showAdjust, setShowAdjust] = useState(false);
-  const [adjustQty, setAdjustQty] = useState("");
+  const [adjustQty, setAdjustQty] = useState<number | null>(null);
   const [adjustNote, setAdjustNote] = useState("");
 
   async function handleAdjust() {
-    const qty = parseFloat(adjustQty);
-    if (isNaN(qty) || qty === 0) return;
+    const qty = adjustQty;
+    if (qty === null || qty === 0) return;
     await run(
       () => adjustIngredientStock(detail.id, qty, adjustNote),
-      { successMessage: "Stok disesuaikan", onSuccess: () => { setShowAdjust(false); setAdjustQty(""); setAdjustNote(""); } },
+      { successMessage: "Stok disesuaikan", onSuccess: () => { setShowAdjust(false); setAdjustQty(null); setAdjustNote(""); } },
     );
   }
 
@@ -343,7 +344,7 @@ function SettingsTab({
               </div>
               <div className="grid gap-1">
                 <Label>Batas Min</Label>
-                <Input name="lowStockAlert" type="number" step="0.01" min="0" defaultValue={detail.lowStockAlert ?? ""} className="w-28" placeholder="—" />
+                <DecimalInput name="lowStockAlert" defaultValue={detail.lowStockAlert} className="w-28" placeholder="—" />
               </div>
               <div className="grid gap-1 flex-1 min-w-40">
                 <Label>Catatan</Label>
@@ -382,7 +383,7 @@ function SettingsTab({
               </div>
               <div className="grid gap-1">
                 <Label>Qty per Pack</Label>
-                <Input name="baseQty" type="number" step="0.01" min="0.01" required placeholder={`dlm ${detail.baseUnit}`} className="w-28" />
+                <DecimalInput name="baseQty" required placeholder={`dlm ${detail.baseUnit}`} className="w-28" />
               </div>
               <div className="grid gap-1">
                 <Label>Default?</Label>
@@ -419,7 +420,7 @@ function SettingsTab({
                       </div>
                       <div className="grid gap-1">
                         <Label>Qty per Pack</Label>
-                        <Input name="baseQty" type="number" step="0.01" min="0.01" defaultValue={pack.baseQty} required className="w-28" />
+                        <DecimalInput name="baseQty" defaultValue={pack.baseQty} required className="w-28" />
                       </div>
                       <div className="grid gap-1">
                         <Label>Default?</Label>
@@ -465,7 +466,7 @@ function SettingsTab({
             <div className="flex flex-wrap gap-3 items-end">
               <div className="grid gap-1 w-36">
                 <Label>Jumlah (+ tambah / − kurangi)</Label>
-                <Input type="number" step="0.01" placeholder="cth: 5 atau -2" value={adjustQty} onChange={(e) => setAdjustQty(e.target.value)} className="h-8" />
+                <DecimalInput allowNegative placeholder="cth: 5 atau -2" defaultValue={adjustQty} onValueChange={setAdjustQty} className="h-8" />
               </div>
               <div className="grid gap-1 flex-1 min-w-36">
                 <Label>Catatan</Label>
@@ -500,7 +501,7 @@ function SettingsTab({
             >
               <div className="grid gap-1 w-32">
                 <Label>Jumlah ({detail.baseUnit})</Label>
-                <Input name="quantity" type="number" step="0.01" min="0.01" required className="h-8" />
+                <DecimalInput name="quantity" required className="h-8" />
               </div>
               <div className="grid gap-1 flex-1 min-w-36">
                 <Label>Alasan</Label>

@@ -62,7 +62,7 @@ function createRow(defaults?: {
     cost:         defaults?.cost ?? 0,
     unit:         defaults?.unit ?? "",
     templateId:   defaults?.templateId ?? null,
-    ingredientId: defaults?.ingredientId ?? defaults?.templateId ?? null,
+    ingredientId: defaults?.ingredientId ?? null,
   };
 }
 
@@ -104,7 +104,7 @@ export function ExpenseForm({
               unit:         defaultPack?.label ?? ing.baseUnit,
               cost:         ing.averageUnitCost > 0 ? ing.averageUnitCost : item.cost,
               ingredientId: ing.id,
-              templateId:   ing.id, // keep in sync
+              templateId:   null,
             }
           : item,
       ),
@@ -142,13 +142,13 @@ export function ExpenseForm({
       supplierId:       supplierId || null,
       deductFromCash,
       countToKasPakHar,
-      items: items.map(({ description, amount, cost, unit, templateId, ingredientId }) => ({
+      items: items.map(({ description, amount, cost, unit, ingredientId }) => ({
         description,
         amount,
         cost,
         unit:         unit || undefined,
-        templateId:   ingredientId ?? templateId ?? null,
-        ingredientId: ingredientId ?? templateId ?? null,
+        templateId:   null,
+        ingredientId: ingredientId ?? null,
       })),
     });
   }
