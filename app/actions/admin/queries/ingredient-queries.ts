@@ -160,6 +160,89 @@ export async function adjustIngredientStock(
   });
 }
 
+// ─── Ingredient recipe (a material assembled from other ingredients) ──────────
+
+export async function getIngredientRecipe(ingredientId: string) {
+  await requireRole("OWNER", "MANAGER");
+
+  const recipe = await prisma.ingredientRecipe.findUnique({
+    where: { ingredientId },
+    include: {
+      items: {
+        include: {
+          ingredient: { select: { id: true, name: true, baseUnit: true, averageUnitCost: true } },
+        },
+        orderBy: { ingredient: { name: "asc" } },
+      },
+    },
+  });
+
+  if (!recipe) return null;
+
+  return {
+    id:       recipe.id,
+    yieldQty: recipe.yieldQty,
+    notes:    recipe.notes,
+    items: recipe.items.map((it) => ({
+      id:              it.id,
+      ingredientId:    it.ingredientId,
+      ingredientName:  it.ingredient.name,
+      ingredientUnit:  it.ingredient.baseUnit,
+      averageUnitCost: it.ingredient.averageUnitCost,
+      quantity:        it.quantity,
+    })),
+  };
+}
+
+export type IngredientRecipeData = Awaited<ReturnType<typeof getIngredientRecipe>>;
+
+// ─── Active ingredients (lightweight picker list) ─────────────────────────────
+
+export async function getActiveIngredientsLite() {
+  await requireRole("OWNER", "MANAGER");
+
+  return prisma.ingredient.findMany({
+    where:   { isActive: true },
+    orderBy: { name: "asc" },
+    select:  { id: true, name: true, baseUnit: true, averageUnitCost: true },
+  });
+}
+
+export type ActiveIngredientLite = Awaited<ReturnType<typeof getActiveIngredientsLite>>[number];
+
+// ─── Unlinked past expense items (for linking history to a new ingredient) ────
+
+export async function getUnlinkedExpenseItems() {
+  await requireRole("OWNER", "MANAGER");
+
+  const items = await prisma.expenseItem.findMany({
+    where: {
+      ingredientId: null,
+      purchase:     { is: null },
+    },
+    select: {
+      id:          true,
+      description: true,
+      amount:      true,
+      cost:        true,
+      unit:        true,
+      expense:     { select: { recordedAt: true } },
+    },
+    orderBy: { expense: { recordedAt: "asc" } },
+  });
+
+  return items.map((i) => ({
+    id:          i.id,
+    description: i.description,
+    amount:      i.amount,
+    cost:        i.cost,
+    unit:        i.unit,
+    recordedAt:  i.expense.recordedAt,
+  }));
+}
+
+export type UnlinkedExpenseItem = Awaited<ReturnType<typeof getUnlinkedExpenseItems>>[number];
+
 // ─── Low stock alert threshold ────────────────────────────────────────────────
 
 export async function setLowStockAlert(

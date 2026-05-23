@@ -1,6 +1,13 @@
 import { Container } from "@/components/shared/container";
 import { requireRole } from "@/lib/admin-auth";
-import { getIngredientDetail, getIngredientPurchaseHistory, getIngredientLogs } from "@/app/actions/admin/queries/ingredient-queries";
+import {
+  getIngredientDetail,
+  getIngredientPurchaseHistory,
+  getIngredientLogs,
+  getIngredientRecipe,
+  getActiveIngredientsLite,
+  getUnlinkedExpenseItems,
+} from "@/app/actions/admin/queries/ingredient-queries";
 import IngredientDetailClient from "./ingredient-detail-client";
 
 export default async function IngredientDetailPage({
@@ -14,10 +21,13 @@ export default async function IngredientDetailPage({
   const { id }       = await params;
   const { tab = "pembelian" } = await searchParams;
 
-  const [detail, purchases, logs] = await Promise.all([
+  const [detail, purchases, logs, recipe, ingredientOptions, unlinkedItems] = await Promise.all([
     getIngredientDetail(id),
     getIngredientPurchaseHistory(id, 60),
     getIngredientLogs(id, 80),
+    getIngredientRecipe(id),
+    getActiveIngredientsLite(),
+    getUnlinkedExpenseItems(),
   ]);
 
   return (
@@ -26,6 +36,9 @@ export default async function IngredientDetailPage({
         detail={detail}
         purchases={purchases}
         logs={logs}
+        recipe={recipe}
+        ingredientOptions={ingredientOptions}
+        unlinkedItems={unlinkedItems}
         tab={tab}
       />
     </Container>

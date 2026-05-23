@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +10,12 @@ import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { AdminSelect, AdminPageHeader, ErrorBanner } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
+import { notify } from "@/lib/notify";
 import { formatRupiah, formatDateTime } from "@/lib/format";
-import { addIngredient } from "@/app/actions/admin/ingredients";
+import { addIngredientsBulk } from "@/app/actions/admin/ingredients";
 import type { IngredientStockData } from "@/app/actions/admin/queries";
+
+type Category = "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA";
 
 type Row = IngredientStockData[number];
 
@@ -28,6 +32,8 @@ export default function IngredientsClient({ data }: { data: IngredientStockData 
   const router = useRouter();
   const { isPending, run, error, setError } = useAdminAction();
   const [showAdd, setShowAdd] = useState(false);
+  const [rowKeys, setRowKeys] = useState<number[]>([0]);
+  const nextKey = useRef(1);
   const [activeCategory, setActiveCategory] = useState<string>("SEMUA");
 
   const lowCount = data.filter((d) => d.isLow && d.isActive).length;
@@ -36,17 +42,46 @@ export default function IngredientsClient({ data }: { data: IngredientStockData 
     ? data
     : data.filter((d) => d.category === activeCategory);
 
-  async function handleAdd(fd: FormData) {
-    const lowStockRaw = fd.get("lowStockAlert") as string;
-    await run(
-      async () => { await addIngredient({
-        name:          fd.get("name") as string,
-        category:      (fd.get("category") as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
-        baseUnit:      fd.get("baseUnit") as string,
-        lowStockAlert: lowStockRaw ? parseFloat(lowStockRaw) : null,
-        notes:         fd.get("notes") as string || undefined,
-      }); },
-      { successMessage: "Bahan berhasil ditambahkan", onSuccess: () => setShowAdd(false) },
+  function resetRows() {
+    setRowKeys([0]);
+    nextKey.current = 1;
+  }
+
+  function handleBulkAdd(fd: FormData) {
+    const names      = fd.getAll("name").map(String);
+    const categories = fd.getAll("category").map(String);
+    const baseUnits  = fd.getAll("baseUnit").map(String);
+    const lowStocks  = fd.getAll("lowStockAlert").map(String);
+    const notesArr   = fd.getAll("notes").map(String);
+
+    const rows = names
+      .map((name, i) => ({
+        name:          name.trim(),
+        category:      (categories[i] as Category) || "BAHAN",
+        baseUnit:      (baseUnits[i] ?? "").trim(),
+        lowStockAlert: lowStocks[i] ? parseFloat(lowStocks[i]) : null,
+        notes:         notesArr[i]?.trim() || undefined,
+      }))
+      .filter((r) => r.name);
+
+    if (rows.length === 0) { setError("Isi minimal satu nama bahan."); return; }
+    if (rows.some((r) => !r.baseUnit)) {
+      setError("Satuan dasar wajib diisi untuk setiap baris.");
+      return;
+    }
+
+    run(
+      async () => {
+        const res = await addIngredientsBulk(rows);
+        if (res.skipped.length > 0) {
+          notify.info(
+            `${res.created} bahan ditambahkan. ${res.skipped.length} dilewati (sudah ada): ${res.skipped.join(", ")}`,
+          );
+        } else {
+          notify.success(`${res.created} bahan ditambahkan`);
+        }
+      },
+      { onSuccess: () => { setShowAdd(false); resetRows(); } },
     );
   }
 
@@ -67,40 +102,72 @@ export default function IngredientsClient({ data }: { data: IngredientStockData 
 
       <ErrorBanner error={error} />
 
-      {/* Add form */}
+      {/* Bulk add form */}
       {showAdd && (
         <Card>
           <CardContent className="pt-4">
-            <form action={handleAdd} className="space-y-3">
-              <div className="flex flex-wrap gap-3 items-end">
-                <div className="grid gap-1">
-                  <Label>Nama Bahan</Label>
-                  <Input name="name" required placeholder="cth: Telur, Gula" className="w-44" />
-                </div>
-                <div className="grid gap-1">
-                  <Label>Kategori</Label>
-                  <AdminSelect name="category" defaultValue="BAHAN">
-                    {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>{v}</option>
-                    ))}
-                  </AdminSelect>
-                </div>
-                <div className="grid gap-1">
-                  <Label>Satuan Dasar</Label>
-                  <Input name="baseUnit" required placeholder="gr / ml / pcs" className="w-28" />
-                </div>
-                <div className="grid gap-1">
-                  <Label>Batas Stok Min</Label>
-                  <DecimalInput name="lowStockAlert" placeholder="—" className="w-28" />
-                </div>
-                <div className="grid gap-1 flex-1 min-w-40">
-                  <Label>Catatan</Label>
-                  <Input name="notes" placeholder="Opsional" />
-                </div>
+            <form action={handleBulkAdd} className="space-y-3">
+              <div className="space-y-3">
+                {rowKeys.map((key) => (
+                  <div
+                    key={key}
+                    className="flex flex-wrap gap-3 items-end border-b border-foreground/5 pb-3 last:border-0 last:pb-0"
+                  >
+                    <div className="grid gap-1">
+                      <Label>Nama Bahan</Label>
+                      <Input name="name" placeholder="cth: Telur, Gula" className="w-44" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>Kategori</Label>
+                      <AdminSelect name="category" defaultValue="BAHAN">
+                        {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
+                          <option key={k} value={k}>{v}</option>
+                        ))}
+                      </AdminSelect>
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>Satuan Dasar</Label>
+                      <Input name="baseUnit" placeholder="gr / ml / pcs" className="w-28" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>Batas Stok Min</Label>
+                      <DecimalInput name="lowStockAlert" placeholder="—" className="w-28" />
+                    </div>
+                    <div className="grid gap-1 flex-1 min-w-40">
+                      <Label>Catatan</Label>
+                      <Input name="notes" placeholder="Opsional" />
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon-sm"
+                      variant="ghost"
+                      disabled={rowKeys.length === 1}
+                      onClick={() => setRowKeys((ks) => ks.filter((k) => k !== key))}
+                      aria-label="Hapus baris"
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
-              <div className="flex gap-2">
-                <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Batal</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setRowKeys((ks) => [...ks, nextKey.current++])}
+                >
+                  + Baris
+                </Button>
+                <Button type="submit" size="sm" disabled={isPending}>Simpan Semua</Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => { setShowAdd(false); resetRows(); }}
+                >
+                  Batal
+                </Button>
               </div>
             </form>
           </CardContent>
@@ -180,7 +247,7 @@ function IngredientRow({ row, onClick }: { row: Row; onClick: () => void }) {
                 <span className="text-xs text-muted-foreground">
                   Stok:{" "}
                   <span className={`font-semibold tabular-nums ${row.isLow ? "text-destructive" : "text-foreground"}`}>
-                    {row.currentStock % 1 === 0 ? row.currentStock.toFixed(0) : row.currentStock.toFixed(2)} {row.unit}
+                    {row.currentStock % 1 === 0 ? row.currentStock.toFixed(0) : row.currentStock.toFixed(3)} {row.unit}
                   </span>
                   {row.lowStockAlert !== null && (
                     <span className="text-muted-foreground/60"> (min: {row.lowStockAlert})</span>

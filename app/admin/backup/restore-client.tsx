@@ -39,6 +39,8 @@ const TABLE_LABELS: Record<string, string> = {
   settlementDeductions: "Potongan Pencairan",
   ingredientPurchases: "Pembelian Bahan",
   ingredientLogs: "Log Stok Bahan",
+  ingredientRecipes: "Resep Bahan",
+  ingredientRecipeItems: "Komponen Resep Bahan",
   stockOpnames: "Stock Opname",
   stockOpnameLines: "Detail Stock Opname",
 };

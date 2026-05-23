@@ -399,6 +399,8 @@ model Ingredient {
   ingredientLogs    IngredientLog[]
   expenseItems      ExpenseItem[]
   opnameLines       StockOpnameLine[]
+  producedRecipe    IngredientRecipe?      @relation("ProducedRecipe")
+  componentOf       IngredientRecipeItem[] @relation("RecipeComponent")
 
   @@map("ingredients")
 }
@@ -439,6 +441,32 @@ model IngredientPurchase {
 
   @@index([ingredientId, purchasedAt])
   @@map("ingredient_purchases")
+}
+
+// --- INGREDIENT RECIPES (a material assembled from other ingredients) ---
+
+model IngredientRecipe {
+  id           String     @id @default(uuid())
+  ingredientId String     @unique
+  ingredient   Ingredient @relation("ProducedRecipe", fields: [ingredientId], references: [id], onDelete: Cascade)
+  yieldQty     Float      @default(1)
+  notes        String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  items        IngredientRecipeItem[]
+
+  @@map("ingredient_recipes")
+}
+
+model IngredientRecipeItem {
+  id           String           @id @default(uuid())
+  recipeId     String
+  recipe       IngredientRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredientId String
+  ingredient   Ingredient       @relation("RecipeComponent", fields: [ingredientId], references: [id])
+  quantity     Float
+
+  @@map("ingredient_recipe_items")
 }
 
 // --- STOCK OPNAME ---
@@ -534,6 +562,7 @@ enum IngredientPurchaseSource {
   EXPENSE
   ADJUSTMENT
   OPNAME_GAIN
+  ASSEMBLY
 }
 
 enum ServiceEnum {
@@ -568,6 +597,7 @@ enum RoleEnum {
   MANAGER
   CASHIER
   STAFF
+  DEVELOPER
 }
 
 enum AttendanceStatus {
@@ -592,4 +622,5 @@ enum StockMovementType {
   SALE
   ADJUSTMENT
   WASTE
+  ASSEMBLY
 }

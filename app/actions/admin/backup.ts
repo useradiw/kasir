@@ -32,6 +32,8 @@ const ALL_TABLES = [
   "settlementDeductions",
   "ingredientPurchases",
   "ingredientLogs",
+  "ingredientRecipes",
+  "ingredientRecipeItems",
   "stockOpnames",
   "stockOpnameLines",
 ] as const;
@@ -132,6 +134,12 @@ export async function exportDatabase(tables: string[]) {
         break;
       case "ingredientLogs":
         result.ingredientLogs = await prisma.ingredientLog.findMany({ orderBy: { createdAt: "asc" } });
+        break;
+      case "ingredientRecipes":
+        result.ingredientRecipes = await prisma.ingredientRecipe.findMany();
+        break;
+      case "ingredientRecipeItems":
+        result.ingredientRecipeItems = await prisma.ingredientRecipeItem.findMany();
         break;
       case "stockOpnames":
         result.stockOpnames = await prisma.stockOpname.findMany({ orderBy: { performedAt: "asc" } });

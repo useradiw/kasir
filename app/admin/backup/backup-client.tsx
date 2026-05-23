@@ -38,6 +38,8 @@ const TABLE_OPTIONS = [
   { key: "settlementDeductions", label: "Potongan Pencairan" },
   { key: "ingredientPurchases", label: "Pembelian Bahan" },
   { key: "ingredientLogs", label: "Log Stok Bahan" },
+  { key: "ingredientRecipes", label: "Resep Bahan" },
+  { key: "ingredientRecipeItems", label: "Komponen Resep Bahan" },
   { key: "stockOpnames", label: "Stock Opname" },
   { key: "stockOpnameLines", label: "Detail Stock Opname" },
 ] as const;

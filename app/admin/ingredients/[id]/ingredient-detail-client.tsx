@@ -20,12 +20,25 @@ import {
   updateIngredientPack,
   deleteIngredientPack,
   recordWasteAction,
+  setIngredientCost,
+  linkExpenseItemsToIngredient,
 } from "@/app/actions/admin/ingredients";
+import {
+  upsertIngredientRecipe,
+  deleteIngredientRecipe,
+  addIngredientRecipeItem,
+  updateIngredientRecipeItem,
+  deleteIngredientRecipeItem,
+  assembleIngredient,
+} from "@/app/actions/admin/ingredient-recipes";
 import { adjustIngredientStock } from "@/app/actions/admin/queries";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
-import type { IngredientPurchaseHistory, IngredientLog } from "@/app/actions/admin/queries/ingredient-queries";
+import type {
+  IngredientPurchaseHistory, IngredientLog,
+  IngredientRecipeData, ActiveIngredientLite, UnlinkedExpenseItem,
+} from "@/app/actions/admin/queries/ingredient-queries";
 
 type Detail = {
   id: string;
@@ -48,21 +61,25 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const LOG_TYPE_LABEL: Record<string, string> = {
   PURCHASE: "Pembelian", SALE: "Penjualan", ADJUSTMENT: "Penyesuaian", WASTE: "Pemborosan",
+  ASSEMBLY: "Produksi",
 };
 const LOG_TYPE_COLOR: Record<string, string> = {
   PURCHASE: "text-green-600 dark:text-green-400",
   SALE:     "text-destructive",
   ADJUSTMENT: "text-yellow-600 dark:text-yellow-400",
   WASTE:    "text-orange-600 dark:text-orange-400",
+  ASSEMBLY: "text-blue-600 dark:text-blue-400",
 };
 
 const SOURCE_LABEL: Record<string, string> = {
   EXPENSE: "Pengeluaran", ADJUSTMENT: "Penyesuaian", OPNAME_GAIN: "Opname",
+  ASSEMBLY: "Produksi",
 };
 
 const TABS = [
   { key: "pembelian", label: "Pembelian" },
   { key: "pemakaian", label: "Pemakaian" },
+  { key: "resep", label: "Resep" },
   { key: "pengaturan", label: "Pengaturan" },
 ];
 
@@ -70,11 +87,17 @@ export default function IngredientDetailClient({
   detail,
   purchases,
   logs,
+  recipe,
+  ingredientOptions,
+  unlinkedItems,
   tab,
 }: {
   detail: Detail;
   purchases: IngredientPurchaseHistory;
   logs: IngredientLog[];
+  recipe: IngredientRecipeData;
+  ingredientOptions: ActiveIngredientLite[];
+  unlinkedItems: UnlinkedExpenseItem[];
   tab: string;
 }) {
   const router   = useRouter();
@@ -118,7 +141,7 @@ export default function IngredientDetailClient({
             <div className="text-xs text-muted-foreground">
               Stok saat ini:{" "}
               <span className="font-semibold text-foreground tabular-nums">
-                {detail.currentStock % 1 === 0 ? detail.currentStock.toFixed(0) : detail.currentStock.toFixed(2)} {detail.baseUnit}
+                {detail.currentStock % 1 === 0 ? detail.currentStock.toFixed(0) : detail.currentStock.toFixed(3)} {detail.baseUnit}
               </span>
               {detail.lowStockAlert !== null && (
                 <span className="text-muted-foreground/60"> (min: {detail.lowStockAlert})</span>
@@ -220,7 +243,7 @@ export default function IngredientDetailClient({
                           {p.notes && <p className="text-xs text-muted-foreground">{p.notes}</p>}
                         </div>
                         <div className="text-right shrink-0 text-xs text-muted-foreground tabular-nums">
-                          <p>+{p.baseQty % 1 === 0 ? p.baseQty.toFixed(0) : p.baseQty.toFixed(2)} {detail.baseUnit}</p>
+                          <p>+{p.baseQty % 1 === 0 ? p.baseQty.toFixed(0) : p.baseQty.toFixed(3)} {detail.baseUnit}</p>
                           <p>HPP avg → {formatRupiah(p.avgUnitCostAfter)}</p>
                         </div>
                       </div>
@@ -252,7 +275,7 @@ export default function IngredientDetailClient({
                     </div>
                     <div className="text-right shrink-0 tabular-nums space-y-0.5">
                       <p className={`font-medium ${log.quantity >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
-                        {log.quantity >= 0 ? "+" : ""}{log.quantity % 1 === 0 ? log.quantity.toFixed(0) : log.quantity.toFixed(2)} {detail.baseUnit}
+                        {log.quantity >= 0 ? "+" : ""}{log.quantity % 1 === 0 ? log.quantity.toFixed(0) : log.quantity.toFixed(3)} {detail.baseUnit}
                       </p>
                       <p className="text-muted-foreground">{formatRupiah(log.unitCost)}/{detail.baseUnit}</p>
                       <p className="text-muted-foreground">{formatDateTime(log.createdAt)}</p>
@@ -265,10 +288,23 @@ export default function IngredientDetailClient({
         </Card>
       )}
 
+      {/* ── TAB: Resep ── */}
+      {tab === "resep" && (
+        <RecipeTab
+          detail={detail}
+          recipe={recipe}
+          ingredientOptions={ingredientOptions}
+          isPending={isPending}
+          run={run}
+          confirm={confirm}
+        />
+      )}
+
       {/* ── TAB: Pengaturan ── */}
       {tab === "pengaturan" && (
         <SettingsTab
           detail={detail}
+          unlinkedItems={unlinkedItems}
           isPending={isPending}
           run={run}
           confirm={confirm}
@@ -280,11 +316,13 @@ export default function IngredientDetailClient({
 
 function SettingsTab({
   detail,
+  unlinkedItems,
   isPending,
   run,
   confirm,
 }: {
   detail: Detail;
+  unlinkedItems: UnlinkedExpenseItem[];
   isPending: boolean;
   run: ReturnType<typeof useAdminAction>["run"];
   confirm: ReturnType<typeof useConfirm>;
@@ -296,6 +334,9 @@ function SettingsTab({
   const [showAdjust, setShowAdjust] = useState(false);
   const [adjustQty, setAdjustQty] = useState<number | null>(null);
   const [adjustNote, setAdjustNote] = useState("");
+  const [showCost, setShowCost] = useState(false);
+  const [costValue, setCostValue] = useState<number | null>(null);
+  const [costNote, setCostNote] = useState("");
 
   async function handleAdjust() {
     const qty = adjustQty;
@@ -303,6 +344,14 @@ function SettingsTab({
     await run(
       () => adjustIngredientStock(detail.id, qty, adjustNote),
       { successMessage: "Stok disesuaikan", onSuccess: () => { setShowAdjust(false); setAdjustQty(null); setAdjustNote(""); } },
+    );
+  }
+
+  async function handleSetCost() {
+    if (costValue === null || costValue < 0) return;
+    await run(
+      () => setIngredientCost(detail.id, costValue, costNote),
+      { successMessage: "HPP diperbarui", onSuccess: () => { setShowCost(false); setCostValue(null); setCostNote(""); } },
     );
   }
 
@@ -483,6 +532,44 @@ function SettingsTab({
         </CardContent>
       </Card>
 
+      {/* Set HPP Manual */}
+      <Card>
+        <CardHeader><CardTitle>Set HPP Manual</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {showCost ? (
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="grid gap-1 w-36">
+                <Label>HPP per {detail.baseUnit} (Rp)</Label>
+                <DecimalInput placeholder="cth: 1500" defaultValue={costValue} onValueChange={setCostValue} className="h-8" />
+              </div>
+              <div className="grid gap-1 flex-1 min-w-36">
+                <Label>Catatan</Label>
+                <Input placeholder="Opsional" value={costNote} onChange={(e) => setCostNote(e.target.value)} className="h-8" />
+              </div>
+              <div className="flex gap-2">
+                <Button size="sm" disabled={isPending} onClick={handleSetCost}>Simpan</Button>
+                <Button size="sm" variant="ghost" onClick={() => setShowCost(false)}>Batal</Button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <p className="text-xs text-muted-foreground">
+                Tetapkan HPP secara manual. Tercatat sebagai penyesuaian; pembelian dari pengeluaran berikutnya tetap menghitung rata-rata seperti biasa.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => setShowCost(true)}>Set HPP Manual</Button>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Link past purchases */}
+      <LinkPurchasesCard
+        ingredientId={detail.id}
+        items={unlinkedItems}
+        isPending={isPending}
+        run={run}
+      />
+
       {/* Waste */}
       <Card>
         <CardHeader><CardTitle>Catat Pemborosan</CardTitle></CardHeader>
@@ -537,6 +624,328 @@ function SettingsTab({
           </CardContent>
         </Card>
       )}
+    </div>
+  );
+}
+
+function LinkPurchasesCard({
+  ingredientId,
+  items,
+  isPending,
+  run,
+}: {
+  ingredientId: string;
+  items: UnlinkedExpenseItem[];
+  isPending: boolean;
+  run: ReturnType<typeof useAdminAction>["run"];
+}) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState("");
+
+  const filtered = filter.trim()
+    ? items.filter((i) => i.description.toLowerCase().includes(filter.trim().toLowerCase()))
+    : items;
+
+  function toggle(id: string) {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function handleLink() {
+    if (selected.size === 0) return;
+    run(
+      async () => { await linkExpenseItemsToIngredient(ingredientId, [...selected]); },
+      { successMessage: "Pembelian lama ditautkan", onSuccess: () => { setSelected(new Set()); setOpen(false); } },
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <CardTitle>Tautkan Pembelian Lama</CardTitle>
+        <Button size="sm" onClick={() => setOpen((v) => !v)}>{open ? "Tutup" : "Buka"}</Button>
+      </CardHeader>
+      {open && (
+        <CardContent className="space-y-3">
+          {items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Tidak ada pembelian lama yang belum tertaut.</p>
+          ) : (
+            <>
+              <Input
+                placeholder="Cari deskripsi…"
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="h-8"
+              />
+              <div className="max-h-72 overflow-y-auto divide-y divide-foreground/5 border border-foreground/10 rounded-lg">
+                {filtered.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Tidak ada hasil.</p>
+                ) : filtered.map((it) => (
+                  <label key={it.id} className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/40">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(it.id)}
+                      onChange={() => toggle(it.id)}
+                      className="size-4 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{it.description}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">
+                        {it.amount}{it.unit ? ` ${it.unit}` : ""} × {formatRupiah(it.cost)} · {formatDateTime(it.recordedAt)}
+                      </p>
+                    </div>
+                    <span className="text-sm font-medium tabular-nums shrink-0">
+                      {formatRupiah(Math.round(it.amount * it.cost))}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Button size="sm" disabled={isPending || selected.size === 0} onClick={handleLink}>
+                  Tautkan{selected.size > 0 ? ` (${selected.size})` : ""}
+                </Button>
+                <span className="text-xs text-muted-foreground">
+                  Stok &amp; HPP bahan ini akan terisi dari pembelian terpilih.
+                </span>
+              </div>
+            </>
+          )}
+        </CardContent>
+      )}
+    </Card>
+  );
+}
+
+function RecipeTab({
+  detail,
+  recipe,
+  ingredientOptions,
+  isPending,
+  run,
+  confirm,
+}: {
+  detail: Detail;
+  recipe: IngredientRecipeData;
+  ingredientOptions: ActiveIngredientLite[];
+  isPending: boolean;
+  run: ReturnType<typeof useAdminAction>["run"];
+  confirm: ReturnType<typeof useConfirm>;
+}) {
+  const [editItem, setEditItem] = useState<string | null>(null);
+  const [showAddItem, setShowAddItem] = useState(false);
+
+  const components = ingredientOptions.filter((o) => o.id !== detail.id);
+
+  if (!recipe) {
+    return (
+      <Card>
+        <CardHeader><CardTitle>Resep Bahan</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Bahan ini belum punya resep. Buat resep bila bahan ini dirakit dari bahan lain (mis. saus kacang).
+          </p>
+          <form
+            action={(fd) => run(
+              async () => { await upsertIngredientRecipe(detail.id, {
+                yieldQty: parseFloat(fd.get("yieldQty") as string),
+                notes:    fd.get("notes") as string || undefined,
+              }); },
+              { successMessage: "Resep dibuat" },
+            )}
+            className="flex flex-wrap gap-3 items-end"
+          >
+            <div className="grid gap-1">
+              <Label>Hasil / Batch ({detail.baseUnit})</Label>
+              <DecimalInput name="yieldQty" required defaultValue={1} className="w-32" />
+            </div>
+            <div className="grid gap-1 flex-1 min-w-40">
+              <Label>Catatan</Label>
+              <Input name="notes" placeholder="Opsional" />
+            </div>
+            <Button type="submit" size="sm" disabled={isPending}>Buat Resep</Button>
+          </form>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const totalCost  = recipe.items.reduce((s, it) => s + it.quantity * it.averageUnitCost, 0);
+  const estPerUnit = recipe.yieldQty > 0 ? Math.round(totalCost / recipe.yieldQty) : 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Recipe header / yield */}
+      <Card>
+        <CardHeader><CardTitle>Resep Bahan</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <form
+            action={(fd) => run(
+              async () => { await upsertIngredientRecipe(detail.id, {
+                yieldQty: parseFloat(fd.get("yieldQty") as string),
+                notes:    fd.get("notes") as string || undefined,
+              }); },
+              { successMessage: "Resep diperbarui" },
+            )}
+            className="flex flex-wrap gap-3 items-end"
+          >
+            <div className="grid gap-1">
+              <Label>Hasil / Batch ({detail.baseUnit})</Label>
+              <DecimalInput name="yieldQty" required defaultValue={recipe.yieldQty} className="w-32" />
+            </div>
+            <div className="grid gap-1 flex-1 min-w-40">
+              <Label>Catatan</Label>
+              <Input name="notes" defaultValue={recipe.notes ?? ""} placeholder="Opsional" />
+            </div>
+            <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+          </form>
+          <div className="text-xs text-muted-foreground tabular-nums">
+            Estimasi HPP:{" "}
+            <span className="font-semibold text-foreground">{formatRupiah(estPerUnit)}/{detail.baseUnit}</span>
+            {" "}(total bahan {formatRupiah(Math.round(totalCost))} per {recipe.yieldQty} {detail.baseUnit})
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Components */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Komponen ({recipe.items.length})</CardTitle>
+          <Button size="sm" onClick={() => setShowAddItem((v) => !v)}>
+            {showAddItem ? "Batal" : "+ Komponen"}
+          </Button>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {showAddItem && (
+            <form
+              action={(fd) => run(
+                () => addIngredientRecipeItem(recipe.id, {
+                  ingredientId: fd.get("ingredientId") as string,
+                  quantity:     parseFloat(fd.get("quantity") as string),
+                }),
+                { successMessage: "Komponen ditambahkan", onSuccess: () => setShowAddItem(false) },
+              )}
+              className="flex flex-wrap gap-3 items-end border-b border-foreground/10 pb-3"
+            >
+              <div className="grid gap-1">
+                <Label>Bahan</Label>
+                <AdminSelect name="ingredientId" required defaultValue="">
+                  <option value="" disabled>Pilih bahan…</option>
+                  {components.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name} ({c.baseUnit})</option>
+                  ))}
+                </AdminSelect>
+              </div>
+              <div className="grid gap-1">
+                <Label>Jumlah / Batch</Label>
+                <DecimalInput name="quantity" required className="w-28" />
+              </div>
+              <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+            </form>
+          )}
+
+          {recipe.items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Belum ada komponen. Tambahkan bahan penyusun.</p>
+          ) : (
+            <div className="divide-y divide-foreground/5">
+              {recipe.items.map((it) => (
+                <div key={it.id} className="py-2">
+                  {editItem === it.id ? (
+                    <form
+                      action={(fd) => run(
+                        () => updateIngredientRecipeItem(it.id, parseFloat(fd.get("quantity") as string)),
+                        { successMessage: "Komponen diperbarui", onSuccess: () => setEditItem(null) },
+                      )}
+                      className="flex flex-wrap gap-3 items-end"
+                    >
+                      <div className="text-sm font-medium pb-1.5">{it.ingredientName}</div>
+                      <div className="grid gap-1">
+                        <Label>Jumlah / Batch</Label>
+                        <DecimalInput name="quantity" defaultValue={it.quantity} required className="w-28" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditItem(null)}>Batal</Button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium">{it.ingredientName}</span>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                          {" "}· {it.quantity} {it.ingredientUnit} × {formatRupiah(it.averageUnitCost)} ={" "}
+                          {formatRupiah(Math.round(it.quantity * it.averageUnitCost))}
+                        </span>
+                      </div>
+                      <div className="flex gap-1 shrink-0">
+                        <Button size="xs" variant="outline" onClick={() => setEditItem(it.id)}>Edit</Button>
+                        <Button size="xs" variant="destructive" disabled={isPending}
+                          onClick={async () => {
+                            if (await confirm({ title: `Hapus ${it.ingredientName}?`, destructive: true, confirmLabel: "Hapus" }))
+                              run(() => deleteIngredientRecipeItem(it.id), { successMessage: "Komponen dihapus" });
+                          }}>Hapus</Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Produksi */}
+      <Card>
+        <CardHeader><CardTitle>Produksi</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {recipe.items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Tambahkan komponen dulu sebelum produksi.</p>
+          ) : (
+            <form
+              action={(fd) => run(
+                () => assembleIngredient(
+                  detail.id,
+                  parseFloat(fd.get("batches") as string),
+                  (fd.get("date") as string) || undefined,
+                ),
+                { successMessage: "Produksi dicatat" },
+              )}
+              className="flex flex-wrap gap-3 items-end"
+            >
+              <div className="grid gap-1">
+                <Label>Jumlah Batch</Label>
+                <DecimalInput name="batches" required defaultValue={1} className="w-24" />
+              </div>
+              <div className="grid gap-1">
+                <Label>Tanggal</Label>
+                <Input type="date" name="date" className="w-40" />
+              </div>
+              <Button type="submit" size="sm" disabled={isPending}>Catat Produksi</Button>
+            </form>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Produksi mengurangi stok komponen dan menambah stok {detail.name}, lalu memperbarui HPP-nya.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Danger: delete recipe */}
+      <Card className="border-destructive/20">
+        <CardHeader><CardTitle className="text-destructive text-sm">Zona Bahaya</CardTitle></CardHeader>
+        <CardContent>
+          <Button size="sm" variant="destructive" disabled={isPending}
+            onClick={async () => {
+              if (await confirm({ title: "Hapus resep bahan ini?", description: "Komponen resep akan dihapus. Stok & HPP yang sudah tercatat tidak berubah.", destructive: true, confirmLabel: "Hapus" }))
+                run(() => deleteIngredientRecipe(detail.id), { successMessage: "Resep dihapus" });
+            }}>
+            Hapus Resep
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

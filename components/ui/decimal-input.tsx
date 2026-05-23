@@ -48,7 +48,7 @@ export function DecimalInput({
   defaultValue,
   onValueChange,
   allowNegative = false,
-  maxDecimals = 2,
+  maxDecimals = 3,
   ...props
 }: DecimalInputProps) {
   const [text, setText] = React.useState(() => toDisplay(defaultValue));

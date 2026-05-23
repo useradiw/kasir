@@ -35,6 +35,8 @@ const IMPORT_ORDER = [
   "expenses",
   "expenseItems",
   "ingredientPurchases",
+  "ingredientRecipes",
+  "ingredientRecipeItems",
   "kasPakHar",
   "attendanceRecords",
   "notifications",
@@ -536,7 +538,7 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           ingredientId:     row.ingredientId as string,
           supplierId:       row.supplierId as string | null ?? undefined,
           expenseItemId:    row.expenseItemId as string | null ?? undefined,
-          source:           row.source as "EXPENSE" | "ADJUSTMENT" | "OPNAME_GAIN",
+          source:           row.source as "EXPENSE" | "ADJUSTMENT" | "OPNAME_GAIN" | "ASSEMBLY",
           packLabel:        row.packLabel as string | null ?? undefined,
           packQty:          row.packQty as number,
           baseQty:          row.baseQty as number,
@@ -549,6 +551,36 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           notes:            row.notes as string | null ?? undefined,
         },
         update: {},
+      });
+      break;
+
+    case "ingredientRecipes":
+      await prisma.ingredientRecipe.upsert({
+        where: { id: row.id as string },
+        create: {
+          id:           row.id as string,
+          ingredientId: row.ingredientId as string,
+          yieldQty:     row.yieldQty as number ?? 1,
+          notes:        row.notes as string | null ?? undefined,
+          createdAt:    toDate(row.createdAt) ?? undefined,
+        },
+        update: {
+          yieldQty: row.yieldQty as number ?? 1,
+          notes:    row.notes as string | null ?? undefined,
+        },
+      });
+      break;
+
+    case "ingredientRecipeItems":
+      await prisma.ingredientRecipeItem.upsert({
+        where: { id: row.id as string },
+        create: {
+          id:           row.id as string,
+          recipeId:     row.recipeId as string,
+          ingredientId: row.ingredientId as string,
+          quantity:     row.quantity as number,
+        },
+        update: { quantity: row.quantity as number },
       });
       break;
 
@@ -607,7 +639,7 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           id:           row.id as string,
           templateId:   row.templateId as string | null ?? undefined,
           ingredientId: row.ingredientId as string | null ?? undefined,
-          type:         row.type as "PURCHASE" | "SALE" | "ADJUSTMENT" | "WASTE",
+          type:         row.type as "PURCHASE" | "SALE" | "ADJUSTMENT" | "WASTE" | "ASSEMBLY",
           quantity:     row.quantity as number,
           unitCost:     row.unitCost as number,
           referenceId:  (row.referenceId as string | null) ?? null,
