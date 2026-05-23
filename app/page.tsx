@@ -73,10 +73,12 @@ export default async function Home() {
   const staffName = staff?.name ?? user.email ?? "Pengguna";
   const staffRole = staff?.role ?? "STAFF";
 
-  const kasirLinks = allKasirLinks.filter((l) => (l.roles as readonly string[]).includes(staffRole));
+  const kasirLinks = allKasirLinks.filter(
+    (l) => staffRole === "DEVELOPER" || (l.roles as readonly string[]).includes(staffRole),
+  );
   const adminLinks = allAdminLinks.filter((l) => {
     const roles = l.roles ?? ["OWNER", "MANAGER"];
-    return (roles as readonly string[]).includes(staffRole);
+    return staffRole === "DEVELOPER" || (roles as readonly string[]).includes(staffRole);
   });
 
   return (

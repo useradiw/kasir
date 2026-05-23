@@ -3,7 +3,7 @@
 import { revalidateNotifications } from "@/lib/revalidate";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireOwner, requireOwnerStrict } from "@/lib/admin-auth";
 import { ActionError, runAction } from "@/lib/action-error";
 import { createVoidNotification, notifyStaff } from "@/lib/notifications";
 import type { NotificationType } from "@/generated/prisma";
@@ -71,7 +71,7 @@ export async function markAllNotificationsReadGlobal() {
 
 export async function deleteNotification(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.notification.delete({ where: { id } });
     revalidateNotifications();
   });

@@ -32,7 +32,7 @@ export default async function TransactionsPage({
         totalPages={data.totalPages}
         total={data.total}
         filters={{ method, status, from, to }}
-        isOwner={staff.role === "OWNER"}
+        isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"}
       />
     </Container>
   );

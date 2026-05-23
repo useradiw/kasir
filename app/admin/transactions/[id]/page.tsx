@@ -21,7 +21,7 @@ export default async function TransactionDetailPage({
 
   return (
     <Container id="admin-transaction-detail" sectionStyle="" className="py-6">
-      <TransactionDetailClient data={data} isOwner={staff.role === "OWNER"} storeInfo={storeInfo} />
+      <TransactionDetailClient data={data} isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"} storeInfo={storeInfo} />
     </Container>
   );
 }

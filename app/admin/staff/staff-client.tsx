@@ -23,7 +23,7 @@ type StaffRow = {
   id: string;
   username: string | null;
   name: string;
-  role: "OWNER" | "MANAGER" | "CASHIER" | "STAFF";
+  role: "OWNER" | "MANAGER" | "CASHIER" | "STAFF" | "DEVELOPER";
   isActive: boolean;
   salary: number | null;
   supabaseUserId: string | null;
@@ -32,7 +32,7 @@ type StaffRow = {
   updatedAt: string;
 };
 
-const ROLES = ["OWNER", "MANAGER", "CASHIER", "STAFF"] as const;
+const ROLES = ["OWNER", "MANAGER", "CASHIER", "STAFF", "DEVELOPER"] as const;
 
 export default function StaffClient({ staffList, isOwner }: { staffList: StaffRow[]; isOwner: boolean }) {
   const { isPending, run, error } = useAdminAction();

@@ -27,6 +27,7 @@ const roleBadgeClass: Record<string, string> = {
   MANAGER: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
   CASHIER: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
   STAFF: "bg-muted text-muted-foreground",
+  DEVELOPER: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
 };
 
 export function RoleBadge({ role }: { role: string }) {

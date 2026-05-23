@@ -12,7 +12,7 @@ export const metadata = { title: "Panduan Bahan, Supplier & Opname" };
 
 export default async function CogsGuidePage() {
   const staff = await requireAuth();
-  const isAdmin = staff.role === "OWNER" || staff.role === "MANAGER";
+  const isAdmin = staff.role === "OWNER" || staff.role === "MANAGER" || staff.role === "DEVELOPER";
 
   const filePath = path.join(process.cwd(), "docs", "cogs-feature.md");
   const content = await readFile(filePath, "utf-8");

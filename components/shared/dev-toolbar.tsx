@@ -11,14 +11,15 @@ const ROLE_LABEL: Record<RoleEnum, string> = {
   MANAGER: "Manager",
   CASHIER: "Kasir",
   STAFF: "Staff",
+  DEVELOPER: "Developer",
 };
 
 export function DevToolbar() {
   const { isDevMode, realRole, viewAsRole, setViewAsRole } = useDevView();
   const [minimized, setMinimized] = useState(false);
 
-  // Only visible to actual OWNER with dev mode on
-  if (!isDevMode || realRole !== "OWNER") return null;
+  // Only visible to actual OWNER / DEVELOPER with dev mode on
+  if (!isDevMode || (realRole !== "OWNER" && realRole !== "DEVELOPER")) return null;
 
   const isViewingAs = viewAsRole !== realRole;
 

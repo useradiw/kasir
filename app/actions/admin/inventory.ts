@@ -2,7 +2,7 @@
 
 import { revalidateInventory } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireOwner, requireRole } from "@/lib/admin-auth";
+import { requireOwnerStrict, requireRole, requireRoleStrict } from "@/lib/admin-auth";
 import { z } from "zod";
 import { ServiceEnum } from "@/generated/prisma";
 import { runAction } from "@/lib/action-error";
@@ -40,7 +40,7 @@ export async function updateCategory(id: string, formData: FormData) {
 
 export async function deleteCategory(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.category.delete({ where: { id } });
     revalidateInventory();
   });
@@ -85,7 +85,7 @@ export async function updateMenuItem(id: string, formData: FormData) {
 
 export async function deleteMenuItem(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.menuItem.delete({ where: { id } });
     revalidateInventory();
   });
@@ -135,7 +135,7 @@ export async function updateVariant(id: string, formData: FormData) {
 
 export async function deleteVariant(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.menuVariant.delete({ where: { id } });
     revalidateInventory();
   });
@@ -174,7 +174,7 @@ export async function updatePackage(id: string, formData: FormData) {
 
 export async function deletePackage(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.package.delete({ where: { id } });
     revalidateInventory();
   });
@@ -212,7 +212,7 @@ export async function addPackageItem(formData: FormData) {
 
 export async function deletePackageItem(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.packageItem.delete({ where: { id } });
     revalidateInventory();
   });
@@ -259,7 +259,7 @@ export async function setOnlinePrice(data: {
 
 export async function deleteOnlinePrice(id: string) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireRoleStrict("OWNER", "MANAGER");
     await prisma.menuItemOnlinePrice.delete({ where: { id } });
     revalidateInventory();
   });

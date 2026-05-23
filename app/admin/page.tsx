@@ -9,7 +9,7 @@ import { formatRupiah, formatDateTime } from "@/lib/format";
 
 export default async function AdminDashboard() {
   const staff = await requireRole("OWNER", "MANAGER", "CASHIER");
-  const needsOpnameCheck = staff.role === "OWNER" || staff.role === "MANAGER";
+  const needsOpnameCheck = staff.role === "OWNER" || staff.role === "MANAGER" || staff.role === "DEVELOPER";
   const [data, hasOpname] = await Promise.all([
     getDashboardData(),
     needsOpnameCheck

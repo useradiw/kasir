@@ -9,7 +9,7 @@ export default async function KasPakHarPage() {
 
   return (
     <Container id="admin-kas-pak-har" sectionStyle="" className="py-6">
-      <KasPakHarClient data={data} isOwner={staff.role === "OWNER"} />
+      <KasPakHarClient data={data} isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"} />
     </Container>
   );
 }

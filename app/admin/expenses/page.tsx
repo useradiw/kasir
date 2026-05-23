@@ -32,7 +32,7 @@ export default async function ExpensesPage({
         expenses={data.expenses}
         totalAmount={data.totalAmount}
         filters={{ from, to }}
-        isOwner={staff.role === "OWNER"}
+        isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"}
         ingredients={ingredients}
       />
     </Container>

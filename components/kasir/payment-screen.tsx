@@ -61,7 +61,7 @@ export function PaymentScreen({
   });
   const subtotal = calcSubtotal(activeItems);
 
-  const canEditCharges = staffRole === "OWNER" || staffRole === "MANAGER";
+  const canEditCharges = staffRole === "OWNER" || staffRole === "MANAGER" || staffRole === "DEVELOPER";
 
   const [method, setMethod] = useState<PaymentMethod>("CASH");
 

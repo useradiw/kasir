@@ -19,7 +19,7 @@ export default async function InventoryPage({
         {...data}
         ingredients={recipeData.ingredients}
         recipes={recipeData.recipes}
-        isOwner={staff.role === "OWNER"}
+        isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"}
       />
     </Container>
   );

@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole, requireOwner } from "@/lib/admin-auth";
+import { requireRole, requireOwnerStrict, requireRoleStrict } from "@/lib/admin-auth";
 import { revalidateInventory } from "@/lib/revalidate";
 import { runAction } from "@/lib/action-error";
 
@@ -42,7 +42,7 @@ export async function upsertRecipe(
 
 export async function deleteRecipe(recipeId: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.recipe.delete({ where: { id: recipeId } });
     revalidateInventory();
   });
@@ -97,7 +97,7 @@ export async function updateRecipeIngredient(id: string, formData: FormData) {
 
 export async function deleteRecipeIngredient(id: string) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireRoleStrict("OWNER", "MANAGER");
     await prisma.recipeIngredient.delete({ where: { id } });
     revalidateInventory();
   });

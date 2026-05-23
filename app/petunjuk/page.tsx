@@ -50,8 +50,8 @@ function OwnerOnly() {
 export default async function PetunjukPage() {
   const staff = await requireAuth();
   const role = staff.role;
-  const isOwner = role === "OWNER";
-  const isAdmin = role === "OWNER" || role === "MANAGER";
+  const isOwner = role === "OWNER" || role === "DEVELOPER";
+  const isAdmin = role === "OWNER" || role === "MANAGER" || role === "DEVELOPER";
   const hasCashAccess = role !== "STAFF";
 
   return (

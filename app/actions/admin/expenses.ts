@@ -2,7 +2,7 @@
 
 import { revalidateExpenses, revalidateIngredients } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireOwner, requireRole } from "@/lib/admin-auth";
+import { requireOwnerStrict, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
 import { recordPurchasesBatch, reversePurchasesBatch } from "@/lib/cogs-utils";
@@ -224,7 +224,7 @@ export async function updateExpense(id: string, data: ExpenseData) {
 
 export async function deleteExpense(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
 
     await prisma.$transaction(async (tx) => {
       // Reverse stock for ingredient-linked items

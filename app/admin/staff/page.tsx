@@ -9,7 +9,7 @@ export default async function StaffPage() {
 
   return (
     <Container id="admin-staff" sectionStyle="" className="py-6">
-      <StaffClient staffList={staffList} isOwner={staff.role === "OWNER"} />
+      <StaffClient staffList={staffList} isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"} />
     </Container>
   );
 }

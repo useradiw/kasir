@@ -2,7 +2,7 @@
 
 import { revalidateCashRegister } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireOwner, requireOwnerStrict } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
 
@@ -81,7 +81,7 @@ export async function editRegister(id: string, formData: FormData) {
 
 export async function deleteRegister(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.cashRegister.delete({ where: { id } });
     revalidateCashRegister();
   });

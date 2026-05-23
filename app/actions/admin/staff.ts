@@ -3,7 +3,7 @@
 import { revalidateStaff } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireOwner, requireOwnerStrict } from "@/lib/admin-auth";
 import { z } from "zod";
 import type { RoleEnum } from "@/generated/prisma";
 import { ActionError, runAction } from "@/lib/action-error";
@@ -53,7 +53,7 @@ export async function updateStaff(id: string, formData: FormData) {
 
 export async function deleteStaff(id: string) {
   return runAction(async () => {
-    const owner = await requireOwner();
+    const owner = await requireOwnerStrict();
 
     if (owner.id === id) throw new ActionError("Tidak dapat menghapus akun sendiri.");
 

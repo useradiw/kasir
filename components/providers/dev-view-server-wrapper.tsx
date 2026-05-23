@@ -24,9 +24,9 @@ export async function DevViewServerWrapper({ children }: { children: React.React
     return <>{children}</>;
   }
 
-  // Only OWNER needs to check the dev_mode setting
+  // Only OWNER / DEVELOPER need to check the dev_mode setting
   let isDevMode = false;
-  if (staff.role === "OWNER") {
+  if (staff.role === "OWNER" || staff.role === "DEVELOPER") {
     const devModeSetting = await getSetting("dev_mode");
     isDevMode = devModeSetting === "true";
   }

@@ -111,7 +111,7 @@ export default function CashRegisterClient({
   const [openingAmount, setOpeningAmount] = useState(0);
   const [closingAmount, setClosingAmount] = useState(0);
 
-  const isOwner = staffRole === "OWNER";
+  const isOwner = staffRole === "OWNER" || staffRole === "DEVELOPER";
 
   function applyFilters() {
     const params = new URLSearchParams();

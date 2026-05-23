@@ -2,7 +2,7 @@
 
 import { revalidateExpenses } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireOwner, requireRole } from "@/lib/admin-auth";
+import { requireOwnerStrict, requireRole } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
 
@@ -34,7 +34,7 @@ export async function addKasPakHarEntry(data: {
 
 export async function deleteKasPakHarEntry(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireOwnerStrict();
     await prisma.kasPakHar.delete({ where: { id } });
     revalidateExpenses();
   });

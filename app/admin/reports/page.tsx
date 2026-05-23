@@ -9,7 +9,7 @@ export default async function ReportsPage({
   searchParams: Promise<{ period?: string; date?: string }>;
 }) {
   const staff = await requireRole("OWNER", "MANAGER");
-  const isOwner = staff.role === "OWNER";
+  const isOwner = staff.role === "OWNER" || staff.role === "DEVELOPER";
   const params = await searchParams;
   const period = (["daily", "weekly", "monthly", "yearly"].includes(params.period ?? "")
     ? params.period

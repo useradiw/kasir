@@ -44,7 +44,7 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const staff = await requireRole("OWNER", "MANAGER");
-  const isOwner = staff.role === "OWNER";
+  const isOwner = staff.role === "OWNER" || staff.role === "DEVELOPER";
   const displayEmail = staff.name ?? "Admin";
 
   const navItems = navItemsBase.map((group) => ({
