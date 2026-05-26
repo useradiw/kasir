@@ -191,9 +191,26 @@ export async function updateIngredientPack(id: string, data: {
 
     const existing = await prisma.ingredientPack.findUniqueOrThrow({
       where:  { id },
-      select: { ingredientId: true, ingredient: { select: { unitClass: true } } },
+      select: { ingredientId: true, label: true, baseQty: true,
+                ingredient: { select: { unitClass: true } } },
     });
     assertPackLabelClassMatches(parsed.label, existing.ingredient.unitClass);
+
+    // Changing baseQty after purchases reference this pack would silently
+    // invalidate the historical baseQty math (and through it, every WMA/COGS
+    // number computed since). Block it. Label rename and default toggle stay
+    // free — they don't change the conversion factor.
+    if (parsed.baseQty !== existing.baseQty) {
+      const inUse = await prisma.ingredientPurchase.count({
+        where: { ingredientId: existing.ingredientId, packLabel: existing.label },
+      });
+      if (inUse > 0) {
+        throw new Error(
+          `Konversi (${existing.baseQty}) tidak bisa diubah: paket "${existing.label}" ` +
+          `sudah dipakai di ${inUse} pembelian. Buat satuan baru jika konversinya beda.`,
+        );
+      }
+    }
 
     if (parsed.isDefault) {
       await prisma.ingredientPack.updateMany({
@@ -285,7 +302,7 @@ export async function addIngredientsBulk(rows: Array<{
 export async function setIngredientCost(id: string, unitCost: number, note?: string) {
   return runAction(async () => {
     const staff = await requireRole("OWNER", "MANAGER");
-    const cost = Math.round(unitCost);
+    const cost = Number(unitCost);
     if (!Number.isFinite(cost) || cost < 0) throw new Error("HPP harus angka 0 atau lebih.");
 
     await prisma.$transaction(async (tx) => {

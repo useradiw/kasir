@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { AdminSelect, AdminPageHeader, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { notify } from "@/lib/notify";
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { formatRupiah, formatRpPerUnit, formatDateTime } from "@/lib/format";
 import { addIngredientsBulk } from "@/app/actions/admin/ingredients";
 import { DEFAULT_BASE_UNIT, type UnitClassName } from "@/lib/unit-class";
 import type { IngredientStockData } from "@/app/actions/admin/queries";
@@ -370,14 +370,14 @@ function IngredientRow({
                 </span>
                 {row.averageUnitCost > 0 && (
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    HPP avg: <span className="text-foreground font-medium">{formatRupiah(row.averageUnitCost)}/{row.unit}</span>
+                    HPP avg: <span className="text-foreground font-medium">{formatRpPerUnit(row.averageUnitCost)}/{row.unit}</span>
                   </span>
                 )}
                 {row.lastUnitCost !== null && row.lastUnitCost !== row.averageUnitCost && (
                   <span className="text-xs text-muted-foreground tabular-nums">
                     Terakhir:{" "}
                     <span className={`font-medium ${priceArrow === "↑" ? "text-destructive" : priceArrow === "↓" ? "text-green-600 dark:text-green-400" : "text-foreground"}`}>
-                      {priceArrow}{formatRupiah(row.lastUnitCost)}/{row.unit}
+                      {priceArrow}{formatRpPerUnit(row.lastUnitCost)}/{row.unit}
                     </span>
                   </span>
                 )}

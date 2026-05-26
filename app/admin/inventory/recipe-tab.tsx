@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
-import { formatRupiah } from "@/lib/format";
+import { formatRupiah, formatRpPerUnit } from "@/lib/format";
 import {
   upsertRecipe,
   deleteRecipe,
@@ -297,9 +297,9 @@ function RecipeCard({
                     )}
                     {ingCost(ing) !== null && (
                       <span className="text-muted-foreground text-xs ml-1">
-                        (HPP avg {formatRupiah(ingCost(ing)!)}/{ingUnit(ing)})
+                        (HPP avg {formatRpPerUnit(ingCost(ing)!)}/{ingUnit(ing)})
                         {ing.lastUnitCost !== null && ing.lastUnitCost !== ing.averageUnitCost && (
-                          <span className="text-muted-foreground"> · terakhir {formatRupiah(ing.lastUnitCost)}</span>
+                          <span className="text-muted-foreground"> · terakhir {formatRpPerUnit(ing.lastUnitCost)}</span>
                         )}
                       </span>
                     )}
@@ -403,7 +403,7 @@ function AddIngredientForm({
             {ingredients.map((i) => (
               <option key={i.id} value={i.id}>
                 {i.name} ({categoryLabel[i.category] ?? i.category}) · {i.baseUnit}
-                {i.averageUnitCost > 0 ? ` · HPP avg ${formatRupiah(i.averageUnitCost)}` : ""}
+                {i.averageUnitCost > 0 ? ` · HPP avg ${formatRpPerUnit(i.averageUnitCost)}/${i.baseUnit}` : ""}
               </option>
             ))}
           </AdminSelect>

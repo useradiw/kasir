@@ -11,10 +11,34 @@ export type PrismaTx = Prisma.TransactionClient;
 // ─── Pack unit conversion ─────────────────────────────────────────────────────
 
 /**
+ * Resolve packBaseQty against a prefetched pack map.
+ * Empty/null packLabel means "already in base units" → returns 1.
+ * A non-empty label MUST match an existing IngredientPack — otherwise we throw
+ * loudly. The previous silent `?? 1` fallback caused real data corruption: a
+ * mislabeled "bks" expense against a pack saved as "1 bks" treated 3 packs as
+ * 3 mg instead of 9,900,000 mg. Better to fail fast than silently miscalculate.
+ */
+function resolvePackBaseQty(
+  packMap: Map<string, number>,
+  ingredientId: string,
+  packLabel: string | null | undefined,
+): number {
+  if (!packLabel) return 1;
+  const found = packMap.get(`${ingredientId}::${packLabel}`);
+  if (found === undefined) {
+    throw new Error(
+      `Satuan "${packLabel}" belum terdaftar untuk bahan ini. ` +
+      `Tambahkan dulu di pengaturan bahan (Pack/Satuan) sebelum mencatat pembelian.`,
+    );
+  }
+  return found;
+}
+
+/**
  * Resolve base quantity for a purchase given a pack label.
  * Looks up IngredientPack by (ingredientId, label).
  * Returns { baseQty, packBaseQty } where baseQty = packQty * packBaseQty.
- * Falls back to 1:1 if no pack found.
+ * Throws when packLabel is set but no matching pack exists.
  */
 export async function resolvePackQty(
   tx: PrismaTx,
@@ -27,8 +51,13 @@ export async function resolvePackQty(
     where: { ingredientId_label: { ingredientId, label: packLabel } },
     select: { baseQty: true },
   });
-  const packBaseQty = pack?.baseQty ?? 1;
-  return { baseQty: packQty * packBaseQty, packBaseQty };
+  if (!pack) {
+    throw new Error(
+      `Satuan "${packLabel}" belum terdaftar untuk bahan ini. ` +
+      `Tambahkan dulu di pengaturan bahan (Pack/Satuan) sebelum mencatat pembelian.`,
+    );
+  }
+  return { baseQty: packQty * pack.baseQty, packBaseQty: pack.baseQty };
 }
 
 // ─── WMA cost read ────────────────────────────────────────────────────────────
@@ -116,18 +145,16 @@ export async function recordPurchasesBatch(
     const { ingredientId, supplierId, expenseItemId, source, packLabel, packQty,
             totalCost, purchasedAt, recordedById, notes } = input;
 
-    const packBaseQty = packLabel
-      ? packMap.get(`${ingredientId}::${packLabel}`) ?? 1
-      : 1;
+    const packBaseQty = resolvePackBaseQty(packMap, ingredientId, packLabel);
     const baseQty = packQty * packBaseQty;
-    const unitCost = baseQty > 0 ? Math.round(totalCost / baseQty) : 0;
+    const unitCost = baseQty > 0 ? totalCost / baseQty : 0;
 
     const s = state.get(ingredientId)!;
     const oldStock = s.stock;
     const oldAvg = s.avg;
     const newStock = oldStock + baseQty;
     const newAvg = newStock > 0
-      ? Math.round((oldAvg * oldStock + totalCost) / newStock)
+      ? (oldAvg * oldStock + totalCost) / newStock
       : unitCost;
 
     const ts = purchasedAt ?? now;
@@ -214,9 +241,7 @@ export async function reversePurchasesBatch(
   const logRows: Prisma.IngredientLogCreateManyInput[] = [];
 
   for (const item of items) {
-    const packBaseQty = item.packLabel
-      ? packMap.get(`${item.ingredientId}::${item.packLabel}`) ?? 1
-      : 1;
+    const packBaseQty = resolvePackBaseQty(packMap, item.ingredientId, item.packLabel);
     const baseQty = item.packQty * packBaseQty;
 
     decrements.set(

@@ -5,7 +5,7 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
-import { formatRupiah } from "@/lib/format";
+import { formatRupiah, formatRpPerUnit } from "@/lib/format";
 
 export type IngredientOption = {
   id:              string;
@@ -114,7 +114,7 @@ export function ItemRow({
             <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5">
               {categoryLabel[selectedIngredient?.category ?? ""] ?? ""}
             </span>
-            <span>· HPP rata-rata {formatRupiah(selectedIngredient?.averageUnitCost ?? 0)}/{selectedIngredient?.baseUnit ?? ""}</span>
+            <span>· HPP rata-rata {formatRpPerUnit(selectedIngredient?.averageUnitCost ?? 0)}/{selectedIngredient?.baseUnit ?? ""}</span>
           </div>
         )}
         {showDropdown && hasSuggestions && (
@@ -132,7 +132,7 @@ export function ItemRow({
                     <span className="truncate">{ing.name}</span>
                     <span className="text-xs text-muted-foreground shrink-0">
                       {ing.baseUnit}
-                      {ing.averageUnitCost > 0 ? ` · ${formatRupiah(ing.averageUnitCost)}` : ""}
+                      {ing.averageUnitCost > 0 ? ` · ${formatRpPerUnit(ing.averageUnitCost)}/${ing.baseUnit}` : ""}
                     </span>
                   </button>
                 ))}
@@ -157,15 +157,17 @@ export function ItemRow({
         )}
       </div>
 
-      {/* Pack selector (if ingredient has packs) */}
+      {/* Pack selector (when ingredient has packs).
+          Base-unit chip sets unit="" so server treats it as "already in base units"
+          (packLabel=null path) instead of attempting a pack lookup. */}
       {selectedIngredient && selectedIngredient.packs.length > 0 && (
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2 text-sm flex-wrap">
           <span className="text-muted-foreground text-xs">Satuan:</span>
           <div className="flex flex-wrap gap-1">
             <button
               type="button"
-              onClick={() => onUpdate(item.id, "unit", selectedIngredient.baseUnit)}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${item.unit === selectedIngredient.baseUnit ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
+              onClick={() => onUpdate(item.id, "unit", "")}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${item.unit === "" ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
             >
               {selectedIngredient.baseUnit} (satuan dasar)
             </button>
@@ -176,10 +178,39 @@ export function ItemRow({
                 onClick={() => onUpdate(item.id, "unit", p.label)}
                 className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${item.unit === p.label ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
               >
-                {p.label} (×{p.baseQty})
+                {p.label} (×{p.baseQty} {selectedIngredient.baseUnit})
               </button>
             ))}
           </div>
+          <a
+            href={`/admin/ingredients/${selectedIngredient.id}?tab=pengaturan`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-primary hover:underline"
+          >
+            + tambah satuan
+          </a>
+        </div>
+      )}
+
+      {/* Ingredient picked but no packs defined — block free-form entry,
+          force user to add a pack first. Silent 1:1 fallback was the source
+          of the Arang stock corruption bug. */}
+      {selectedIngredient && selectedIngredient.packs.length === 0 && (
+        <div className="rounded-md bg-warning/10 text-warning-foreground border border-warning/30 px-2.5 py-2 text-xs space-y-1">
+          <p className="font-medium">Belum ada satuan untuk bahan ini.</p>
+          <p>
+            Tambahkan dulu satuan & konversi (mis. <em>1 bks = 3300 g</em>) di{" "}
+            <a
+              href={`/admin/ingredients/${selectedIngredient.id}?tab=pengaturan`}
+              target="_blank"
+              rel="noreferrer"
+              className="underline text-primary"
+            >
+              pengaturan bahan
+            </a>{" "}
+            sebelum mencatat pembelian.
+          </p>
         </div>
       )}
 
@@ -194,8 +225,10 @@ export function ItemRow({
             disabled={isPending}
             className="w-20"
           />
-          {/* Show unit text input only when no pack buttons available */}
-          {(!selectedIngredient || selectedIngredient.packs.length === 0) && (
+          {/* Free-text unit only for unlinked (legacy) lines without an ingredient.
+              When an ingredient is selected the satuan must come from the pack
+              chips above so the server can look up the conversion. */}
+          {!selectedIngredient && (
             <input
               list={`units-${item.id}`}
               value={item.unit}
@@ -205,16 +238,19 @@ export function ItemRow({
               className="h-9 w-20 rounded-4xl border border-input bg-input/30 px-2 text-sm focus:outline-none"
             />
           )}
-          {selectedIngredient && selectedIngredient.packs.length === 0 && (
+          {!selectedIngredient && (
             <datalist id={`units-${item.id}`}>
               {["pcs", "gr", "kg", "ml", "ltr", "btl", "bks", "dus", "lbr"].map((u) => (
                 <option key={u} value={u} />
               ))}
             </datalist>
           )}
-          {/* Show selected pack label as read-only badge when pack is chosen */}
+          {/* Selected pack label as a small badge (base-unit chip shows nothing). */}
           {selectedIngredient && selectedIngredient.packs.length > 0 && item.unit && (
             <span className="text-xs text-muted-foreground font-medium">{item.unit}</span>
+          )}
+          {selectedIngredient && selectedIngredient.packs.length > 0 && !item.unit && (
+            <span className="text-xs text-muted-foreground font-medium">{selectedIngredient.baseUnit}</span>
           )}
         </div>
         <span className="text-muted-foreground text-sm">×</span>

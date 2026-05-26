@@ -13,9 +13,13 @@ import type { UnitClass } from "@/generated/prisma";
 
 export type UnitClassName = "WEIGHT" | "VOLUME" | "COUNT";
 
-/** Built-in defaults — used when no Setting override is present. */
+/** Built-in defaults — used when no Setting override is present.
+ *  WEIGHT uses g (not mg) because the rupiah-per-base-unit fields, even after
+ *  widening to Float, lose meaningful precision when a cheap ingredient like
+ *  arang (~30 Rp/kg) would otherwise be stored at ~0.00003 Rp/mg. g is the
+ *  smallest practical unit for our cost ranges. */
 export const DEFAULT_BASE_UNIT: Record<UnitClassName, string> = {
-  WEIGHT: "mg",
+  WEIGHT: "g",
   VOLUME: "ml",
   COUNT:  "pcs",
 };
@@ -33,7 +37,7 @@ export const LABEL: Record<UnitClassName, string> = {
 };
 
 export const LABEL_FULL: Record<UnitClassName, string> = {
-  WEIGHT: "Berat (mg)",
+  WEIGHT: "Berat (g)",
   VOLUME: "Volume (ml)",
   COUNT:  "Jumlah (pcs)",
 };

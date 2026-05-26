@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { AdminPageHeader, AdminSelect, UnitClassBadge } from "@/components/admin/ui";
-import { formatRupiah } from "@/lib/format";
+import { formatRupiah, formatRpPerUnit } from "@/lib/format";
 import type {
   AssembledIngredientsIndex,
   ActiveIngredientLite,
@@ -102,7 +102,7 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
                         Hasil/batch: {p.yieldQty} {p.baseUnit} ·{" "}
                         {p.componentCount} komponen ·{" "}
                         Stok: {p.currentStock} {p.baseUnit}
-                        {p.averageUnitCost > 0 && ` · HPP ${formatRupiah(p.averageUnitCost)}/${p.baseUnit}`}
+                        {p.averageUnitCost > 0 && ` · HPP ${formatRpPerUnit(p.averageUnitCost)}/${p.baseUnit}`}
                       </div>
                     </div>
                     <span className="text-xs text-muted-foreground">→</span>

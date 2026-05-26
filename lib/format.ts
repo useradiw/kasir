@@ -8,6 +8,21 @@ export function formatRupiah(amount: number): string {
   }).format(amount).replace(/[\u00a0\u202f\u2009\u2007]/g, " ");
 }
 
+/** Per-base-unit rupiah cost (Rp/g, Rp/ml, Rp/pcs). Adds up to 2 decimals when
+ *  the value is small (e.g. arang at ~0.03 Rp/g would otherwise render as
+ *  "Rp 0" and look broken). Above 100, displays as a whole rupiah. */
+export function formatRpPerUnit(amount: number): string {
+  if (!Number.isFinite(amount)) return "Rp 0";
+  const abs = Math.abs(amount);
+  const fractionDigits = abs >= 100 ? 0 : abs >= 1 ? 2 : 3;
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: fractionDigits,
+  }).format(amount).replace(/[\u00a0\u202f\u2009\u2007]/g, " ");
+}
+
 export function formatDateTime(
   date: string | Date,
   dateStyle: "short" | "medium" | "long" = "short"

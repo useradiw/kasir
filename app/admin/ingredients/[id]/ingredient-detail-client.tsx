@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { AdminSelect, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { formatRupiah, formatRpPerUnit, formatDateTime } from "@/lib/format";
 import {
   updateIngredient,
   deactivateIngredient,
@@ -168,12 +168,12 @@ export default function IngredientDetailClient({
             </div>
             {detail.averageUnitCost > 0 && (
               <div className="text-xs text-muted-foreground tabular-nums">
-                HPP avg: <span className="font-semibold text-foreground">{formatRupiah(detail.averageUnitCost)}/{detail.baseUnit}</span>
+                HPP avg: <span className="font-semibold text-foreground">{formatRpPerUnit(detail.averageUnitCost)}/{detail.baseUnit}</span>
               </div>
             )}
             {detail.lastUnitCost !== null && (
               <div className="text-xs text-muted-foreground tabular-nums">
-                Harga terakhir: <span className="font-medium text-foreground">{formatRupiah(detail.lastUnitCost)}/{detail.baseUnit}</span>
+                Harga terakhir: <span className="font-medium text-foreground">{formatRpPerUnit(detail.lastUnitCost ?? 0)}/{detail.baseUnit}</span>
               </div>
             )}
             {detail.lastPurchasedAt && (
@@ -249,7 +249,7 @@ export default function IngredientDetailClient({
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium tabular-nums">{formatRupiah(p.totalCost)}</span>
                             <span className="text-xs text-muted-foreground">
-                              {p.packQty}{p.packLabel ? ` ${p.packLabel}` : ""} × {formatRupiah(p.unitCost)}/{detail.baseUnit}
+                              {p.packQty}{p.packLabel ? ` ${p.packLabel}` : ""} × {formatRpPerUnit(p.unitCost)}/{detail.baseUnit}
                             </span>
                             <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
                               {SOURCE_LABEL[p.source] ?? p.source}
@@ -263,7 +263,7 @@ export default function IngredientDetailClient({
                         </div>
                         <div className="text-right shrink-0 text-xs text-muted-foreground tabular-nums">
                           <p>+{p.baseQty % 1 === 0 ? p.baseQty.toFixed(0) : p.baseQty.toFixed(3)} {detail.baseUnit}</p>
-                          <p>HPP avg → {formatRupiah(p.avgUnitCostAfter)}</p>
+                          <p>HPP avg → {formatRpPerUnit(p.avgUnitCostAfter)}/{detail.baseUnit}</p>
                         </div>
                       </div>
                     </div>
@@ -296,7 +296,7 @@ export default function IngredientDetailClient({
                       <p className={`font-medium ${log.quantity >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
                         {log.quantity >= 0 ? "+" : ""}{log.quantity % 1 === 0 ? log.quantity.toFixed(0) : log.quantity.toFixed(3)} {detail.baseUnit}
                       </p>
-                      <p className="text-muted-foreground">{formatRupiah(log.unitCost)}/{detail.baseUnit}</p>
+                      <p className="text-muted-foreground">{formatRpPerUnit(log.unitCost)}/{detail.baseUnit}</p>
                       <p className="text-muted-foreground">{formatDateTime(log.createdAt)}</p>
                     </div>
                   </div>
@@ -323,6 +323,7 @@ export default function IngredientDetailClient({
       {tab === "pengaturan" && (
         <SettingsTab
           detail={detail}
+          purchases={purchases}
           suppliers={suppliers}
           resolvedBaseUnits={resolvedBaseUnits}
           hasHistory={hasHistory}
@@ -338,6 +339,7 @@ export default function IngredientDetailClient({
 
 function SettingsTab({
   detail,
+  purchases,
   suppliers,
   resolvedBaseUnits,
   hasHistory,
@@ -347,6 +349,7 @@ function SettingsTab({
   confirm,
 }: {
   detail: Detail;
+  purchases: IngredientPurchaseHistory;
   suppliers: SupplierLite[];
   resolvedBaseUnits: Record<UnitClassName, string>;
   hasHistory: boolean;
@@ -489,8 +492,11 @@ function SettingsTab({
                 <Input name="label" required placeholder="cth: dus, krat, kg" className="w-28" />
               </div>
               <div className="grid gap-1">
-                <Label>Qty per Pack</Label>
-                <DecimalInput name="baseQty" required placeholder={`dlm ${detail.baseUnit}`} className="w-28" />
+                <Label>Qty per Pack ({detail.baseUnit})</Label>
+                <div className="flex items-center gap-1">
+                  <DecimalInput name="baseQty" required placeholder={`dlm ${detail.baseUnit}`} className="w-28" />
+                  <span className="text-xs text-muted-foreground">{detail.baseUnit}</span>
+                </div>
               </div>
               <div className="grid gap-1">
                 <Label>Default?</Label>
@@ -507,7 +513,10 @@ function SettingsTab({
             <p className="text-sm text-muted-foreground">Belum ada pack. Pack digunakan sebagai konversi satuan saat beli.</p>
           ) : (
             <div className="divide-y divide-foreground/5">
-              {detail.packs.map((pack) => (
+              {detail.packs.map((pack) => {
+                const usageCount = purchases.filter((p) => p.packLabel === pack.label).length;
+                const baseQtyLocked = usageCount > 0;
+                return (
                 <div key={pack.id} className="py-2">
                   {editPack === pack.id ? (
                     <form
@@ -526,8 +535,23 @@ function SettingsTab({
                         <Input name="label" defaultValue={pack.label} required className="w-28" />
                       </div>
                       <div className="grid gap-1">
-                        <Label>Qty per Pack</Label>
-                        <DecimalInput name="baseQty" defaultValue={pack.baseQty} required className="w-28" />
+                        <Label>Qty per Pack ({detail.baseUnit})</Label>
+                        <div className="flex items-center gap-1">
+                          <DecimalInput
+                            name="baseQty"
+                            defaultValue={pack.baseQty}
+                            required
+                            className="w-28"
+                            disabled={baseQtyLocked}
+                            title={baseQtyLocked ? `Terkunci: dipakai di ${usageCount} pembelian` : undefined}
+                          />
+                          <span className="text-xs text-muted-foreground">{detail.baseUnit}</span>
+                        </div>
+                        {baseQtyLocked && (
+                          <span className="text-[10px] text-warning-foreground">
+                            Terkunci — sudah dipakai di {usageCount} pembelian
+                          </span>
+                        )}
                       </div>
                       <div className="grid gap-1">
                         <Label>Default?</Label>
@@ -559,7 +583,8 @@ function SettingsTab({
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -959,7 +984,7 @@ function RecipeTab({
                           )}
                         </div>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                          {it.quantity} {it.ingredientUnit} × {formatRupiah(it.averageUnitCost)} ={" "}
+                          {it.quantity} {it.ingredientUnit} × {formatRpPerUnit(it.averageUnitCost)} ={" "}
                           {formatRupiah(Math.round(it.quantity * it.averageUnitCost))}
                         </span>
                       </div>

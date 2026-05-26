@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
-import { formatRupiah, formatDateTime, formatPaymentMethod, formatTransactionShortId } from "@/lib/format";
+import { formatRupiah, formatRpPerUnit, formatDateTime, formatPaymentMethod, formatTransactionShortId } from "@/lib/format";
 import type { StoreInfo } from "@/lib/settings";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateTransaction } from "@/app/actions/admin/transactions";
@@ -561,7 +561,7 @@ export default function TransactionDetailClient({
                         <span className="text-muted-foreground">
                           {b.ingredientName}
                           <span className="ml-1 text-xs">
-                            ({b.quantity % 1 === 0 ? b.quantity.toFixed(0) : b.quantity.toFixed(2)} {b.unit} × {formatRupiah(b.unitCost)})
+                            ({b.quantity % 1 === 0 ? b.quantity.toFixed(0) : b.quantity.toFixed(2)} {b.unit} × {formatRpPerUnit(b.unitCost)})
                           </span>
                         </span>
                         <span className="font-medium shrink-0">{formatRupiah(b.totalCost)}</span>

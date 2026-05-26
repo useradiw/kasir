@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminPageHeader, AdminSelect, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
-import { formatRupiah } from "@/lib/format";
+import { formatRupiah, formatRpPerUnit } from "@/lib/format";
 import {
   upsertRecipe,
   deleteRecipe,
@@ -534,7 +534,7 @@ function AddIngredientForm({
             {ingredients.map((i) => (
               <option key={i.id} value={i.id}>
                 {i.name} · {i.baseUnit}
-                {i.averageUnitCost > 0 ? ` · HPP avg ${formatRupiah(i.averageUnitCost)}` : ""}
+                {i.averageUnitCost > 0 ? ` · HPP avg ${formatRpPerUnit(i.averageUnitCost)}/${i.baseUnit}` : ""}
               </option>
             ))}
           </AdminSelect>
