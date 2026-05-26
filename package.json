@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
+    "dev:claude": "node scripts/dev-claude.mjs",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint"
