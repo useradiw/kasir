@@ -52,6 +52,12 @@ export const BADGE_CLASS: Record<UnitClassName, string> = {
 /**
  * Best-effort mapping from a legacy free-form baseUnit string to a UnitClass.
  * Returns null when ambiguous (caller falls back to COUNT or asks the admin).
+ *
+ * Used by restore.ts to backfill unitClass on legacy ingredients whose baseUnit
+ * was a packaging label like "bks" or "dus". Do NOT use this for pack-label
+ * class enforcement on new packs — use inferStrictUnitClass instead, because
+ * packaging labels are class-agnostic when used as a pack name (you can buy
+ * arang in "bks" even though arang is WEIGHT).
  */
 export function inferUnitClass(baseUnit: string | null | undefined): UnitClassName | null {
   if (!baseUnit) return null;
@@ -60,6 +66,22 @@ export function inferUnitClass(baseUnit: string | null | undefined): UnitClassNa
   if (["ml", "cc", "l", "lt", "ltr", "liter"].includes(u))                                 return "VOLUME";
   if (["pcs", "pc", "buah", "btg", "batang", "lbr", "lembar", "biji", "ekor", "bks", "sch", "sachet", "pack", "dus", "ikat", "renteng"].includes(u))
                                                                                             return "COUNT";
+  return null;
+}
+
+/**
+ * Strict variant: only recognises actual unit-of-measure names (kg, ml, gram…),
+ * never packaging labels. Use this when validating a pack label against its
+ * parent ingredient's class — typing "bks" or "dus" should pass even when the
+ * parent is WEIGHT, because they're container names. Only labels that LOOK
+ * like a unit-of-measure in a conflicting class (e.g. "kg" on a VOLUME
+ * ingredient) should be rejected.
+ */
+export function inferStrictUnitClass(label: string | null | undefined): UnitClassName | null {
+  if (!label) return null;
+  const u = label.trim().toLowerCase();
+  if (["mg", "g", "gr", "gram", "kg", "ons"].includes(u)) return "WEIGHT";
+  if (["ml", "cc", "l", "lt", "ltr", "liter"].includes(u)) return "VOLUME";
   return null;
 }
 

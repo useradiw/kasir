@@ -8,7 +8,7 @@ import { runAction } from "@/lib/action-error";
 import { getSettings } from "@/lib/settings";
 import {
   resolveBaseUnit,
-  inferUnitClass,
+  inferStrictUnitClass,
   type UnitClassName,
 } from "@/lib/unit-class";
 
@@ -32,17 +32,19 @@ const packSchema = z.object({
 });
 
 /**
- * Soft cross-class check on a pack label: if the user typed a label that looks
- * like a recognizable unit (e.g. "kg"), block it when the inferred class doesn't
- * match the parent ingredient. Free-form labels like "dus" / "renteng" pass
- * through unchanged — the baseQty multiplier carries the real conversion.
+ * Soft cross-class check on a pack label: if the user typed a strict unit name
+ * (e.g. "kg" or "ml"), block it when that class doesn't match the parent
+ * ingredient. Packaging labels like "bks" / "dus" / "renteng" / "pack" pass
+ * through unchanged regardless of parent class — they're container names, not
+ * units, and the baseQty multiplier carries the real conversion. (You can buy
+ * arang in bks even though arang is WEIGHT.)
  */
 function assertPackLabelClassMatches(label: string, parentClass: UnitClassName) {
-  const inferred = inferUnitClass(label);
+  const inferred = inferStrictUnitClass(label);
   if (inferred && inferred !== parentClass) {
     throw new Error(
-      `Label "${label}" termasuk kelas ${inferred}, tapi bahan ini kelas ${parentClass}. ` +
-      `Gunakan satuan dalam kelas ${parentClass} atau ganti label menjadi nama paket (mis. "dus", "botol", "renteng").`,
+      `Label "${label}" adalah satuan kelas ${inferred}, tapi bahan ini kelas ${parentClass}. ` +
+      `Gunakan satuan dalam kelas ${parentClass} atau ganti label menjadi nama paket (mis. "dus", "botol", "bks", "renteng").`,
     );
   }
 }
