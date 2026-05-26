@@ -79,6 +79,88 @@ export async function deleteIngredientRecipeItem(id: string) {
   });
 }
 
+const bulkItemSchema = z.object({
+  ingredientId: z.string().min(1),
+  quantity:     z.coerce.number().positive(),
+});
+
+/**
+ * Bulk-add many components to an IngredientRecipe (assembled material BOM).
+ * All-or-nothing. Returns soft warnings for components whose unitClass differs
+ * from the parent's — cost math is still correct (sums in Rp), but UI shows the
+ * warning so the user can sanity-check the recipe.
+ */
+export async function addIngredientRecipeItemsBulk(
+  recipeId: string,
+  rows: Array<{ ingredientId: string; quantity: number }>,
+) {
+  return runAction(async () => {
+    await requireRole("OWNER", "MANAGER");
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new Error("Tidak ada komponen untuk ditambahkan.");
+    }
+    const parsed = z.array(bulkItemSchema).min(1).parse(rows);
+
+    const recipe = await prisma.ingredientRecipe.findUniqueOrThrow({
+      where:  { id: recipeId },
+      select: { ingredientId: true, ingredient: { select: { unitClass: true, name: true } } },
+    });
+
+    const ids = [...new Set(parsed.map((r) => r.ingredientId))];
+    if (ids.includes(recipe.ingredientId)) {
+      throw new Error(`"${recipe.ingredient.name}" tidak boleh memakai dirinya sendiri sebagai komponen.`);
+    }
+
+    const comps = await prisma.ingredient.findMany({
+      where:  { id: { in: ids } },
+      select: { id: true, name: true, unitClass: true },
+    });
+    if (comps.length !== ids.length) {
+      throw new Error("Salah satu bahan komponen tidak ditemukan.");
+    }
+    const compMap = new Map(comps.map((c) => [c.id, c]));
+
+    const warnings: string[] = [];
+    for (const r of parsed) {
+      const c = compMap.get(r.ingredientId)!;
+      if (c.unitClass !== recipe.ingredient.unitClass) {
+        warnings.push(
+          `"${c.name}" (${c.unitClass}) berbeda kelas dari induk "${recipe.ingredient.name}" (${recipe.ingredient.unitClass}). Pastikan resep memang benar.`,
+        );
+      }
+    }
+
+    await prisma.$transaction(
+      parsed.map((r) =>
+        prisma.ingredientRecipeItem.create({
+          data: { recipeId, ingredientId: r.ingredientId, quantity: r.quantity },
+        }),
+      ),
+    );
+    revalidateIngredients();
+    return { created: parsed.length, warnings };
+  });
+}
+
+/** Same cross-class warning, exposed for the single-add path. */
+export async function checkComponentClassWarning(
+  recipeId: string,
+  ingredientId: string,
+): Promise<string | null> {
+  const recipe = await prisma.ingredientRecipe.findUnique({
+    where:  { id: recipeId },
+    select: { ingredient: { select: { unitClass: true, name: true } } },
+  });
+  if (!recipe) return null;
+  const comp = await prisma.ingredient.findUnique({
+    where: { id: ingredientId },
+    select: { name: true, unitClass: true },
+  });
+  if (!comp) return null;
+  if (comp.unitClass === recipe.ingredient.unitClass) return null;
+  return `"${comp.name}" (${comp.unitClass}) berbeda kelas dari induk "${recipe.ingredient.name}" (${recipe.ingredient.unitClass}).`;
+}
+
 /**
  * Production run: consumes the recipe's component stock and produces `batches`
  * worth of the parent material, recomputing its WMA cost.

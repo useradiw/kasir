@@ -14,16 +14,21 @@ const navItemsBase = [
     { href: "/admin/sessions", label: "Sesi Login" },
     { href: "/admin/attendance", label: "Absensi" },
   ]},
-  { trigger: "Barang", content: [
-    { href: "/admin/inventory", label: "Inventori" },
-    { href: "/admin/ingredients", label: "Bahan Baku" },
+  { trigger: "Menu", content: [
+    { href: "/admin/inventory", label: "Inventori Menu" },
     { href: "/admin/menu-performance", label: "Performa Menu", ownerOnly: true },
+  ]},
+  { trigger: "Bahan Baku", content: [
+    { href: "/admin/ingredients", label: "Daftar Bahan" },
+    { href: "/admin/bahan/resep-menu", label: "Resep Menu" },
+    { href: "/admin/bahan/resep-olahan", label: "Resep Bahan Olahan" },
+    { href: "/admin/suppliers", label: "Supplier" },
+    { href: "/admin/stock-opname", label: "Opname Stok" },
+    { href: "/admin/bahan/satuan", label: "Satuan & Konversi", ownerOnly: true },
   ]},
   { trigger: "Keuangan", content: [
     { href: "/admin/cash-register", label: "Kas Harian" },
     { href: "/admin/kas-pak-har", label: "Kas Pak Har", ownerOnly: true },
-    { href: "/admin/suppliers", label: "Supplier" },
-    { href: "/admin/stock-opname", label: "Opname Stok" },
     { href: "/admin/settlement", label: "Pencairan Online" },
   ]},
   { trigger: "Laporan", content: [

@@ -5,13 +5,24 @@ import { prisma } from "@/lib/prisma";
 import { requireRole, requireRoleStrict } from "@/lib/admin-auth";
 import { revalidateIngredients } from "@/lib/revalidate";
 import { runAction } from "@/lib/action-error";
+import { getSettings } from "@/lib/settings";
+import {
+  resolveBaseUnit,
+  inferUnitClass,
+  type UnitClassName,
+} from "@/lib/unit-class";
+
+const UnitClassEnum = z.enum(["WEIGHT", "VOLUME", "COUNT"]);
 
 const ingredientSchema = z.object({
-  name:         z.string().min(1, "Nama tidak boleh kosong"),
-  category:     z.enum(["BAHAN", "KEMASAN", "PERLENGKAPAN", "LAINNYA"]).default("BAHAN"),
-  baseUnit:     z.string().min(1, "Satuan dasar harus diisi"),
-  lowStockAlert: z.coerce.number().nullable().optional(),
-  notes:        z.string().optional(),
+  name:              z.string().min(1, "Nama tidak boleh kosong"),
+  category:          z.enum(["BAHAN", "KEMASAN", "PERLENGKAPAN", "LAINNYA"]).default("BAHAN"),
+  unitClass:         UnitClassEnum,
+  baseUnit:          z.string().min(1).optional(), // ignored on create — derived from unitClass + Setting
+  lowStockAlert:     z.coerce.number().nullable().optional(),
+  notes:             z.string().optional(),
+  defaultSupplierId: z.string().nullable().optional(),
+  tags:              z.array(z.string().min(1)).optional(),
 });
 
 const packSchema = z.object({
@@ -20,23 +31,60 @@ const packSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
+/**
+ * Soft cross-class check on a pack label: if the user typed a label that looks
+ * like a recognizable unit (e.g. "kg"), block it when the inferred class doesn't
+ * match the parent ingredient. Free-form labels like "dus" / "renteng" pass
+ * through unchanged — the baseQty multiplier carries the real conversion.
+ */
+function assertPackLabelClassMatches(label: string, parentClass: UnitClassName) {
+  const inferred = inferUnitClass(label);
+  if (inferred && inferred !== parentClass) {
+    throw new Error(
+      `Label "${label}" termasuk kelas ${inferred}, tapi bahan ini kelas ${parentClass}. ` +
+      `Gunakan satuan dalam kelas ${parentClass} atau ganti label menjadi nama paket (mis. "dus", "botol", "renteng").`,
+    );
+  }
+}
+
+/** Returns true if the ingredient has any history that would make base-unit changes unsafe. */
+async function hasStockHistory(id: string): Promise<boolean> {
+  const [purchases, logs, recipeRefs, componentRefs, ing] = await Promise.all([
+    prisma.ingredientPurchase.count({ where: { ingredientId: id } }),
+    prisma.ingredientLog.count({ where: { ingredientId: id } }),
+    prisma.recipeIngredient.count({ where: { ingredientId: id } }),
+    prisma.ingredientRecipeItem.count({ where: { ingredientId: id } }),
+    prisma.ingredient.findUnique({ where: { id }, select: { currentStock: true } }),
+  ]);
+  if (purchases > 0 || logs > 0 || recipeRefs > 0 || componentRefs > 0) return true;
+  if (ing && ing.currentStock !== 0) return true;
+  return false;
+}
+
 export async function addIngredient(data: {
   name: string;
   category?: "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA";
-  baseUnit: string;
+  unitClass: UnitClassName;
   lowStockAlert?: number | null;
   notes?: string;
+  defaultSupplierId?: string | null;
+  tags?: string[];
 }) {
   return runAction(async () => {
     await requireRole("OWNER", "MANAGER");
     const parsed = ingredientSchema.parse(data);
+    const settings = await getSettings();
+    const baseUnit = resolveBaseUnit(parsed.unitClass, settings);
     const ing = await prisma.ingredient.create({
       data: {
-        name:          parsed.name,
-        category:      parsed.category,
-        baseUnit:      parsed.baseUnit,
-        lowStockAlert: parsed.lowStockAlert ?? null,
-        notes:         parsed.notes || null,
+        name:              parsed.name,
+        category:          parsed.category,
+        unitClass:         parsed.unitClass,
+        baseUnit,
+        lowStockAlert:     parsed.lowStockAlert ?? null,
+        notes:             parsed.notes || null,
+        defaultSupplierId: parsed.defaultSupplierId || null,
+        tags:              parsed.tags ?? [],
       },
     });
     revalidateIngredients();
@@ -47,21 +95,45 @@ export async function addIngredient(data: {
 export async function updateIngredient(id: string, data: {
   name: string;
   category?: "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA";
-  baseUnit: string;
+  unitClass: UnitClassName;
+  baseUnit?: string;
   lowStockAlert?: number | null;
   notes?: string;
+  defaultSupplierId?: string | null;
+  tags?: string[];
 }) {
   return runAction(async () => {
     await requireRole("OWNER", "MANAGER");
     const parsed = ingredientSchema.parse(data);
+
+    const current = await prisma.ingredient.findUniqueOrThrow({
+      where:  { id },
+      select: { unitClass: true, baseUnit: true },
+    });
+
+    const settings   = await getSettings();
+    const wantBase   = resolveBaseUnit(parsed.unitClass, settings);
+    const classChange = current.unitClass !== parsed.unitClass;
+    const baseChange  = current.baseUnit  !== wantBase;
+
+    if ((classChange || baseChange) && await hasStockHistory(id)) {
+      throw new Error(
+        "Tidak bisa mengubah satuan/kelas: sudah ada riwayat stok/pemakaian/resep. " +
+        "Buat bahan baru atau lakukan opname nol dulu.",
+      );
+    }
+
     await prisma.ingredient.update({
       where: { id },
       data: {
-        name:          parsed.name,
-        category:      parsed.category,
-        baseUnit:      parsed.baseUnit,
-        lowStockAlert: parsed.lowStockAlert ?? null,
-        notes:         parsed.notes || null,
+        name:              parsed.name,
+        category:          parsed.category,
+        unitClass:         parsed.unitClass,
+        baseUnit:          wantBase,
+        lowStockAlert:     parsed.lowStockAlert ?? null,
+        notes:             parsed.notes || null,
+        defaultSupplierId: parsed.defaultSupplierId || null,
+        tags:              parsed.tags ?? [],
       },
     });
     revalidateIngredients();
@@ -88,6 +160,12 @@ export async function addIngredientPack(ingredientId: string, data: {
     await requireRole("OWNER", "MANAGER");
     const parsed = packSchema.parse(data);
 
+    const parent = await prisma.ingredient.findUniqueOrThrow({
+      where:  { id: ingredientId },
+      select: { unitClass: true },
+    });
+    assertPackLabelClassMatches(parsed.label, parent.unitClass);
+
     if (parsed.isDefault) {
       await prisma.ingredientPack.updateMany({
         where: { ingredientId, isDefault: true },
@@ -111,7 +189,11 @@ export async function updateIngredientPack(id: string, data: {
     await requireRole("OWNER", "MANAGER");
     const parsed = packSchema.parse(data);
 
-    const existing = await prisma.ingredientPack.findUniqueOrThrow({ where: { id }, select: { ingredientId: true } });
+    const existing = await prisma.ingredientPack.findUniqueOrThrow({
+      where:  { id },
+      select: { ingredientId: true, ingredient: { select: { unitClass: true } } },
+    });
+    assertPackLabelClassMatches(parsed.label, existing.ingredient.unitClass);
 
     if (parsed.isDefault) {
       await prisma.ingredientPack.updateMany({
@@ -155,9 +237,11 @@ export async function recordWasteAction(
 export async function addIngredientsBulk(rows: Array<{
   name: string;
   category?: "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA";
-  baseUnit: string;
+  unitClass: UnitClassName;
   lowStockAlert?: number | null;
   notes?: string;
+  defaultSupplierId?: string | null;
+  tags?: string[];
 }>) {
   return runAction(async () => {
     await requireRole("OWNER", "MANAGER");
@@ -178,13 +262,17 @@ export async function addIngredientsBulk(rows: Array<{
     }
 
     if (toCreate.length > 0) {
+      const settings = await getSettings();
       await prisma.ingredient.createMany({
         data: toCreate.map((r) => ({
-          name:          r.name,
-          category:      r.category,
-          baseUnit:      r.baseUnit,
-          lowStockAlert: r.lowStockAlert ?? null,
-          notes:         r.notes || null,
+          name:              r.name,
+          category:          r.category,
+          unitClass:         r.unitClass,
+          baseUnit:          resolveBaseUnit(r.unitClass, settings),
+          lowStockAlert:     r.lowStockAlert ?? null,
+          notes:             r.notes || null,
+          defaultSupplierId: r.defaultSupplierId || null,
+          tags:              r.tags ?? [],
         })),
         skipDuplicates: true,
       });

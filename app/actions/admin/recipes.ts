@@ -102,3 +102,50 @@ export async function deleteRecipeIngredient(id: string) {
     revalidateInventory();
   });
 }
+
+const BulkLineSchema = z.object({
+  ingredientId: z.string().min(1),
+  quantity:     z.coerce.number().positive(),
+});
+
+/**
+ * Bulk-add many ingredients to a menu Recipe in one transaction.
+ * Inputs are validated all-or-nothing. Linked (ingredientId) only —
+ * unlinked "customName" lines are not allowed in bulk to keep the parser simple.
+ */
+export async function addRecipeIngredientsBulk(
+  recipeId: string,
+  rows: Array<{ ingredientId: string; quantity: number }>,
+) {
+  return runAction(async () => {
+    await requireRole("OWNER", "MANAGER");
+    if (!Array.isArray(rows) || rows.length === 0) {
+      throw new Error("Tidak ada baris untuk ditambahkan.");
+    }
+    const parsed = z.array(BulkLineSchema).min(1).parse(rows);
+
+    // Verify all ingredient IDs exist + are active
+    const ids = [...new Set(parsed.map((r) => r.ingredientId))];
+    const found = await prisma.ingredient.findMany({
+      where:  { id: { in: ids } },
+      select: { id: true },
+    });
+    if (found.length !== ids.length) {
+      throw new Error("Salah satu bahan tidak ditemukan. Refresh halaman dan coba lagi.");
+    }
+
+    await prisma.$transaction(
+      parsed.map((r) =>
+        prisma.recipeIngredient.create({
+          data: {
+            recipeId,
+            ingredientId: r.ingredientId,
+            quantity:     r.quantity,
+          },
+        }),
+      ),
+    );
+    revalidateInventory();
+    return { created: parsed.length };
+  });
+}

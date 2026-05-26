@@ -1,4 +1,5 @@
 import { Container } from "@/components/shared/container";
+import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import {
   getIngredientDetail,
@@ -8,6 +9,8 @@ import {
   getActiveIngredientsLite,
   getUnlinkedExpenseItems,
 } from "@/app/actions/admin/queries/ingredient-queries";
+import { getSettings } from "@/lib/settings";
+import { resolveBaseUnit } from "@/lib/unit-class";
 import IngredientDetailClient from "./ingredient-detail-client";
 
 export default async function IngredientDetailPage({
@@ -21,14 +24,37 @@ export default async function IngredientDetailPage({
   const { id }       = await params;
   const { tab = "pembelian" } = await searchParams;
 
-  const [detail, purchases, logs, recipe, ingredientOptions, unlinkedItems] = await Promise.all([
+  const [detail, purchases, logs, recipe, ingredientOptions, unlinkedItems, suppliers, settings] = await Promise.all([
     getIngredientDetail(id),
     getIngredientPurchaseHistory(id, 60),
     getIngredientLogs(id, 80),
     getIngredientRecipe(id),
     getActiveIngredientsLite(),
     getUnlinkedExpenseItems(),
+    prisma.supplier.findMany({
+      where:   { isActive: true },
+      orderBy: { name: "asc" },
+      select:  { id: true, name: true },
+    }),
+    getSettings(),
   ]);
+
+  // Determine whether class/baseUnit edit should be locked
+  const [purchaseCount, logCount, recipeIngCount, componentCount] = await Promise.all([
+    prisma.ingredientPurchase.count({ where: { ingredientId: id } }),
+    prisma.ingredientLog.count({ where: { ingredientId: id } }),
+    prisma.recipeIngredient.count({ where: { ingredientId: id } }),
+    prisma.ingredientRecipeItem.count({ where: { ingredientId: id } }),
+  ]);
+  const hasHistory =
+    purchaseCount > 0 || logCount > 0 || recipeIngCount > 0 ||
+    componentCount > 0 || detail.currentStock !== 0;
+
+  const resolvedBaseUnits = {
+    WEIGHT: resolveBaseUnit("WEIGHT", settings),
+    VOLUME: resolveBaseUnit("VOLUME", settings),
+    COUNT:  resolveBaseUnit("COUNT", settings),
+  };
 
   return (
     <Container id="ingredient-detail" sectionStyle="" className="py-6">
@@ -39,6 +65,9 @@ export default async function IngredientDetailPage({
         recipe={recipe}
         ingredientOptions={ingredientOptions}
         unlinkedItems={unlinkedItems}
+        suppliers={suppliers}
+        resolvedBaseUnits={resolvedBaseUnits}
+        hasHistory={hasHistory}
         tab={tab}
       />
     </Container>

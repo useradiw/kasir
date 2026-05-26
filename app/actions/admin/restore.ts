@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
+import { inferUnitClass } from "@/lib/unit-class";
 
 export interface BackupData {
   version?: number;
@@ -154,37 +155,50 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
       });
       break;
 
-    case "ingredients":
+    case "ingredients": {
+      const baseUnit = (row.baseUnit as string) ?? "pcs";
+      const unitClass =
+        (row.unitClass as "WEIGHT" | "VOLUME" | "COUNT" | undefined) ??
+        inferUnitClass(baseUnit) ??
+        "COUNT";
+      const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
       await prisma.ingredient.upsert({
         where: { id: row.id as string },
         create: {
-          id:              row.id as string,
-          name:            row.name as string,
-          category:        (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
-          baseUnit:        row.baseUnit as string ?? "pcs",
-          currentStock:    row.currentStock as number ?? 0,
-          averageUnitCost: row.averageUnitCost as number ?? 0,
-          lastUnitCost:    row.lastUnitCost as number | null ?? undefined,
-          lastPurchasedAt: toDate(row.lastPurchasedAt),
-          lowStockAlert:   row.lowStockAlert as number | null ?? undefined,
-          isActive:        row.isActive as boolean ?? true,
-          notes:           row.notes as string | null ?? undefined,
-          createdAt:       toDate(row.createdAt) ?? undefined,
+          id:                row.id as string,
+          name:              row.name as string,
+          category:          (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
+          baseUnit,
+          unitClass,
+          currentStock:      row.currentStock as number ?? 0,
+          averageUnitCost:   row.averageUnitCost as number ?? 0,
+          lastUnitCost:      row.lastUnitCost as number | null ?? undefined,
+          lastPurchasedAt:   toDate(row.lastPurchasedAt),
+          lowStockAlert:     row.lowStockAlert as number | null ?? undefined,
+          isActive:          row.isActive as boolean ?? true,
+          notes:             row.notes as string | null ?? undefined,
+          defaultSupplierId: row.defaultSupplierId as string | null ?? undefined,
+          tags,
+          createdAt:         toDate(row.createdAt) ?? undefined,
         },
         update: {
-          name:            row.name as string,
-          category:        (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
-          baseUnit:        row.baseUnit as string ?? "pcs",
-          currentStock:    row.currentStock as number ?? 0,
-          averageUnitCost: row.averageUnitCost as number ?? 0,
-          lastUnitCost:    row.lastUnitCost as number | null ?? undefined,
-          lastPurchasedAt: toDate(row.lastPurchasedAt),
-          lowStockAlert:   row.lowStockAlert as number | null ?? undefined,
-          isActive:        row.isActive as boolean ?? true,
-          notes:           row.notes as string | null ?? undefined,
+          name:              row.name as string,
+          category:          (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
+          baseUnit,
+          unitClass,
+          currentStock:      row.currentStock as number ?? 0,
+          averageUnitCost:   row.averageUnitCost as number ?? 0,
+          lastUnitCost:      row.lastUnitCost as number | null ?? undefined,
+          lastPurchasedAt:   toDate(row.lastPurchasedAt),
+          lowStockAlert:     row.lowStockAlert as number | null ?? undefined,
+          isActive:          row.isActive as boolean ?? true,
+          notes:             row.notes as string | null ?? undefined,
+          defaultSupplierId: row.defaultSupplierId as string | null ?? undefined,
+          tags,
         },
       });
       break;
+    }
 
     case "ingredientPacks":
       await prisma.ingredientPack.upsert({

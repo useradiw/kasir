@@ -9,6 +9,9 @@ Sistem stok dan HPP sekarang berpusat pada **Bahan Baku** (Ingredient), bukan la
 - **Pack/Satuan Pembelian** — beli "1 dus" → otomatis dikonversi ke "12 pcs" di stok.
 - **Opname Stok bulanan** — hitung fisik vs sistem, selisih masuk ke log otomatis.
 - **Riwayat HPP per bahan** — grafik harga, daftar semua pembelian, semua pergerakan stok.
+- **Kelas Satuan & satuan dasar terkunci** *(Mei 2026)* — tiap bahan punya kelas WEIGHT/VOLUME/COUNT; satuan dasar dikunci ke `mg`/`ml`/`pcs` agar HPP tidak pernah salah konversi.
+- **Resep Menu pindah ke menu Bahan Baku → Resep Menu**, dengan **bulk-add textarea** (tempel nama+jumlah baris demi baris).
+- **Resep Bahan Olahan dapat halaman index** sendiri (`/admin/bahan/resep-olahan`) — tidak lagi harus klik masuk ke detail bahan untuk menemukannya.
 
 > Data lama tetap aman. Migrasi sudah menyalin semua Template lama menjadi Bahan Baku dengan ID yang sama, dan semua riwayat pembelian sudah diisi ulang sebagai IngredientPurchase.
 
@@ -32,16 +35,27 @@ Setiap kali penjualan tersinkronisasi ke server:
 
 ## Setup Awal
 
+### 0. Satuan Dasar Global (Owner)
+**Di mana:** Admin → Bahan Baku → Satuan & Konversi (`/admin/bahan/satuan`) — atau ikon ⚙ di header Daftar Bahan.
+
+Tiga kelas: **WEIGHT** (default `mg`), **VOLUME** (default `ml`), **COUNT** (default `pcs`).
+Override hanya bila perlu — dan diblokir bila ada bahan kelas itu yang punya stok/riwayat (proteksi agar HPP historis tidak rusak).
+
 ### 1. Bahan Baku
-**Di mana:** Admin → Barang → Bahan Baku (`/admin/ingredients`)
+**Di mana:** Admin → Bahan Baku → Daftar Bahan (`/admin/ingredients`)
 
 Tiap bahan punya:
 - **Nama** — contoh: "Telur", "Gula Pasir"
 - **Kategori** — Bahan / Kemasan / Perlengkapan / Lainnya (memudahkan filter)
-- **Satuan Dasar** — satuan terkecil untuk hitung stok, contoh: `gr`, `ml`, `pcs`
+- **Kelas Satuan** — WEIGHT / VOLUME / COUNT. Satuan dasar dikunci otomatis ikut kelas.
 - **Batas Stok Min** (opsional) — peringatan jika stok ≤ angka ini
+- **Supplier Default** (opsional) — autofill saat catat pengeluaran
+- **Tag** (opsional) — chip filter di list (mis. `kering`, `frozen`)
+- **Catatan** (opsional) — keterangan bebas
 
-Klik tombol **+ Tambah** untuk membuat bahan baru. Klik baris untuk masuk ke halaman detail (Pembelian, Pemakaian, Pengaturan).
+Klik tombol **+ Tambah** untuk membuat bahan baru. Klik baris untuk masuk ke halaman detail (Pembelian, Pemakaian, Resep, Pengaturan).
+
+**Catatan:** Kelas & satuan dasar **terkunci** begitu bahan punya riwayat (pembelian, log, resep). Bila salah pilih, buat bahan baru atau opname-nol dulu.
 
 ### 2. Pack/Satuan Pembelian (opsional tapi disarankan)
 **Di mana:** Halaman detail bahan → tab **Pengaturan** → kartu **Satuan Pack**
@@ -61,11 +75,29 @@ Tandai satu pack sebagai **Default** — itu yang otomatis dipilih saat catat pe
 Daftar penjual/toko langganan. Saat catat pengeluaran, pilih supplier dari dropdown — riwayat per supplier bisa dilihat nanti.
 
 ### 4. Resep Menu
-**Di mana:** Admin → Barang → Inventori → tab **Resep**
+**Di mana:** Admin → Bahan Baku → Resep Menu (`/admin/bahan/resep-menu`)
 
-1. **Buat Resep** → pilih menu (dan varian jika perlu)
-2. **+ Tambah Bahan** → pilih bahan dari daftar, isi kuantitas per porsi dalam satuan dasar bahan
-3. HPP per porsi langsung muncul; warna margin: hijau ≥60%, kuning 30–60%, merah <30%
+1. **+ Buat Resep** → pilih menu (dan varian jika perlu)
+2. Klik resep di daftar untuk expand
+3. **Bulk-add** (disarankan): buka panel "▶ Tambah banyak bahan sekaligus", tempel baris `nama, jumlah` (satu per baris). Sistem fuzzy-match nama → preview table → klik **Simpan (N)**.
+4. Atau **+ Tambah satu bahan (manual)** untuk pilih dari dropdown + qty
+5. HPP per porsi langsung muncul; warna margin: hijau ≥60%, kuning 30–60%, merah <30%
+
+### 5. Resep Bahan Olahan
+**Di mana:** Admin → Bahan Baku → Resep Bahan Olahan (`/admin/bahan/resep-olahan`)
+
+Bahan olahan = bahan yang dirakit dari bahan-bahan lain (sambal, kaldu, bumbu jadi).
+
+1. **+ Buat Resep Olahan Baru** → pilih bahan induk → **Buka Editor** → masuk ke tab Resep bahan tersebut
+2. Isi **Hasil/Batch** (jumlah induk per produksi)
+3. Tambah komponen via bulk-add panel atau form single-add
+4. **Catat Produksi** (Jumlah Batch × Hasil) → komponen berkurang, induk bertambah, HPP induk diperbarui WMA
+
+Halaman index menampilkan dua bagian:
+- **Bahan Olahan** — semua induk
+- **Komponen Aktif** — bahan-bahan yang dipakai sebagai komponen di setidaknya satu resep
+
+Catatan: komponen boleh beda kelas dari induk (mis. spice WEIGHT pada sauce VOLUME). Cost dihitung benar dalam rupiah; chip kuning *"kelas beda"* tampil sebagai konfirmasi visual.
 
 ---
 
@@ -89,11 +121,12 @@ Sistem otomatis:
 - Catat **IngredientPurchase** dengan snapshot harga, supplier, dan stock-after
 
 ### Lihat Detail Bahan
-Buka `/admin/ingredients/[id]` (klik baris di daftar bahan). Tiga tab:
+Buka `/admin/ingredients/[id]` (klik baris di daftar bahan). Empat tab:
 
 - **Pembelian** — grafik HPP, daftar pembelian dengan supplier, sumber, dan HPP rata-rata setelah tiap transaksi
-- **Pemakaian** — semua log stok (PURCHASE, SALE, ADJUSTMENT, WASTE)
-- **Pengaturan** — edit info, kelola pack, sesuaikan stok manual, catat pemborosan, nonaktifkan bahan
+- **Pemakaian** — semua log stok (PURCHASE, SALE, ADJUSTMENT, WASTE, ASSEMBLY)
+- **Resep** — resep bahan olahan (hanya jika bahan ini diolah dari bahan lain)
+- **Pengaturan** — edit info (nama, kategori, kelas terkunci-bila-history, tag, supplier default), kelola pack, sesuaikan stok manual, set HPP manual, catat pemborosan, nonaktifkan bahan
 
 ### Opname Stok (Bulanan)
 **Di mana:** Admin → Keuangan → Opname Stok (`/admin/stock-opname`)

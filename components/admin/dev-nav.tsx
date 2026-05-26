@@ -15,7 +15,7 @@ type NavItem = { href: string; label: string; ownerOnly?: boolean };
 type NavGroup = { trigger: string; content: NavItem[] };
 
 /** Groups that get merged into "Lainnya" on mobile (< md). */
-const MOBILE_COLLAPSE_TRIGGERS = ["Keuangan", "Laporan", "Sistem"];
+const MOBILE_COLLAPSE_TRIGGERS = ["Menu", "Keuangan", "Laporan", "Sistem"];
 
 export function DevNav({ navItems }: { navItems: NavGroup[] }) {
   const ctx = useDevViewOptional();
@@ -43,8 +43,8 @@ export function DevNav({ navItems }: { navItems: NavGroup[] }) {
   return (
     <>
       {/* Desktop: all groups */}
-      <NavigationMenu className="mt-2 hidden md:flex" align="start">
-        <NavigationMenuList className="gap-0 justify-start">
+      <NavigationMenu className="mt-2 hidden md:flex max-w-full overflow-x-auto scrollbar-hide" align="start">
+        <NavigationMenuList className="gap-0 justify-start flex-nowrap">
           {filteredItems.map((item) => (
             <NavGroupItem key={item.trigger} group={item} />
           ))}
@@ -52,8 +52,8 @@ export function DevNav({ navItems }: { navItems: NavGroup[] }) {
       </NavigationMenu>
 
       {/* Mobile: collapsed groups */}
-      <NavigationMenu className="mt-2 md:hidden" align="start">
-        <NavigationMenuList className="gap-0 justify-start">
+      <NavigationMenu className="mt-2 md:hidden max-w-full overflow-x-auto scrollbar-hide" align="start">
+        <NavigationMenuList className="gap-0 justify-start flex-nowrap">
           {mobileKeep.map((item) => (
             <NavGroupItem key={item.trigger} group={item} />
           ))}

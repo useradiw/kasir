@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
-import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
+import { AdminSelect, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatDateTime } from "@/lib/format";
@@ -27,11 +27,13 @@ import {
   upsertIngredientRecipe,
   deleteIngredientRecipe,
   addIngredientRecipeItem,
+  addIngredientRecipeItemsBulk,
   updateIngredientRecipeItem,
   deleteIngredientRecipeItem,
   assembleIngredient,
 } from "@/app/actions/admin/ingredient-recipes";
 import { adjustIngredientStock } from "@/app/actions/admin/queries";
+import type { UnitClassName } from "@/lib/unit-class";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -45,6 +47,7 @@ type Detail = {
   name: string;
   category: string;
   baseUnit: string;
+  unitClass: "WEIGHT" | "VOLUME" | "COUNT";
   currentStock: number;
   averageUnitCost: number;
   lastUnitCost: number | null;
@@ -52,8 +55,12 @@ type Detail = {
   lowStockAlert: number | null;
   isActive: boolean;
   notes: string | null;
+  defaultSupplierId: string | null;
+  tags: string[];
   packs: { id: string; label: string; baseQty: number; isDefault: boolean }[];
 };
+
+type SupplierLite = { id: string; name: string };
 
 const CATEGORY_LABELS: Record<string, string> = {
   BAHAN: "Bahan", KEMASAN: "Kemasan", PERLENGKAPAN: "Perlengkapan", LAINNYA: "Lainnya",
@@ -90,6 +97,9 @@ export default function IngredientDetailClient({
   recipe,
   ingredientOptions,
   unlinkedItems,
+  suppliers,
+  resolvedBaseUnits,
+  hasHistory,
   tab,
 }: {
   detail: Detail;
@@ -98,6 +108,9 @@ export default function IngredientDetailClient({
   recipe: IngredientRecipeData;
   ingredientOptions: ActiveIngredientLite[];
   unlinkedItems: UnlinkedExpenseItem[];
+  suppliers: SupplierLite[];
+  resolvedBaseUnits: Record<UnitClassName, string>;
+  hasHistory: boolean;
   tab: string;
 }) {
   const router   = useRouter();
@@ -126,14 +139,20 @@ export default function IngredientDetailClient({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-lg font-bold">{detail.name}</h1>
+                <UnitClassBadge unitClass={detail.unitClass} baseUnit={detail.baseUnit} />
                 <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
                   {CATEGORY_LABELS[detail.category] ?? detail.category}
                 </span>
                 {!detail.isActive && (
                   <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">Nonaktif</span>
                 )}
+                {detail.tags.map((t) => (
+                  <span key={t} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">#{t}</span>
+                ))}
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5">Satuan: {detail.baseUnit}</p>
+              {detail.notes && (
+                <p className="text-xs text-muted-foreground mt-1">{detail.notes}</p>
+              )}
             </div>
           </div>
 
@@ -304,6 +323,9 @@ export default function IngredientDetailClient({
       {tab === "pengaturan" && (
         <SettingsTab
           detail={detail}
+          suppliers={suppliers}
+          resolvedBaseUnits={resolvedBaseUnits}
+          hasHistory={hasHistory}
           unlinkedItems={unlinkedItems}
           isPending={isPending}
           run={run}
@@ -316,12 +338,18 @@ export default function IngredientDetailClient({
 
 function SettingsTab({
   detail,
+  suppliers,
+  resolvedBaseUnits,
+  hasHistory,
   unlinkedItems,
   isPending,
   run,
   confirm,
 }: {
   detail: Detail;
+  suppliers: SupplierLite[];
+  resolvedBaseUnits: Record<UnitClassName, string>;
+  hasHistory: boolean;
   unlinkedItems: UnlinkedExpenseItem[];
   isPending: boolean;
   run: ReturnType<typeof useAdminAction>["run"];
@@ -364,11 +392,13 @@ function SettingsTab({
           <form
             action={(fd) => run(
               () => updateIngredient(detail.id, {
-                name:          fd.get("name") as string,
-                category:      (fd.get("category") as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA"),
-                baseUnit:      fd.get("baseUnit") as string,
-                lowStockAlert: fd.get("lowStockAlert") ? parseFloat(fd.get("lowStockAlert") as string) : null,
-                notes:         fd.get("notes") as string || undefined,
+                name:              fd.get("name") as string,
+                category:          (fd.get("category") as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA"),
+                unitClass:         (fd.get("unitClass") as UnitClassName) || detail.unitClass,
+                lowStockAlert:     fd.get("lowStockAlert") ? parseFloat(fd.get("lowStockAlert") as string) : null,
+                notes:             fd.get("notes") as string || undefined,
+                defaultSupplierId: (fd.get("defaultSupplierId") as string) || null,
+                tags:              (fd.get("tags") as string || "").split(/[,;]\s*/).map((t) => t.trim()).filter(Boolean),
               }),
               { successMessage: "Bahan diperbarui" },
             )}
@@ -388,12 +418,40 @@ function SettingsTab({
                 </AdminSelect>
               </div>
               <div className="grid gap-1">
-                <Label>Satuan Dasar</Label>
-                <Input name="baseUnit" defaultValue={detail.baseUnit} required className="w-28" />
+                <Label>Kelas Satuan</Label>
+                <AdminSelect name="unitClass" defaultValue={detail.unitClass} disabled={hasHistory}>
+                  <option value="WEIGHT">Berat ({resolvedBaseUnits.WEIGHT})</option>
+                  <option value="VOLUME">Volume ({resolvedBaseUnits.VOLUME})</option>
+                  <option value="COUNT">Jumlah ({resolvedBaseUnits.COUNT})</option>
+                </AdminSelect>
+                {hasHistory && (
+                  <span className="text-[10px] text-muted-foreground">terkunci — sudah ada riwayat</span>
+                )}
+              </div>
+              <div className="grid gap-1">
+                <Label>Satuan Dasar (terkunci)</Label>
+                <Input
+                  value={detail.baseUnit}
+                  readOnly
+                  disabled
+                  className="w-28 bg-muted/40 cursor-not-allowed"
+                  title="Ditentukan otomatis dari Kelas Satuan. Ubah di Pengaturan → Satuan & Konversi."
+                />
               </div>
               <div className="grid gap-1">
                 <Label>Batas Min</Label>
                 <DecimalInput name="lowStockAlert" defaultValue={detail.lowStockAlert} className="w-28" placeholder="—" />
+              </div>
+              <div className="grid gap-1 w-44">
+                <Label>Supplier Default</Label>
+                <AdminSelect name="defaultSupplierId" defaultValue={detail.defaultSupplierId ?? ""}>
+                  <option value="">— Tidak ada —</option>
+                  {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                </AdminSelect>
+              </div>
+              <div className="grid gap-1 flex-1 min-w-40">
+                <Label>Tag (pisah koma)</Label>
+                <Input name="tags" defaultValue={detail.tags.join(", ")} placeholder="kering, basah, frozen…" />
               </div>
               <div className="grid gap-1 flex-1 min-w-40">
                 <Label>Catatan</Label>
@@ -740,6 +798,10 @@ function RecipeTab({
   const [showAddItem, setShowAddItem] = useState(false);
 
   const components = ingredientOptions.filter((o) => o.id !== detail.id);
+  const existingIngIds = useMemo(
+    () => new Set(recipe?.items.map((it) => it.ingredientId) ?? []),
+    [recipe],
+  );
 
   if (!recipe) {
     return (
@@ -820,6 +882,16 @@ function RecipeTab({
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* Bulk-add (textarea) */}
+          <BulkAddComponentPanel
+            recipeId={recipe.id}
+            parentClass={detail.unitClass}
+            existingIngIds={existingIngIds}
+            components={components}
+            isPending={isPending}
+            run={run}
+          />
+
           {showAddItem && (
             <form
               action={(fd) => run(
@@ -836,7 +908,10 @@ function RecipeTab({
                 <AdminSelect name="ingredientId" required defaultValue="">
                   <option value="" disabled>Pilih bahan…</option>
                   {components.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name} ({c.baseUnit})</option>
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.baseUnit}) [{c.unitClass}]
+                      {c.unitClass !== detail.unitClass ? " ⚠ kelas beda" : ""}
+                    </option>
                   ))}
                 </AdminSelect>
               </div>
@@ -875,9 +950,16 @@ function RecipeTab({
                   ) : (
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0">
-                        <span className="text-sm font-medium">{it.ingredientName}</span>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-medium">{it.ingredientName}</span>
+                          {it.ingredientClass !== detail.unitClass && (
+                            <span className="text-[10px] bg-warning/10 text-warning-foreground px-1.5 py-0.5 rounded-full" title={`Komponen kelas ${it.ingredientClass}, induk kelas ${detail.unitClass}`}>
+                              kelas beda ({it.ingredientClass})
+                            </span>
+                          )}
+                        </div>
                         <span className="text-xs text-muted-foreground tabular-nums">
-                          {" "}· {it.quantity} {it.ingredientUnit} × {formatRupiah(it.averageUnitCost)} ={" "}
+                          {it.quantity} {it.ingredientUnit} × {formatRupiah(it.averageUnitCost)} ={" "}
                           {formatRupiah(Math.round(it.quantity * it.averageUnitCost))}
                         </span>
                       </div>
@@ -946,6 +1028,146 @@ function RecipeTab({
           </Button>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ─── Bulk-add components (for IngredientRecipe) ─────────────────────────────
+
+type BulkCompRow =
+  | { ok: true; ingredient: ActiveIngredientLite; quantity: number; raw: string; classWarn: boolean }
+  | { ok: false; raw: string; reason: string };
+
+function normName(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+function findComp(q: string, opts: ActiveIngredientLite[]): ActiveIngredientLite | null {
+  const n = normName(q);
+  if (!n) return null;
+  return (
+    opts.find((o) => normName(o.name) === n) ??
+    opts.find((o) => normName(o.name).startsWith(n)) ??
+    opts.find((o) => normName(o.name).includes(n) || n.includes(normName(o.name))) ??
+    null
+  );
+}
+
+function parseBulkComps(
+  text: string,
+  opts: ActiveIngredientLite[],
+  existing: Set<string>,
+  parentClass: "WEIGHT" | "VOLUME" | "COUNT",
+): BulkCompRow[] {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  return lines.map((raw): BulkCompRow => {
+    const m = raw.match(/^(.+?)[\s,;=\t]+([0-9]+(?:[.,][0-9]+)?)\s*([a-zA-Z]*)$/);
+    if (!m) return { ok: false, raw, reason: "Format: nama, jumlah" };
+    const name = m[1].trim();
+    const qty = Number(m[2].replace(",", "."));
+    if (!Number.isFinite(qty) || qty <= 0) return { ok: false, raw, reason: "Jumlah > 0" };
+    const ing = findComp(name, opts);
+    if (!ing) return { ok: false, raw, reason: `"${name}" tidak ditemukan` };
+    if (existing.has(ing.id)) return { ok: false, raw, reason: `"${ing.name}" sudah ada` };
+    return {
+      ok: true,
+      ingredient: ing,
+      quantity: qty,
+      raw,
+      classWarn: ing.unitClass !== parentClass,
+    };
+  });
+}
+
+function BulkAddComponentPanel({
+  recipeId,
+  parentClass,
+  existingIngIds,
+  components,
+  isPending,
+  run,
+}: {
+  recipeId:       string;
+  parentClass:    "WEIGHT" | "VOLUME" | "COUNT";
+  existingIngIds: Set<string>;
+  components:     ActiveIngredientLite[];
+  isPending:      boolean;
+  run:            ReturnType<typeof useAdminAction>["run"];
+}) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const parsed = useMemo(
+    () => (text.trim() ? parseBulkComps(text, components, existingIngIds, parentClass) : []),
+    [text, components, existingIngIds, parentClass],
+  );
+  const okRows = parsed.filter((r): r is Extract<BulkCompRow, { ok: true }> => r.ok);
+  const badRows = parsed.filter((r): r is Extract<BulkCompRow, { ok: false }> => !r.ok);
+  const canSave = okRows.length > 0 && badRows.length === 0 && !isPending;
+
+  return (
+    <div className="border border-foreground/10 rounded-lg">
+      <button
+        type="button"
+        className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-muted/50"
+        onClick={() => setOpen((s) => !s)}
+      >
+        {open ? "▼" : "▶"} Tambah banyak komponen sekaligus
+      </button>
+      {open && (
+        <div className="px-3 pb-3 space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Satu komponen per baris. Format: <code className="bg-muted px-1 rounded">nama bahan, jumlah</code>.
+          </p>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={5}
+            placeholder="cth: Kacang Tanah, 500"
+            className="w-full text-sm font-mono rounded-md border border-input bg-input/30 p-2"
+          />
+
+          {parsed.length > 0 && (
+            <ul className="divide-y divide-foreground/10 text-sm border border-foreground/10 rounded">
+              {parsed.map((r, idx) => (
+                <li key={idx} className={`px-2 py-1 flex items-center gap-2 ${r.ok ? "" : "bg-destructive/5"}`}>
+                  {r.ok ? (
+                    <>
+                      <span className="font-medium flex-1">{r.ingredient.name}</span>
+                      <UnitClassBadge unitClass={r.ingredient.unitClass} />
+                      {r.classWarn && (
+                        <span className="text-[10px] bg-warning/10 text-warning-foreground px-1.5 py-0.5 rounded-full">kelas beda</span>
+                      )}
+                      <span className="text-sm tabular-nums">{r.quantity} {r.ingredient.baseUnit}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 truncate">{r.raw}</span>
+                      <span className="text-xs text-destructive">{r.reason}</span>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              disabled={!canSave}
+              onClick={() => run(async () => {
+                await addIngredientRecipeItemsBulk(recipeId, okRows.map((r) => ({
+                  ingredientId: r.ingredient.id,
+                  quantity:     r.quantity,
+                })));
+                setText("");
+                setOpen(false);
+              }, { successMessage: `${okRows.length} komponen ditambahkan.` })}
+            >
+              Simpan {okRows.length > 0 ? `(${okRows.length})` : ""}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => { setText(""); setOpen(false); }}>Batal</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

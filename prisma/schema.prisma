@@ -363,15 +363,16 @@ model ExpenseTemplate {
 // --- SUPPLIERS ---
 
 model Supplier {
-  id        String    @id @default(uuid())
-  name      String
-  phone     String?
-  notes     String?
-  isActive  Boolean   @default(true)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  expenses  Expense[]
-  purchases IngredientPurchase[]
+  id                    String    @id @default(uuid())
+  name                  String
+  phone                 String?
+  notes                 String?
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  expenses              Expense[]
+  purchases             IngredientPurchase[]
+  defaultForIngredients Ingredient[] @relation("DefaultSupplier")
 
   @@map("suppliers")
 }
@@ -379,19 +380,23 @@ model Supplier {
 // --- INGREDIENTS (replaces ExpenseTemplate as the authoritative item master) ---
 
 model Ingredient {
-  id              String             @id @default(uuid())
-  name            String             @unique
-  category        IngredientCategory @default(BAHAN)
-  baseUnit        String             @default("pcs")
-  currentStock    Float              @default(0)
-  averageUnitCost Int                @default(0)
-  lastUnitCost    Int?
-  lastPurchasedAt DateTime?
-  lowStockAlert   Float?
-  isActive        Boolean            @default(true)
-  notes           String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
+  id                String             @id @default(uuid())
+  name              String             @unique
+  category          IngredientCategory @default(BAHAN)
+  baseUnit          String             @default("pcs")
+  unitClass         UnitClass          @default(COUNT)
+  currentStock      Float              @default(0)
+  averageUnitCost   Int                @default(0)
+  lastUnitCost      Int?
+  lastPurchasedAt   DateTime?
+  lowStockAlert     Float?
+  isActive          Boolean            @default(true)
+  notes             String?
+  defaultSupplierId String?
+  defaultSupplier   Supplier?          @relation("DefaultSupplier", fields: [defaultSupplierId], references: [id], onDelete: SetNull)
+  tags              String[]           @default([])
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   packs             IngredientPack[]
   purchases         IngredientPurchase[]
@@ -556,6 +561,12 @@ enum IngredientCategory {
   KEMASAN
   PERLENGKAPAN
   LAINNYA
+}
+
+enum UnitClass {
+  WEIGHT
+  VOLUME
+  COUNT
 }
 
 enum IngredientPurchaseSource {
