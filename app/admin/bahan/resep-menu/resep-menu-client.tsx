@@ -42,23 +42,7 @@ function ingUnit(ing: RecipeIng): string {
   return ing.ingredientUnit ?? ing.customUnit ?? "";
 }
 
-// ─── Fuzzy match helper ──────────────────────────────────────────────────────
-function normName(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-function findIngredient(q: string, opts: IngredientOption[]): IngredientOption | null {
-  const n = normName(q);
-  if (!n) return null;
-  // exact
-  const exact = opts.find((o) => normName(o.name) === n);
-  if (exact) return exact;
-  // starts-with
-  const starts = opts.find((o) => normName(o.name).startsWith(n));
-  if (starts) return starts;
-  // contains (in either direction)
-  const contains = opts.find((o) => normName(o.name).includes(n) || n.includes(normName(o.name)));
-  return contains ?? null;
-}
+import { findIngredientByName } from "@/lib/ingredient-search";
 
 export default function ResepMenuClient({ ingredients, recipes, menuItems, variants, isOwner }: Props) {
   const { isPending, run, error, setError } = useAdminAction();
@@ -71,7 +55,6 @@ export default function ResepMenuClient({ ingredients, recipes, menuItems, varia
   const [newVariantId,  setNewVariantId]  = useState("");
 
   const [showAddIng, setShowAddIng] = useState<string | null>(null);
-  const [ingType, setIngType] = useState<"ingredient" | "custom">("ingredient");
 
   function variantsForItem(menuItemId: string) {
     return variants.filter((v) => v.menuItemId === menuItemId);
@@ -173,8 +156,6 @@ export default function ResepMenuClient({ ingredients, recipes, menuItems, varia
                     onToggle={() => setExpandedId(expandedId === recipe.id ? null : recipe.id)}
                     showAddIng={showAddIng === recipe.id}
                     onToggleAddIng={() => setShowAddIng(showAddIng === recipe.id ? null : recipe.id)}
-                    ingType={ingType}
-                    setIngType={setIngType}
                     editIngId={editIngId}
                     setEditIngId={setEditIngId}
                     isPending={isPending}
@@ -195,7 +176,7 @@ export default function ResepMenuClient({ ingredients, recipes, menuItems, varia
 
 function RecipeCard({
   recipe, ingredients, isOwner, isExpanded, onToggle, showAddIng, onToggleAddIng,
-  ingType, setIngType, editIngId, setEditIngId, isPending, run, confirm,
+  editIngId, setEditIngId, isPending, run, confirm,
 }: {
   recipe:         Recipe;
   ingredients:    IngredientOption[];
@@ -204,8 +185,6 @@ function RecipeCard({
   onToggle:       () => void;
   showAddIng:     boolean;
   onToggleAddIng: () => void;
-  ingType:        "ingredient" | "custom";
-  setIngType:     (t: "ingredient" | "custom") => void;
   editIngId:      string | null;
   setEditIngId:   (id: string | null) => void;
   isPending:      boolean;
@@ -306,8 +285,6 @@ function RecipeCard({
             <AddIngredientForm
               recipeId={recipe.id}
               ingredients={ingredients}
-              ingType={ingType}
-              setIngType={setIngType}
               isPending={isPending}
               run={run}
               onSuccess={onToggleAddIng}
@@ -390,7 +367,7 @@ function parseBulk(text: string, opts: IngredientOption[], existing: Set<string>
     const name = m[1].trim();
     const qty = Number(m[2].replace(",", "."));
     if (!Number.isFinite(qty) || qty <= 0) return { ok: false, raw, reason: "Jumlah harus angka > 0" };
-    const ing = findIngredient(name, opts);
+    const ing = findIngredientByName(name, opts);
     if (!ing) return { ok: false, raw, reason: `Bahan "${name}" tidak ditemukan` };
     if (existing.has(ing.id)) return { ok: false, raw, reason: `"${ing.name}" sudah ada di resep` };
     return { ok: true, ingredient: ing, quantity: qty, raw };
@@ -495,16 +472,15 @@ Cup Plastik 16oz, 1`}</pre>
 // ─── Single-add form (kept for free-form / custom names) ─────────────────────
 
 function AddIngredientForm({
-  recipeId, ingredients, ingType, setIngType, isPending, run, onSuccess,
+  recipeId, ingredients, isPending, run, onSuccess,
 }: {
   recipeId:    string;
   ingredients: IngredientOption[];
-  ingType:     "ingredient" | "custom";
-  setIngType:  (t: "ingredient" | "custom") => void;
   isPending:   boolean;
   run:         ReturnType<typeof useAdminAction>["run"];
   onSuccess:   () => void;
 }) {
+  const [ingType, setIngType] = useState<"ingredient" | "custom">("ingredient");
   return (
     <form
       action={(fd) =>

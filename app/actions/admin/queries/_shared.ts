@@ -2,6 +2,29 @@ import { prisma } from "@/lib/prisma";
 import { localDateKey } from "@/lib/format";
 import { computeExpenseTotal } from "@/lib/expense-utils";
 
+// ─── Date Range Helper ──────────────────────────────────────────────────────
+
+export type Period = "daily" | "weekly" | "monthly" | "yearly";
+
+export function getDateRange(period: Period, dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const base = new Date(y, m - 1, d);
+
+  if (period === "daily") {
+    return { start: new Date(y, m - 1, d), end: new Date(y, m - 1, d + 1) };
+  }
+  if (period === "weekly") {
+    const day = base.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const monday = new Date(y, m - 1, d + diff);
+    return { start: monday, end: new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7) };
+  }
+  if (period === "yearly") {
+    return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
+  }
+  return { start: new Date(y, m - 1, 1), end: new Date(y, m, 1) };
+}
+
 /**
  * Batch-fetch CASH transactions and cash-deducted expenses for a set of dates,
  * then bucket totals by local date key.

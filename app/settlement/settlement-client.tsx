@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { ErrorBanner, PageHeader } from "@/components/shared/ui";
+import { ErrorBanner, PageHeader, TabBar } from "@/components/shared/ui";
 import { Badge } from "@/components/shared/badge";
 import { cn } from "@/lib/utils";
 import { Plus, Trash2, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
@@ -102,29 +102,14 @@ export function SettlementClient({
         ))}
       </select>
 
-      {/* Tabs */}
-      <div className="flex border-b">
-        <button
-          type="button"
-          onClick={() => setTab("create")}
-          className={cn(
-            "flex-1 py-2 text-sm font-medium text-center border-b-2 transition-colors",
-            tab === "create" ? "border-primary text-primary" : "border-transparent text-muted-foreground",
-          )}
-        >
-          Buat Pencairan
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("history")}
-          className={cn(
-            "flex-1 py-2 text-sm font-medium text-center border-b-2 transition-colors",
-            tab === "history" ? "border-primary text-primary" : "border-transparent text-muted-foreground",
-          )}
-        >
-          Riwayat
-        </button>
-      </div>
+      <TabBar
+        tabs={[
+          { value: "create" as const, label: "Buat Pencairan" },
+          { value: "history" as const, label: "Riwayat" },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === "create" ? (
         <CreateSettlementTab
@@ -354,7 +339,7 @@ function CreateSettlementTab({
           </div>
 
           {/* Breakdown */}
-          <div className="rounded-lg border bg-card p-3 space-y-1 text-sm">
+          <div className="rounded-lg border bg-card p-3 space-y-1 text-sm tabular-nums">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Penjualan Kotor</span>
               <span>{formatRupiah(totalGross)}</span>
@@ -504,7 +489,7 @@ function SettlementCard({
       {expanded && (
         <div className="border-t px-3 pb-3 pt-2 space-y-2">
           {/* Breakdown */}
-          <div className="space-y-1 text-xs">
+          <div className="space-y-1 text-xs tabular-nums">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Penjualan Kotor</span>
               <span>{formatRupiah(settlement.totalGross)}</span>

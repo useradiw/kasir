@@ -168,15 +168,16 @@ export async function addIngredientPack(ingredientId: string, data: {
     });
     assertPackLabelClassMatches(parsed.label, parent.unitClass);
 
-    if (parsed.isDefault) {
-      await prisma.ingredientPack.updateMany({
-        where: { ingredientId, isDefault: true },
-        data:  { isDefault: false },
+    await prisma.$transaction(async (tx) => {
+      if (parsed.isDefault) {
+        await tx.ingredientPack.updateMany({
+          where: { ingredientId, isDefault: true },
+          data:  { isDefault: false },
+        });
+      }
+      await tx.ingredientPack.create({
+        data: { ingredientId, label: parsed.label, baseQty: parsed.baseQty, isDefault: parsed.isDefault ?? false },
       });
-    }
-
-    await prisma.ingredientPack.create({
-      data: { ingredientId, label: parsed.label, baseQty: parsed.baseQty, isDefault: parsed.isDefault ?? false },
     });
     revalidateIngredients();
   });
@@ -214,16 +215,17 @@ export async function updateIngredientPack(id: string, data: {
       }
     }
 
-    if (parsed.isDefault) {
-      await prisma.ingredientPack.updateMany({
-        where: { ingredientId: existing.ingredientId, isDefault: true, id: { not: id } },
-        data:  { isDefault: false },
+    await prisma.$transaction(async (tx) => {
+      if (parsed.isDefault) {
+        await tx.ingredientPack.updateMany({
+          where: { ingredientId: existing.ingredientId, isDefault: true, id: { not: id } },
+          data:  { isDefault: false },
+        });
+      }
+      await tx.ingredientPack.update({
+        where: { id },
+        data:  { label: parsed.label, baseQty: parsed.baseQty, isDefault: parsed.isDefault ?? false },
       });
-    }
-
-    await prisma.ingredientPack.update({
-      where: { id },
-      data:  { label: parsed.label, baseQty: parsed.baseQty, isDefault: parsed.isDefault ?? false },
     });
     revalidateIngredients();
   });

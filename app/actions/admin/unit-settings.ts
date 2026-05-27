@@ -35,22 +35,25 @@ export async function getUnitSettingsView() {
   const countByClass: Record<UnitClassName, number> = { WEIGHT: 0, VOLUME: 0, COUNT: 0 };
   for (const r of rows) countByClass[r.unitClass as UnitClassName] = r._count._all;
 
-  const inUseByClass: Record<UnitClassName, boolean> = { WEIGHT: false, VOLUME: false, COUNT: false };
-  for (const cls of ["WEIGHT", "VOLUME", "COUNT"] as UnitClassName[]) {
-    const used = await prisma.ingredient.count({
-      where: {
-        unitClass: cls,
-        OR: [
-          { currentStock: { gt: 0 } },
-          { purchases:    { some: {} } },
-          { ingredientLogs: { some: {} } },
-          { recipeIngredients: { some: {} } },
-          { componentOf:  { some: {} } },
-        ],
-      },
-    });
-    inUseByClass[cls] = used > 0;
-  }
+  const classes = ["WEIGHT", "VOLUME", "COUNT"] as UnitClassName[];
+  const inUseWhere = (cls: UnitClassName) => ({
+    unitClass: cls,
+    OR: [
+      { currentStock: { gt: 0 } },
+      { purchases:    { some: {} } },
+      { ingredientLogs: { some: {} } },
+      { recipeIngredients: { some: {} } },
+      { componentOf:  { some: {} } },
+    ],
+  });
+  const [wUsed, vUsed, cUsed] = await Promise.all(
+    classes.map((cls) => prisma.ingredient.count({ where: inUseWhere(cls) })),
+  );
+  const inUseByClass: Record<UnitClassName, boolean> = {
+    WEIGHT: wUsed > 0,
+    VOLUME: vUsed > 0,
+    COUNT:  cUsed > 0,
+  };
 
   return {
     current: {

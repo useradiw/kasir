@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 
 // Re-export shared components so admin pages keep working
-export { ErrorBanner, PageHeader as AdminPageHeader } from "@/components/shared/ui";
+export { ErrorBanner, PageHeader as AdminPageHeader, TabBar } from "@/components/shared/ui";
 export { StatusBadge, RoleBadge, UnitClassBadge } from "@/components/shared/badge";
 
 // ─── Admin Select ────────────────────────────────────────────────────────────

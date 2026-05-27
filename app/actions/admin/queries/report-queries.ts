@@ -4,39 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import { localDateKey } from "@/lib/format";
 import { computeExpenseTotal } from "@/lib/expense-utils";
-
-// ─── Date Range Helper ──────────────────────────────────────────────────────
-
-function getDateRange(period: "daily" | "weekly" | "monthly" | "yearly", dateStr: string) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const base = new Date(y, m - 1, d);
-
-  if (period === "daily") {
-    const start = new Date(y, m - 1, d);
-    const end = new Date(y, m - 1, d + 1);
-    return { start, end };
-  }
-
-  if (period === "weekly") {
-    // Monday-based week
-    const day = base.getDay();
-    const diff = day === 0 ? -6 : 1 - day; // Monday = 1
-    const monday = new Date(y, m - 1, d + diff);
-    const nextMonday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 7);
-    return { start: monday, end: nextMonday };
-  }
-
-  if (period === "yearly") {
-    const start = new Date(y, 0, 1);
-    const end = new Date(y + 1, 0, 1);
-    return { start, end };
-  }
-
-  // monthly
-  const start = new Date(y, m - 1, 1);
-  const end = new Date(y, m, 1);
-  return { start, end };
-}
+import { getDateRange } from "./_shared";
 
 // ─── Report Data ─────────────────────────────────────────────────────────────
 

@@ -238,14 +238,14 @@ export function MenuPerformanceClient({
               <tfoot className="border-t font-semibold">
                 <tr>
                   <td className="pt-2 pr-3">Total</td>
-                  <td className="pt-2 pr-3 text-right">{totals.qtySold}</td>
-                  <td className="pt-2 pr-3 text-right">{formatRupiah(totals.revenue)}</td>
+                  <td className="pt-2 pr-3 text-right tabular-nums">{totals.qtySold}</td>
+                  <td className="pt-2 pr-3 text-right tabular-nums">{formatRupiah(totals.revenue)}</td>
                   <td className="pt-2 pr-3 text-right">—</td>
-                  <td className="pt-2 pr-3 text-right">{formatRupiah(totals.totalCogs)}</td>
-                  <td className={`pt-2 pr-3 text-right ${totals.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                  <td className="pt-2 pr-3 text-right tabular-nums">{formatRupiah(totals.totalCogs)}</td>
+                  <td className={`pt-2 pr-3 text-right tabular-nums ${totals.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
                     {formatRupiah(totals.grossProfit)}
                   </td>
-                  <td className={`pt-2 text-right ${marginColor(totals.marginPct)}`}>
+                  <td className={`pt-2 text-right tabular-nums ${marginColor(totals.marginPct)}`}>
                     {totals.marginPct !== null ? `${totals.marginPct}%` : "—"}
                   </td>
                 </tr>
@@ -270,18 +270,18 @@ function PerformanceRow({ row }: { row: MenuPerformanceRow }) {
           <span className="ml-1 text-xs text-muted-foreground italic">no resep</span>
         )}
       </td>
-      <td className="py-2 pr-3 text-right">{row.qtySold}</td>
-      <td className="py-2 pr-3 text-right">{formatRupiah(row.revenue)}</td>
-      <td className="py-2 pr-3 text-right">
+      <td className="py-2 pr-3 text-right tabular-nums">{row.qtySold}</td>
+      <td className="py-2 pr-3 text-right tabular-nums">{formatRupiah(row.revenue)}</td>
+      <td className="py-2 pr-3 text-right tabular-nums">
         {row.hasRecipe ? formatRupiah(row.cogsPerPortion) : <span className="text-muted-foreground">—</span>}
       </td>
-      <td className="py-2 pr-3 text-right">
+      <td className="py-2 pr-3 text-right tabular-nums">
         {row.hasRecipe ? formatRupiah(row.totalCogs) : <span className="text-muted-foreground">—</span>}
       </td>
-      <td className={`py-2 pr-3 text-right ${row.hasRecipe ? (row.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400") : "text-muted-foreground"}`}>
+      <td className={`py-2 pr-3 text-right tabular-nums ${row.hasRecipe ? (row.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400") : "text-muted-foreground"}`}>
         {row.hasRecipe ? formatRupiah(row.grossProfit) : "—"}
       </td>
-      <td className={`py-2 text-right font-medium ${marginColor(row.marginPct)}`}>
+      <td className={`py-2 text-right tabular-nums font-medium ${marginColor(row.marginPct)}`}>
         {row.marginPct !== null ? `${row.marginPct}%` : "—"}
       </td>
     </tr>

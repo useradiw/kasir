@@ -13,6 +13,7 @@ import { AdminSelect, ErrorBanner, UnitClassBadge } from "@/components/admin/ui"
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatRpPerUnit, formatDateTime } from "@/lib/format";
+import { findIngredientByName } from "@/lib/ingredient-search";
 import {
   updateIngredient,
   deactivateIngredient,
@@ -41,6 +42,7 @@ import type {
   IngredientPurchaseHistory, IngredientLog,
   IngredientRecipeData, ActiveIngredientLite, UnlinkedExpenseItem,
 } from "@/app/actions/admin/queries/ingredient-queries";
+import { EditPurchaseDialog } from "./edit-purchase-dialog";
 
 type Detail = {
   id: string;
@@ -100,6 +102,7 @@ export default function IngredientDetailClient({
   suppliers,
   resolvedBaseUnits,
   hasHistory,
+  isOwner,
   tab,
 }: {
   detail: Detail;
@@ -111,11 +114,13 @@ export default function IngredientDetailClient({
   suppliers: SupplierLite[];
   resolvedBaseUnits: Record<UnitClassName, string>;
   hasHistory: boolean;
+  isOwner: boolean;
   tab: string;
 }) {
   const router   = useRouter();
   const { isPending, run, error, setError } = useAdminAction();
   const confirm  = useConfirm();
+  const [editingPurchaseId, setEditingPurchaseId] = useState<string | null>(null);
 
   function switchTab(t: string) {
     setError(null);
@@ -238,6 +243,13 @@ export default function IngredientDetailClient({
           <Card>
             <CardHeader><CardTitle>Riwayat Pembelian ({purchases.length})</CardTitle></CardHeader>
             <CardContent>
+              {isOwner && purchases.length > 0 && (
+                <div className="mb-3 rounded-md border border-border bg-muted/30 p-2 text-xs text-muted-foreground">
+                  Tombol <strong>Edit</strong> pada setiap baris membuka dialog untuk memperbaiki pack/qty/total bayar
+                  pembelian itu. Setelah simpan, seluruh riwayat di-replay sehingga stok dan HPP rata-rata jadi konsisten.
+                  Hanya berlaku untuk pembelian dari pengeluaran (EXPENSE).
+                </div>
+              )}
               {purchases.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Belum ada riwayat pembelian.</p>
               ) : (
@@ -261,9 +273,20 @@ export default function IngredientDetailClient({
                           </p>
                           {p.notes && <p className="text-xs text-muted-foreground">{p.notes}</p>}
                         </div>
-                        <div className="text-right shrink-0 text-xs text-muted-foreground tabular-nums">
+                        <div className="text-right shrink-0 text-xs text-muted-foreground tabular-nums space-y-1">
                           <p>+{p.baseQty % 1 === 0 ? p.baseQty.toFixed(0) : p.baseQty.toFixed(3)} {detail.baseUnit}</p>
                           <p>HPP avg → {formatRpPerUnit(p.avgUnitCostAfter)}/{detail.baseUnit}</p>
+                          {isOwner && p.source === "EXPENSE" && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-[10px]"
+                              onClick={() => setEditingPurchaseId(p.id)}
+                              title="Edit pack / qty / total bayar baris ini; WMA + stok di-replay otomatis"
+                            >
+                              Edit
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -331,6 +354,32 @@ export default function IngredientDetailClient({
           isPending={isPending}
           run={run}
           confirm={confirm}
+        />
+      )}
+
+      {/* Edit-purchase dialog — rendered once at top level so it can be triggered from any tab */}
+      {isOwner && (
+        <EditPurchaseDialog
+          ingredientName={detail.name}
+          baseUnit={detail.baseUnit}
+          packs={detail.packs}
+          purchase={(() => {
+            const p = purchases.find((q) => q.id === editingPurchaseId);
+            if (!p) return null;
+            return {
+              id:        p.id,
+              packLabel: p.packLabel,
+              packQty:   p.packQty,
+              baseQty:   p.baseQty,
+              totalCost: p.totalCost,
+              unitCost:  p.unitCost,
+              source:    p.source,
+              purchasedAtLabel: formatDateTime(p.purchasedAt),
+            };
+          })()}
+          open={editingPurchaseId !== null}
+          onOpenChange={(v) => { if (!v) setEditingPurchaseId(null); }}
+          onSuccess={() => { setEditingPurchaseId(null); router.refresh(); }}
         />
       )}
     </div>
@@ -1063,20 +1112,6 @@ type BulkCompRow =
   | { ok: true; ingredient: ActiveIngredientLite; quantity: number; raw: string; classWarn: boolean }
   | { ok: false; raw: string; reason: string };
 
-function normName(s: string): string {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-function findComp(q: string, opts: ActiveIngredientLite[]): ActiveIngredientLite | null {
-  const n = normName(q);
-  if (!n) return null;
-  return (
-    opts.find((o) => normName(o.name) === n) ??
-    opts.find((o) => normName(o.name).startsWith(n)) ??
-    opts.find((o) => normName(o.name).includes(n) || n.includes(normName(o.name))) ??
-    null
-  );
-}
-
 function parseBulkComps(
   text: string,
   opts: ActiveIngredientLite[],
@@ -1090,7 +1125,7 @@ function parseBulkComps(
     const name = m[1].trim();
     const qty = Number(m[2].replace(",", "."));
     if (!Number.isFinite(qty) || qty <= 0) return { ok: false, raw, reason: "Jumlah > 0" };
-    const ing = findComp(name, opts);
+    const ing = findIngredientByName(name, opts);
     if (!ing) return { ok: false, raw, reason: `"${name}" tidak ditemukan` };
     if (existing.has(ing.id)) return { ok: false, raw, reason: `"${ing.name}" sudah ada` };
     return {

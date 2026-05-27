@@ -14,7 +14,7 @@ import {
   retryUnsyncedTransactions,
 } from "@/hooks/use-session-store";
 import { KasirTopBar, EmptyState } from "./ui";
-import { ErrorBanner } from "@/components/shared/ui";
+import { ErrorBanner, TabBar } from "@/components/shared/ui";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -108,33 +108,15 @@ export function SessionList({
         </Link>
       </KasirTopBar>
 
-      {/* Tabs */}
-      <div className="flex border-b px-3">
-        <button
-          type="button"
-          onClick={() => setTab("active")}
-          className={cn(
-            "flex-1 py-2 text-sm font-medium text-center border-b-2 transition-colors",
-            tab === "active"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground"
-          )}
-        >
-          Aktif
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("history")}
-          className={cn(
-            "flex-1 py-2 text-sm font-medium text-center border-b-2 transition-colors",
-            tab === "history"
-              ? "border-primary text-primary"
-              : "border-transparent text-muted-foreground"
-          )}
-        >
-          Riwayat
-        </button>
-      </div>
+      <TabBar
+        tabs={[
+          { value: "active" as const, label: "Aktif" },
+          { value: "history" as const, label: "Riwayat" },
+        ]}
+        value={tab}
+        onChange={setTab}
+        className="px-3"
+      />
 
       {/* Sync banner */}
       {typeof unsyncedCount === "number" && unsyncedCount > 0 && (

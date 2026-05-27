@@ -14,7 +14,6 @@ export interface TransactionPayload {
 export async function pushTransaction(payload: TransactionPayload): Promise<void> {
   const { session, orderItems, transaction } = payload;
 
-  // Validate: each OrderItem must have exactly one of menuItemId or packageId
   for (const item of orderItems) {
     if (item.menuItemId && item.packageId) {
       throw new Error(`OrderItem ${item.id}: cannot have both menuItemId and packageId`);
@@ -93,7 +92,6 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
     let cogs: number | null = null;
 
     if (!existingTx) {
-      // First sync: compute COGS and deduct ingredient stock
       const { totalCogs, movements } = await computeOrderCogs(tx, orderItems);
       cogs = totalCogs > 0 ? totalCogs : null;
 

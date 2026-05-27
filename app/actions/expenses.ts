@@ -4,26 +4,9 @@ import { revalidatePath } from "next/cache";
 import { revalidateExpenses, revalidateCashRegister, revalidateIngredients } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
-import { z } from "zod";
 import { runAction } from "@/lib/action-error";
+import { expenseSchema } from "@/lib/expense-schema";
 import { recordPurchasesBatch } from "@/lib/cogs-utils";
-
-const expenseItemSchema = z.object({
-  description:  z.string().min(1, "Deskripsi item harus diisi"),
-  amount:       z.coerce.number().min(0.001, "Jumlah harus lebih dari 0"),
-  cost:         z.coerce.number().int().min(0, "Biaya tidak boleh negatif"),
-  unit:         z.string().optional(),
-  templateId:   z.string().nullable().optional(), // legacy
-  ingredientId: z.string().nullable().optional(),
-});
-
-const expenseSchema = z.object({
-  description:      z.string().optional(),
-  supplierId:       z.string().nullable().optional(),
-  deductFromCash:   z.boolean().optional(),
-  countToKasPakHar: z.boolean().optional(),
-  items:            z.array(expenseItemSchema).min(1, "Minimal 1 item pengeluaran"),
-});
 
 export async function addExpenseForStaff(data: {
   description?: string;

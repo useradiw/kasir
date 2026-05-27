@@ -147,6 +147,7 @@ export async function checkComponentClassWarning(
   recipeId: string,
   ingredientId: string,
 ): Promise<string | null> {
+  await requireRole("OWNER", "MANAGER");
   const recipe = await prisma.ingredientRecipe.findUnique({
     where:  { id: recipeId },
     select: { ingredient: { select: { unitClass: true, name: true } } },

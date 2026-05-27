@@ -58,30 +58,26 @@ export type IngredientStockData = Awaited<ReturnType<typeof getIngredientStockDa
 export async function getIngredientDetail(id: string) {
   await requireRole("OWNER", "MANAGER");
 
-  const ing = await prisma.ingredient.findUniqueOrThrow({
+  return prisma.ingredient.findUniqueOrThrow({
     where: { id },
-    include: {
-      packs: { orderBy: { label: "asc" } },
+    select: {
+      id:                true,
+      name:              true,
+      category:          true,
+      baseUnit:          true,
+      unitClass:         true,
+      currentStock:      true,
+      averageUnitCost:   true,
+      lastUnitCost:      true,
+      lastPurchasedAt:   true,
+      lowStockAlert:     true,
+      isActive:          true,
+      notes:             true,
+      defaultSupplierId: true,
+      tags:              true,
+      packs:             { orderBy: { label: "asc" } },
     },
   });
-
-  return {
-    id:                ing.id,
-    name:              ing.name,
-    category:          ing.category,
-    baseUnit:          ing.baseUnit,
-    unitClass:         ing.unitClass,
-    currentStock:      ing.currentStock,
-    averageUnitCost:   ing.averageUnitCost,
-    lastUnitCost:      ing.lastUnitCost,
-    lastPurchasedAt:   ing.lastPurchasedAt,
-    lowStockAlert:     ing.lowStockAlert,
-    isActive:          ing.isActive,
-    notes:             ing.notes,
-    defaultSupplierId: ing.defaultSupplierId,
-    tags:              ing.tags,
-    packs:             ing.packs,
-  };
 }
 
 // ─── Ingredient purchase history (for price chart + history tab) ──────────────

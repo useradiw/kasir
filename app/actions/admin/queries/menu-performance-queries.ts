@@ -2,24 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
-
-function getDateRange(period: "daily" | "weekly" | "monthly" | "yearly", dateStr: string) {
-  const [y, m, d] = dateStr.split("-").map(Number);
-  const base = new Date(y, m - 1, d);
-
-  if (period === "daily")   return { start: new Date(y, m - 1, d), end: new Date(y, m - 1, d + 1) };
-
-  if (period === "weekly") {
-    const day  = base.getDay();
-    const diff = day === 0 ? -6 : 1 - day;
-    const mon  = new Date(y, m - 1, d + diff);
-    return { start: mon, end: new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 7) };
-  }
-
-  if (period === "yearly") return { start: new Date(y, 0, 1), end: new Date(y + 1, 0, 1) };
-
-  return { start: new Date(y, m - 1, 1), end: new Date(y, m, 1) };
-}
+import { getDateRange } from "./_shared";
 
 export interface MenuPerformanceRow {
   key:            string;

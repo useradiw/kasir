@@ -20,9 +20,11 @@ export default async function IngredientDetailPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ tab?: string }>;
 }) {
-  await requireRole("OWNER", "MANAGER");
+  const staff = await requireRole("OWNER", "MANAGER");
   const { id }       = await params;
   const { tab = "pembelian" } = await searchParams;
+  // Rescale is OWNER-only (requireOwnerStrict on the server blocks DEVELOPER too).
+  const isOwner = staff.role === "OWNER";
 
   const [detail, purchases, logs, recipe, ingredientOptions, unlinkedItems, suppliers, settings] = await Promise.all([
     getIngredientDetail(id),
@@ -68,6 +70,7 @@ export default async function IngredientDetailPage({
         suppliers={suppliers}
         resolvedBaseUnits={resolvedBaseUnits}
         hasHistory={hasHistory}
+        isOwner={isOwner}
         tab={tab}
       />
     </Container>

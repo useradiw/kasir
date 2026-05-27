@@ -22,20 +22,11 @@ export async function upsertRecipe(
     });
     const vid = variantId || null;
 
-    const existing = await prisma.recipe.findFirst({
-      where: { menuItemId, variantId: vid },
+    await prisma.recipe.upsert({
+      where: { menuItemId_variantId: { menuItemId, variantId: vid as string } },
+      create: { menuItemId, variantId: vid, notes: parsed.notes ?? null },
+      update: { notes: parsed.notes ?? null },
     });
-
-    if (existing) {
-      await prisma.recipe.update({
-        where: { id: existing.id },
-        data: { notes: parsed.notes ?? null },
-      });
-    } else {
-      await prisma.recipe.create({
-        data: { menuItemId, variantId: vid, notes: parsed.notes ?? null },
-      });
-    }
     revalidateInventory();
   });
 }

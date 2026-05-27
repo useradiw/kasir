@@ -285,7 +285,7 @@ export default async function PetunjukPage() {
 
             <Tips>
               <li><strong>Kelas terkunci</strong> begitu ada riwayat (pembelian, log, resep). Bila salah pilih, buat bahan baru atau opname-nol dulu.</li>
-              <li>Chip kuning <em>&quot;perlu normalisasi → mg/ml/pcs&quot;</em> muncul pada bahan lama yang masih pakai satuan dasar berbeda dari kelasnya (mis. <code>gr</code> untuk Berat sebelumnya). Tidak otomatis diubah agar HPP historis tidak rusak — perbaiki manual bila perlu.</li>
+              <li>Chip kuning <em>&quot;perlu normalisasi → g/ml/pcs&quot;</em> muncul pada bahan lama yang masih pakai satuan dasar berbeda dari kelasnya. Tidak otomatis diubah agar HPP historis tidak rusak. Kalau ada baris pembelian yang tercatat dengan pack/qty/total bayar salah, <strong>Owner</strong> bisa menekan tombol <em>Edit</em> di kanan baris itu di tab Pembelian — sistem akan re-derive baseQty dari pack saat ini dan replay seluruh riwayat agar stok + HPP konsisten. Detail di <Link href="/petunjuk/cogs" className="text-primary hover:underline">panduan COGS</Link>.</li>
               <li>Filter tag (chip kecil di atas daftar) memudahkan mencari bahan: misal <code>#frozen</code>, <code>#kering</code>.</li>
             </Tips>
 
@@ -335,7 +335,7 @@ export default async function PetunjukPage() {
             </p>
             <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Aturan</p>
             <Tips>
-              <li>Default: Berat = <code>mg</code>, Volume = <code>ml</code>, Jumlah = <code>pcs</code> — satuan terkecil agar pecahan tidak muncul.</li>
+              <li>Default: Berat = <code>g</code>, Volume = <code>ml</code>, Jumlah = <code>pcs</code> — satuan terkecil yang masih praktis (untuk bahan murah seperti arang, <code>mg</code> menyebabkan precision loss di kolom Rp/satuan).</li>
               <li>Resep selalu pakai satuan dasar bahan. Misal kopi dalam <code>mg</code>: tulis 18000 untuk 18 g.</li>
               <li>Stok, log, HPP semuanya dalam satuan dasar. Pack saat beli (mis. &quot;1 dus&quot;) hanya pengali konversi.</li>
               <li>Mencampur bahan beda kelas dalam satu resep menu <strong>aman</strong> — sistem hanya menjumlah rupiah, bukan satuan fisik.</li>

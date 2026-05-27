@@ -34,32 +34,6 @@ function resolvePackBaseQty(
   return found;
 }
 
-/**
- * Resolve base quantity for a purchase given a pack label.
- * Looks up IngredientPack by (ingredientId, label).
- * Returns { baseQty, packBaseQty } where baseQty = packQty * packBaseQty.
- * Throws when packLabel is set but no matching pack exists.
- */
-export async function resolvePackQty(
-  tx: PrismaTx,
-  ingredientId: string,
-  packLabel: string | null | undefined,
-  packQty: number,
-): Promise<{ baseQty: number; packBaseQty: number }> {
-  if (!packLabel) return { baseQty: packQty, packBaseQty: 1 };
-  const pack = await tx.ingredientPack.findUnique({
-    where: { ingredientId_label: { ingredientId, label: packLabel } },
-    select: { baseQty: true },
-  });
-  if (!pack) {
-    throw new Error(
-      `Satuan "${packLabel}" belum terdaftar untuk bahan ini. ` +
-      `Tambahkan dulu di pengaturan bahan (Pack/Satuan) sebelum mencatat pembelian.`,
-    );
-  }
-  return { baseQty: packQty * pack.baseQty, packBaseQty: pack.baseQty };
-}
-
 // ─── WMA cost read ────────────────────────────────────────────────────────────
 
 /**
@@ -281,27 +255,82 @@ export interface OrderItemLike {
  * Computes COGS (Rp, rounded) and per-ingredient stock movements for a set
  * of order items. Uses Ingredient.averageUnitCost (WMA) — O(1) per ingredient.
  * Skips CANCELLED items and recipe ingredients without an ingredientId.
+ *
+ * Batch-fetches all recipes and ingredient costs upfront (2–3 queries total)
+ * instead of issuing per-item queries.
  */
 export async function computeOrderCogs(
   tx: PrismaTx,
   orderItems: OrderItemLike[],
 ): Promise<{ totalCogs: number; movements: StockMovement[] }> {
   const active = orderItems.filter((i) => i.status !== "CANCELLED");
+  if (active.length === 0) return { totalCogs: 0, movements: [] };
+
+  // Collect all menuItemIds (direct + from packages)
+  const directMenuItemIds = active
+    .filter((i) => i.menuItemId)
+    .map((i) => i.menuItemId!);
+
+  const packageIds = [...new Set(active.filter((i) => i.packageId).map((i) => i.packageId!))];
+
+  // Batch-fetch package members
+  const packageMembers = packageIds.length > 0
+    ? await tx.packageItem.findMany({
+        where: { packageId: { in: packageIds } },
+        select: { packageId: true, menuItemId: true, variantId: true },
+      })
+    : [];
+
+  const packageMenuItemIds = packageMembers.map((m) => m.menuItemId);
+  const allMenuItemIds = [...new Set([...directMenuItemIds, ...packageMenuItemIds])];
+
+  // Batch-fetch all recipes for these menu items
+  const recipes = await tx.recipe.findMany({
+    where: { menuItemId: { in: allMenuItemIds } },
+    select: {
+      menuItemId: true,
+      variantId: true,
+      ingredients: { select: { ingredientId: true, templateId: true, quantity: true } },
+    },
+  });
+
+  // Build recipe lookup: "menuItemId::variantId" → ingredients
+  const recipeMap = new Map<string, typeof recipes[0]["ingredients"]>();
+  for (const r of recipes) {
+    recipeMap.set(`${r.menuItemId}::${r.variantId ?? ""}`, r.ingredients);
+  }
+
+  // Collect all ingredient IDs needed for cost lookup
+  const ingredientIds = new Set<string>();
+  for (const r of recipes) {
+    for (const ing of r.ingredients) {
+      const ingId = ing.ingredientId ?? ing.templateId;
+      if (ingId) ingredientIds.add(ingId);
+    }
+  }
+
+  // Batch-fetch all ingredient costs
+  const costRows = ingredientIds.size > 0
+    ? await tx.ingredient.findMany({
+        where: { id: { in: [...ingredientIds] } },
+        select: { id: true, averageUnitCost: true },
+      })
+    : [];
+  const costMap = new Map(costRows.map((r) => [r.id, r.averageUnitCost]));
+
+  // Compute COGS in-memory
   let totalCogs = 0;
   const movements: StockMovement[] = [];
 
-  async function processRecipe(menuItemId: string, variantId: string | null, qty: number) {
-    const recipe = await tx.recipe.findFirst({
-      where: { menuItemId, variantId: variantId ?? null },
-      include: { ingredients: true },
-    });
-    if (!recipe) return;
+  function processRecipe(menuItemId: string, variantId: string | null, qty: number) {
+    const key = `${menuItemId}::${variantId ?? ""}`;
+    const ings = recipeMap.get(key);
+    if (!ings) return;
 
-    for (const ing of recipe.ingredients) {
-      // Support both new ingredientId and legacy templateId (same UUID during transition)
+    for (const ing of ings) {
       const ingId = ing.ingredientId ?? ing.templateId;
       if (!ingId) continue;
-      const avgCost = await getIngredientAvgCost(tx, ingId);
+      const avgCost = costMap.get(ingId) ?? 0;
       const useQty = ing.quantity * qty;
       totalCogs += useQty * avgCost;
       movements.push({ ingredientId: ingId, quantity: -useQty, unitCost: avgCost });
@@ -309,16 +338,13 @@ export async function computeOrderCogs(
   }
 
   for (const item of active.filter((i) => i.menuItemId)) {
-    await processRecipe(item.menuItemId!, item.variantId ?? null, item.qty);
+    processRecipe(item.menuItemId!, item.variantId ?? null, item.qty);
   }
 
   for (const item of active.filter((i) => i.packageId)) {
-    const members = await tx.packageItem.findMany({
-      where: { packageId: item.packageId! },
-      select: { menuItemId: true, variantId: true },
-    });
+    const members = packageMembers.filter((m) => m.packageId === item.packageId);
     for (const m of members) {
-      await processRecipe(m.menuItemId, m.variantId ?? null, item.qty);
+      processRecipe(m.menuItemId, m.variantId ?? null, item.qty);
     }
   }
 
@@ -494,14 +520,3 @@ export async function recordOpnameLine(
   }
 }
 
-// ─── Legacy compatibility shim ────────────────────────────────────────────────
-// Used by old code that may still reference templateId during the transition.
-// Remove after migration 2 drops ExpenseTemplate.
-
-/** @deprecated Use getIngredientAvgCost instead */
-export async function getLatestIngredientCost(
-  tx: PrismaTx,
-  templateId: string,
-): Promise<number> {
-  return getIngredientAvgCost(tx, templateId);
-}
