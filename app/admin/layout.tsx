@@ -59,9 +59,9 @@ export default async function AdminLayout({
 
   return (
     <>
-      <Container id="nav" sectionStyle="border z-40 fixed top-0 right-0 left-0 bg-inherit shadow" className="flex flex-col">
-        <div className="flex items-center justify-between">
-          <span className="text-lg font-semibold">Admin Panel</span>
+      <Container id="nav" sectionStyle="border z-40 fixed top-0 right-0 left-0 bg-inherit shadow" className="flex flex-col justify-between">
+        <div className="flex justify-between">
+          <span className="text-lg font-semibold">Admin</span>
           <div className="flex items-center gap-2">
             <NotificationBellServer staffId={staff.id} />
             <span className="text-sm truncate text-muted-foreground max-w-45">{displayEmail}</span>
@@ -69,7 +69,7 @@ export default async function AdminLayout({
         </div>
         <DevNav navItems={navItems} />
       </Container>
-      <main className="mt-24 sm:mt-28">
+      <main className="mt-14">
         {children}
       </main>
     </>

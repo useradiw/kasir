@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -9,15 +11,20 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import { Sheet, SheetTrigger, SheetContent } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { MenuIcon } from "lucide-react";
 import { useDevViewOptional } from "@/components/providers/dev-view-provider";
+import { cn } from "@/lib/utils";
 
 type NavItem = { href: string; label: string; ownerOnly?: boolean };
 type NavGroup = { trigger: string; content: NavItem[] };
 
-/** Groups that get merged into "Lainnya" on mobile (< md). */
-const MOBILE_COLLAPSE_TRIGGERS = ["Menu", "Keuangan", "Laporan", "Sistem"];
+const VISIBLE_TRIGGERS = ["Navigasi", "Laporan"];
 
 export function DevNav({ navItems }: { navItems: NavGroup[] }) {
+  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const ctx = useDevViewOptional();
   const viewAsRole = ctx?.viewAsRole ?? null;
   const effectiveIsOwner = viewAsRole === null || viewAsRole === "OWNER";
@@ -31,91 +38,78 @@ export function DevNav({ navItems }: { navItems: NavGroup[] }) {
     }))
     .filter((group) => group.content.length > 0);
 
-  // Desktop: show all groups as-is
-  // Mobile: merge designated groups into "Lainnya"
-  const mobileKeep = filteredItems.filter(
-    (g) => !MOBILE_COLLAPSE_TRIGGERS.includes(g.trigger)
+  const visibleGroups = filteredItems.filter((g) =>
+    VISIBLE_TRIGGERS.includes(g.trigger)
   );
-  const mobileCollapsed = filteredItems.filter(
-    (g) => MOBILE_COLLAPSE_TRIGGERS.includes(g.trigger)
+  const sheetGroups = filteredItems.filter(
+    (g) => !VISIBLE_TRIGGERS.includes(g.trigger)
   );
 
   return (
-    <>
-      {/* Desktop: all groups */}
-      <NavigationMenu className="mt-2 hidden md:flex max-w-full overflow-x-auto scrollbar-hide" align="start">
-        <NavigationMenuList className="gap-0 justify-start flex-nowrap">
-          {filteredItems.map((item) => (
-            <NavGroupItem key={item.trigger} group={item} />
-          ))}
-        </NavigationMenuList>
-      </NavigationMenu>
-
-      {/* Mobile: collapsed groups */}
-      <NavigationMenu className="mt-2 md:hidden max-w-full overflow-x-auto scrollbar-hide" align="start">
-        <NavigationMenuList className="gap-0 justify-start flex-nowrap">
-          {mobileKeep.map((item) => (
-            <NavGroupItem key={item.trigger} group={item} />
-          ))}
-          {mobileCollapsed.length > 0 && (
-            <NavGroupItemGrouped trigger="Lainnya" groups={mobileCollapsed} />
-          )}
-        </NavigationMenuList>
-      </NavigationMenu>
-    </>
-  );
-}
-
-/** Standard nav group with a single flat list of links. */
-function NavGroupItem({ group }: { group: NavGroup }) {
-  return (
-    <NavigationMenuItem>
-      <NavigationMenuTrigger className="text-xs sm:text-sm px-2.5 sm:px-4">
-        {group.trigger}
-      </NavigationMenuTrigger>
-      <NavigationMenuContent>
-        <div className="flex flex-col min-w-[160px]">
-          {group.content.map((subItem) => (
-            <NavigationMenuLink
-              key={subItem.label}
-              render={<Link href={subItem.href} className="cursor-pointer" />}
-            >
-              {subItem.label}
-            </NavigationMenuLink>
-          ))}
-        </div>
-      </NavigationMenuContent>
-    </NavigationMenuItem>
-  );
-}
-
-/** "Lainnya" nav group: shows links organized by their original group with headers. */
-function NavGroupItemGrouped({ trigger, groups }: { trigger: string; groups: NavGroup[] }) {
-  return (
-    <NavigationMenuItem>
-      <NavigationMenuTrigger className="text-xs sm:text-sm px-2.5 sm:px-4">
-        {trigger}
-      </NavigationMenuTrigger>
-      <NavigationMenuContent>
-        <div className="flex flex-col min-w-[180px]">
-          {groups.map((group, i) => (
-            <div key={group.trigger}>
-              {i > 0 && <div className="border-t border-border my-1" />}
-              <p className="px-3 pt-2 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                {group.trigger}
-              </p>
-              {group.content.map((subItem) => (
-                <NavigationMenuLink
-                  key={subItem.label}
-                  render={<Link href={subItem.href} className="cursor-pointer" />}
-                >
-                  {subItem.label}
-                </NavigationMenuLink>
+    <div className="flex items-center gap-0.5">
+      {sheetGroups.length > 0 && (
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger
+            render={<Button variant="ghost" size="icon" className="cursor-pointer" />}
+          >
+            <MenuIcon className="size-4 text-gray-500" />
+            <span className="sr-only">Menu navigasi</span>
+          </SheetTrigger>
+          <SheetContent>
+            <nav className="flex flex-col py-2">
+              {sheetGroups.map((group, i) => (
+                <div key={group.trigger}>
+                  {i > 0 && <div className="border-t border-border my-2 mx-4" />}
+                  <p className="px-4 pt-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                    {group.trigger}
+                  </p>
+                  {group.content.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center px-4 py-2.5 text-sm transition-colors min-h-11",
+                        pathname === item.href
+                          ? "bg-primary/10 text-primary font-medium"
+                          : "text-foreground hover:bg-muted"
+                      )}
+                    >
+                      {item.label}
+                    </Link>
+                  ))}
+                </div>
               ))}
-            </div>
-          ))}
-        </div>
-      </NavigationMenuContent>
-    </NavigationMenuItem>
+            </nav>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {visibleGroups.length > 0 && (
+        <NavigationMenu className="max-w-full justify-start" align="start">
+          <NavigationMenuList className="gap-0 justify-start flex-nowrap">
+            {visibleGroups.map((group) => (
+              <NavigationMenuItem key={group.trigger}>
+                <NavigationMenuTrigger className="px-2.5">
+                  {group.trigger}
+                </NavigationMenuTrigger>
+                <NavigationMenuContent>
+                  <div className="flex flex-col min-w-40">
+                    {group.content.map((subItem) => (
+                      <NavigationMenuLink
+                        key={subItem.label}
+                        render={<Link href={subItem.href} className="cursor-pointer" />}
+                      >
+                        {subItem.label}
+                      </NavigationMenuLink>
+                    ))}
+                  </div>
+                </NavigationMenuContent>
+              </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
+        </NavigationMenu>
+      )}
+    </div>
   );
 }
