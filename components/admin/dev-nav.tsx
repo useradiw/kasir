@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -24,6 +24,7 @@ const VISIBLE_TRIGGERS = ["Navigasi", "Laporan"];
 
 export function DevNav({ navItems }: { navItems: NavGroup[] }) {
   const [open, setOpen] = useState(false);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
   const pathname = usePathname();
   const ctx = useDevViewOptional();
   const viewAsRole = ctx?.viewAsRole ?? null;
@@ -44,6 +45,23 @@ export function DevNav({ navItems }: { navItems: NavGroup[] }) {
   const sheetGroups = filteredItems.filter(
     (g) => !VISIBLE_TRIGGERS.includes(g.trigger)
   );
+
+  if (!mounted) {
+    // SSR placeholder — avoids base-ui useId() hydration mismatch
+    return (
+      <div className="flex items-center gap-0.5">
+        <Button variant="ghost" size="icon" className="cursor-pointer">
+          <MenuIcon className="size-4 text-gray-500" />
+          <span className="sr-only">Menu navigasi</span>
+        </Button>
+        {visibleGroups.map((g) => (
+          <span key={g.trigger} className="inline-flex h-9 items-center px-2.5 text-sm font-medium text-muted-foreground">
+            {g.trigger}
+          </span>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-0.5">

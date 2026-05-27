@@ -69,7 +69,7 @@ export default async function AdminLayout({
         </div>
         <DevNav navItems={navItems} />
       </Container>
-      <main className="mt-14">
+      <main className="mt-25">
         {children}
       </main>
     </>
