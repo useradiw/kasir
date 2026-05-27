@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { formatDateTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { notify } from "@/lib/notify";
@@ -54,11 +55,12 @@ export function NotificationBell({
 
   return (
     <div className="relative">
-      <button
-        type="button"
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={() => setOpen((v) => !v)}
         aria-label="Notifikasi"
-        className="relative inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-accent"
+        className="relative"
       >
         <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
@@ -66,20 +68,21 @@ export function NotificationBell({
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
-      </button>
+      </Button>
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border bg-popover text-popover-foreground shadow-lg">
             <div className="flex items-center justify-between border-b px-3 py-2">
               <span className="text-sm font-medium">Notifikasi</span>
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={handleMarkAll}
-                className="text-xs text-muted-foreground hover:text-foreground"
+                className="text-xs text-muted-foreground hover:text-foreground h-auto px-1 py-0.5"
               >
                 Tandai semua dibaca
-              </button>
+              </Button>
             </div>
             <div className="max-h-80 overflow-y-auto">
               {notifications.length === 0 ? (

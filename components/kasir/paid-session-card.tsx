@@ -12,13 +12,11 @@ export function PaidSessionCard({
   session,
   onClick,
   onReceipt,
-  onSplitReceipt,
   onShowPicker,
 }: {
   session: TableSession;
   onClick: () => void;
   onReceipt: () => void;
-  onSplitReceipt: (group: number, total: number) => void;
   onShowPicker: () => void;
 }) {
   const txs = useTransactions(session.id);

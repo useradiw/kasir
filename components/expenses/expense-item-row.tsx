@@ -164,22 +164,24 @@ export function ItemRow({
         <div className="flex items-center gap-2 text-sm flex-wrap">
           <span className="text-muted-foreground text-xs">Satuan:</span>
           <div className="flex flex-wrap gap-1">
-            <button
-              type="button"
+            <Button
+              variant={item.unit === "" ? "default" : "outline"}
+              size="sm"
               onClick={() => onUpdate(item.id, "unit", "")}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${item.unit === "" ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
+              className="text-xs h-6 px-2"
             >
               {selectedIngredient.baseUnit} (satuan dasar)
-            </button>
+            </Button>
             {selectedIngredient.packs.map((p) => (
-              <button
+              <Button
                 key={p.label}
-                type="button"
+                variant={item.unit === p.label ? "default" : "outline"}
+                size="sm"
                 onClick={() => onUpdate(item.id, "unit", p.label)}
-                className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${item.unit === p.label ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}
+                className="text-xs h-6 px-2"
               >
                 {p.label} (×{p.baseQty} {selectedIngredient.baseUnit})
-              </button>
+              </Button>
             ))}
           </div>
           <a
@@ -274,6 +276,7 @@ export function ItemRow({
           onClick={() => onRemove(item.id)}
           disabled={isPending || !canRemove}
           className="shrink-0"
+          aria-label="Hapus item"
         >
           <Trash2 className="size-4" />
         </Button>

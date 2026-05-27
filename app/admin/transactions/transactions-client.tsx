@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner, AdminPageHeader } from "@/components/admin/ui";
+import { Badge } from "@/components/shared/badge";
 import { formatRupiah, formatDateTime, formatTransactionShortId } from "@/lib/format";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { voidTransaction } from "@/app/actions/admin/transactions";
@@ -169,18 +170,18 @@ export default function TransactionsClient({
                     <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5">
                       {methodLabel[r.paymentMethod] ?? r.paymentMethod}
                       {r.paymentMethod === "PENDING" && (
-                        <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-medium ${r.isSettled ? "bg-primary/10 text-primary" : "bg-warning/10 text-warning-foreground"}`}>
+                        <Badge className={r.isSettled ? "bg-primary/10 text-primary text-[10px]" : "bg-warning/10 text-warning-foreground text-[10px]"}>
                           {r.isSettled ? "Sudah Cair" : "Belum Cair"}
-                        </span>
+                        </Badge>
                       )}
                       {r.processedBy && <> · {r.processedBy}</>}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-medium">{formatRupiah(r.totalAmount)}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusBadge[r.status] ?? ""}`}>
+                    <p className="text-sm font-medium tabular-nums">{formatRupiah(r.totalAmount)}</p>
+                    <Badge className={statusBadge[r.status] ?? ""}>
                       {r.status === "PAID" ? "Dibayar" : "Void"}
-                    </span>
+                    </Badge>
                   </div>
                 </div>
 

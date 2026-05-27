@@ -24,6 +24,7 @@ async function main() {
 
   console.log("Setup:");
   // Use the server action by importing it dynamically — exercises the real code path.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { addIngredient, addIngredientPack, updateIngredient } =
     await import("../app/actions/admin/ingredients.ts").catch(async () => {
       // Plain Prisma fallback when the action import can't run outside Next

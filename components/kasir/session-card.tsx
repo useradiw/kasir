@@ -9,7 +9,6 @@ import { Badge } from "./ui";
 import { notify } from "@/lib/notify";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { Trash2, Pencil, Check, X } from "lucide-react";
 
 const serviceOptions: { value: ServiceEnum | ""; label: string }[] = [

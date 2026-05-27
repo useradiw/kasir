@@ -16,7 +16,6 @@ import { X, ClipboardList, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OrderItem, OrderItemStatus } from "@/lib/db";
 import { ReceiptPreview } from "./receipt-preview";
-import { useKasir } from "./kasir-context";
 
 const nextStatus: Partial<Record<OrderItemStatus, OrderItemStatus>> = {
   PENDING: "PREPARING",
@@ -38,7 +37,6 @@ export function OrderReview({
   onHome?: () => void;
   readOnly?: boolean;
 }) {
-  const { storeInfo } = useKasir();
   const items = useOrderItems(sessionId);
   const tx = useTransaction(readOnly ? sessionId : null);
   const activeItems = getActiveItems(items ?? []);
@@ -49,9 +47,9 @@ export function OrderReview({
   return (
     <>
       <KasirTopBar title={readOnly ? "Detail Pesanan" : "Pesanan"} onBack={onBack} onHome={onHome}>
-        <button type="button" onClick={() => setShowChecklist(true)} className="p-2.5" aria-label="Cetak struk">
+        <Button variant="ghost" size="icon" onClick={() => setShowChecklist(true)} aria-label="Cetak struk">
           <Printer className="size-5 text-muted-foreground" />
-        </button>
+        </Button>
       </KasirTopBar>
 
       {/* Transaction summary for read-only (history) */}
@@ -148,14 +146,15 @@ function OrderItemRow({ item, readOnly }: { item: OrderItem; readOnly?: boolean 
             {getStatusLabel(item.status)}
           </Badge>
           {!readOnly && isPending && (
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={() => removeOrderItem(item.id)}
-              className="p-2 -m-1 text-destructive hover:bg-destructive/10 rounded"
+              className="text-destructive hover:bg-destructive/10 -m-1"
               aria-label="Hapus item"
             >
               <X className="size-4" />
-            </button>
+            </Button>
           )}
         </div>
       </div>

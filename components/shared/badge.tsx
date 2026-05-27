@@ -9,12 +9,14 @@ const badgeBase = "rounded-full px-2 py-0.5 text-xs font-medium";
 export function Badge({
   children,
   className,
+  title,
 }: {
   children: React.ReactNode;
   className?: string;
+  title?: string;
 }) {
   return (
-    <span className={cn(badgeBase, className)}>
+    <span className={cn(badgeBase, className)} title={title}>
       {children}
     </span>
   );
@@ -112,11 +114,11 @@ export function SyncBadge({ synced }: { synced: 0 | 1 }) {
     <Badge
       className={
         synced
-          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300"
-          : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300"
+          ? "bg-primary/10 text-primary"
+          : "bg-warning/10 text-warning-foreground"
       }
     >
-      {synced ? "Synced" : "Belum sync"}
+      {synced ? "Sinkron" : "Belum sync"}
     </Badge>
   );
 }

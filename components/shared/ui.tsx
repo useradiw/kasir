@@ -26,7 +26,7 @@ export function TabBar<T extends string>({
           type="button"
           onClick={() => onChange(tab.value)}
           className={cn(
-            "flex-1 py-2 text-sm font-medium text-center border-b-2 transition-colors",
+            "flex-1 py-2 text-sm font-medium text-center border-b-2 transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
             value === tab.value
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground",

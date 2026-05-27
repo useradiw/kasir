@@ -25,7 +25,7 @@ export default function BackupTabsClient() {
             type="button"
             onClick={() => setTab(t.key)}
             className={cn(
-              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px",
+              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
               tab === t.key
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground",

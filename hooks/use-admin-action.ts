@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { notify } from "@/lib/notify";
 
 interface RunOptions {
@@ -22,6 +23,7 @@ export function useAdminAction() {
         }
         opts?.onSuccess?.();
       } catch (e) {
+        if (isRedirectError(e)) throw e;
         const message = e instanceof Error ? e.message : "Terjadi kesalahan.";
         setError(message);
         notify.error(e);

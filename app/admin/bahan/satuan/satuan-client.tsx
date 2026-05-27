@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { AdminPageHeader, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
+import { Badge } from "@/components/shared/badge";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateUnitSettings } from "@/app/actions/admin/unit-settings";
 
@@ -78,9 +79,9 @@ export default function SatuanClient({ initial }: { initial: View }) {
                   <span className="text-sm text-muted-foreground">
                     {count} bahan
                     {initial.inUseByClass[cls] && (
-                      <span className="ml-2 text-warning-foreground bg-warning/10 rounded px-1.5 py-0.5 text-xs">
+                      <Badge className="ml-2 bg-warning/10 text-warning-foreground">
                         ada stok/riwayat
-                      </span>
+                      </Badge>
                     )}
                   </span>
                 </div>

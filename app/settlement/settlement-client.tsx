@@ -208,16 +208,16 @@ function CreateSettlementTab({
       {!isEmpty && (
         <div className="space-y-2">
           <Label className="text-xs">Pilih Transaksi</Label>
-          <button
-            type="button"
+          <Button
+            variant="outline"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center justify-between h-9 rounded-lg border border-input bg-card px-3 text-sm"
+            className="w-full flex items-center justify-between h-9"
           >
             <span className="text-muted-foreground">
               {selectedIds.size > 0 ? `${selectedIds.size} transaksi dipilih` : "Pilih transaksi..."}
             </span>
             {dropdownOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-          </button>
+          </Button>
 
           {dropdownOpen && (
             <div className="rounded-lg border bg-card max-h-60 overflow-y-auto">

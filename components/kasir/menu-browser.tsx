@@ -50,39 +50,31 @@ export function MenuBrowser({
       {/* Category tabs */}
       <div className="flex gap-2 overflow-x-auto px-3 py-2 border-b scrollbar-hide">
         {categories?.map((cat) => (
-          <button
+          <Button
             key={cat.id}
-            type="button"
+            variant={effectiveCategoryId === cat.id && !showingPackages ? "default" : "secondary"}
+            size="sm"
             onClick={() => {
               setActiveCategoryId(cat.id);
               setExpandedItemId(null);
             }}
-            className={cn(
-              "shrink-0 rounded-full px-3 h-8 text-xs font-medium transition-colors",
-              effectiveCategoryId === cat.id && !showingPackages
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            )}
+            className="shrink-0 h-8 text-xs"
           >
             {cat.name}
-          </button>
+          </Button>
         ))}
         {packages && packages.length > 0 && (
-          <button
-            type="button"
+          <Button
+            variant={showingPackages ? "default" : "secondary"}
+            size="sm"
             onClick={() => {
               setActiveCategoryId(PAKET_TAB_ID);
               setExpandedItemId(null);
             }}
-            className={cn(
-              "shrink-0 rounded-full px-3 h-8 text-xs font-medium transition-colors",
-              showingPackages
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
-            )}
+            className="shrink-0 h-8 text-xs"
           >
             Paket
-          </button>
+          </Button>
         )}
       </div>
 

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { AdminPageHeader, AdminSelect, UnitClassBadge } from "@/components/admin/ui";
-import { formatRupiah, formatRpPerUnit } from "@/lib/format";
+import { formatRpPerUnit } from "@/lib/format";
 import type {
   AssembledIngredientsIndex,
   ActiveIngredientLite,
@@ -79,7 +79,7 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
       )}
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Bahan Olahan ({data.parents.length})</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Bahan Olahan ({data.parents.length})</h2>
         {data.parents.length === 0 ? (
           <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">
             Belum ada bahan olahan. Klik &quot;+ Buat Resep Olahan Baru&quot;.
@@ -115,7 +115,7 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
       </section>
 
       <section className="space-y-2">
-        <h2 className="text-lg font-semibold">Komponen Aktif ({data.components.length})</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Komponen Aktif ({data.components.length})</h2>
         <p className="text-xs text-muted-foreground">
           Bahan-bahan yang dipakai sebagai komponen di setidaknya satu resep olahan.
         </p>

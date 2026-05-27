@@ -148,19 +148,19 @@ export default function CashRegisterClient({
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Kas Awal</p>
-                  <p className="font-medium">{formatRupiah(todayRegister.openingCash)}</p>
+                  <p className="font-medium tabular-nums">{formatRupiah(todayRegister.openingCash)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Pemasukan Tunai</p>
-                  <p className="font-medium">{formatRupiah(todayCashIncome)}</p>
+                  <p className="font-medium tabular-nums">{formatRupiah(todayCashIncome)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Pengeluaran</p>
-                  <p className="font-medium">{formatRupiah(todayExpenses)}</p>
+                  <p className="font-medium tabular-nums">{formatRupiah(todayExpenses)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Kas Diharapkan</p>
-                  <p className="font-medium">{formatRupiah(todayExpectedClosing)}</p>
+                  <p className="font-medium tabular-nums">{formatRupiah(todayExpectedClosing)}</p>
                 </div>
               </div>
               {isOwner && (
@@ -187,19 +187,19 @@ export default function CashRegisterClient({
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <p className="text-muted-foreground">Kas Awal</p>
-                  <p className="font-medium">{formatRupiah(todayRegister.openingCash)}</p>
+                  <p className="font-medium tabular-nums">{formatRupiah(todayRegister.openingCash)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Pemasukan Tunai</p>
-                  <p className="font-medium">{formatRupiah(todayCashIncome)}</p>
+                  <p className="font-medium tabular-nums">{formatRupiah(todayCashIncome)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Pengeluaran</p>
-                  <p className="font-medium">{formatRupiah(todayExpenses)}</p>
+                  <p className="font-medium tabular-nums">{formatRupiah(todayExpenses)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Kas Akhir</p>
-                  <p className="font-medium">{formatRupiah(todayRegister.closingCash ?? 0)}</p>
+                  <p className="font-medium tabular-nums">{formatRupiah(todayRegister.closingCash ?? 0)}</p>
                 </div>
               </div>
               <div className="text-sm border-t pt-2">
@@ -207,7 +207,7 @@ export default function CashRegisterClient({
                 {(() => {
                   const diff = (todayRegister.closingCash ?? 0) - todayExpectedClosing;
                   return (
-                    <span className={diff >= 0 ? "text-primary font-medium" : "text-destructive font-medium"}>
+                    <span className={diff >= 0 ? "text-primary font-medium tabular-nums" : "text-destructive font-medium tabular-nums"}>
                       {diff >= 0 ? "+" : ""}{formatRupiah(diff)}
                     </span>
                   );
@@ -260,7 +260,7 @@ export default function CashRegisterClient({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium">{formatDateTime(r.date, "long")}</p>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground mt-1">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground mt-1 tabular-nums">
                         <span>Kas Awal: {formatRupiah(r.openingCash)}</span>
                         <span>Tunai Masuk: {formatRupiah(r.cashIncome)}</span>
                         <span>Pengeluaran: {formatRupiah(r.totalExpenses)}</span>

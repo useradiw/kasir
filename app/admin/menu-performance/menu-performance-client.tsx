@@ -3,6 +3,7 @@
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AdminPageHeader } from "@/components/admin/ui";
 import { formatRupiah } from "@/lib/format";
 import type { MenuPerformanceData, MenuPerformanceRow } from "@/app/actions/admin/queries";
@@ -123,29 +124,27 @@ export function MenuPerformanceClient({
         <CardContent className="pt-4 space-y-3">
           <div className="flex flex-wrap gap-2">
             {(["daily", "weekly", "monthly", "yearly"] as Period[]).map((p) => (
-              <button
+              <Button
                 key={p}
+                variant={currentPeriod === p ? "default" : "secondary"}
+                size="sm"
                 onClick={() => navigate(p, currentDate)}
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                  currentPeriod === p
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted text-muted-foreground hover:bg-primary/5"
-                }`}
+                className="text-sm"
               >
                 {PERIOD_LABELS[p]}
-              </button>
+              </Button>
             ))}
           </div>
 
           <div className="flex items-center gap-3">
-            <button onClick={prevDate} className="px-2 py-1 rounded bg-muted text-sm hover:bg-muted/80">‹</button>
+            <Button variant="outline" size="icon-sm" onClick={prevDate} aria-label="Periode sebelumnya">‹</Button>
             <input
               type="date"
               value={currentDate}
               onChange={(e) => e.target.value && navigate(currentPeriod, e.target.value)}
               className="h-9 rounded-4xl border border-input bg-input/30 px-3 text-sm"
             />
-            <button onClick={nextDate} className="px-2 py-1 rounded bg-muted text-sm hover:bg-muted/80">›</button>
+            <Button variant="outline" size="icon-sm" onClick={nextDate} aria-label="Periode berikutnya">›</Button>
           </div>
         </CardContent>
       </Card>
@@ -155,23 +154,23 @@ export function MenuPerformanceClient({
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Total Penjualan</p>
-            <p className="text-lg font-semibold">{formatRupiah(totals.revenue)}</p>
-            <p className="text-xs text-muted-foreground">{totals.qtySold} item terjual</p>
+            <p className="text-lg font-semibold tabular-nums">{formatRupiah(totals.revenue)}</p>
+            <p className="text-xs text-muted-foreground tabular-nums">{totals.qtySold} item terjual</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Total HPP</p>
-            <p className="text-lg font-semibold">{formatRupiah(totals.totalCogs)}</p>
+            <p className="text-lg font-semibold tabular-nums">{formatRupiah(totals.totalCogs)}</p>
             {noRecipeRevenue > 0 && (
-              <p className="text-xs text-muted-foreground">{formatRupiah(noRecipeRevenue)} tanpa resep</p>
+              <p className="text-xs text-muted-foreground tabular-nums">{formatRupiah(noRecipeRevenue)} tanpa resep</p>
             )}
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Laba Kotor</p>
-            <p className={`text-lg font-semibold ${totals.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+            <p className={`text-lg font-semibold tabular-nums ${totals.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
               {formatRupiah(totals.grossProfit)}
             </p>
           </CardContent>

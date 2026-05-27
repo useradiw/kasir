@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { AdminSelect, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
+import { Badge } from "@/components/shared/badge";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatRpPerUnit, formatDateTime } from "@/lib/format";
@@ -73,11 +74,11 @@ const LOG_TYPE_LABEL: Record<string, string> = {
   ASSEMBLY: "Produksi",
 };
 const LOG_TYPE_COLOR: Record<string, string> = {
-  PURCHASE: "text-green-600 dark:text-green-400",
-  SALE:     "text-destructive",
-  ADJUSTMENT: "text-yellow-600 dark:text-yellow-400",
-  WASTE:    "text-orange-600 dark:text-orange-400",
-  ASSEMBLY: "text-blue-600 dark:text-blue-400",
+  PURCHASE:   "text-primary",
+  SALE:       "text-destructive",
+  ADJUSTMENT: "text-warning-foreground",
+  WASTE:      "text-destructive",
+  ASSEMBLY:   "text-foreground",
 };
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -128,7 +129,7 @@ export default function IngredientDetailClient({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Link
         href="/admin/ingredients"
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -143,16 +144,16 @@ export default function IngredientDetailClient({
           <div className="flex items-start justify-between gap-2">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg font-bold">{detail.name}</h1>
+                <h1 className="text-base font-semibold">{detail.name}</h1>
                 <UnitClassBadge unitClass={detail.unitClass} baseUnit={detail.baseUnit} />
-                <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
+                <Badge className="text-[10px] bg-muted text-muted-foreground">
                   {CATEGORY_LABELS[detail.category] ?? detail.category}
-                </span>
+                </Badge>
                 {!detail.isActive && (
-                  <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full">Nonaktif</span>
+                  <Badge className="text-[10px] bg-destructive/10 text-destructive">Nonaktif</Badge>
                 )}
                 {detail.tags.map((t) => (
-                  <span key={t} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">#{t}</span>
+                  <Badge key={t} className="text-[10px] bg-muted text-muted-foreground">#{t}</Badge>
                 ))}
               </div>
               {detail.notes && (
@@ -197,8 +198,9 @@ export default function IngredientDetailClient({
         {TABS.map((t) => (
           <button
             key={t.key}
+            type="button"
             onClick={() => switchTab(t.key)}
-            className={`shrink-0 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            className={`shrink-0 px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
               tab === t.key
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -211,7 +213,7 @@ export default function IngredientDetailClient({
 
       {/* ── TAB: Pembelian ── */}
       {tab === "pembelian" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Price history chart */}
           {purchases.length >= 2 && (
             <Card>
@@ -263,9 +265,9 @@ export default function IngredientDetailClient({
                             <span className="text-xs text-muted-foreground">
                               {p.packQty}{p.packLabel ? ` ${p.packLabel}` : ""} × {formatRpPerUnit(p.unitCost)}/{detail.baseUnit}
                             </span>
-                            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
+                            <Badge className="text-[10px] bg-muted text-muted-foreground">
                               {SOURCE_LABEL[p.source] ?? p.source}
-                            </span>
+                            </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
                             {formatDateTime(p.purchasedAt)}
@@ -316,7 +318,7 @@ export default function IngredientDetailClient({
                       {log.note && <span className="text-muted-foreground"> · {log.note}</span>}
                     </div>
                     <div className="text-right shrink-0 tabular-nums space-y-0.5">
-                      <p className={`font-medium ${log.quantity >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}`}>
+                      <p className={`font-medium ${log.quantity >= 0 ? "text-primary" : "text-destructive"}`}>
                         {log.quantity >= 0 ? "+" : ""}{log.quantity % 1 === 0 ? log.quantity.toFixed(0) : log.quantity.toFixed(3)} {detail.baseUnit}
                       </p>
                       <p className="text-muted-foreground">{formatRpPerUnit(log.unitCost)}/{detail.baseUnit}</p>
@@ -436,7 +438,7 @@ function SettingsTab({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Edit info */}
       <Card>
         <CardHeader><CardTitle>Info Bahan</CardTitle></CardHeader>
@@ -619,7 +621,7 @@ function SettingsTab({
                       <div className="text-sm">
                         <span className="font-medium">1 {pack.label}</span>
                         <span className="text-muted-foreground"> = {pack.baseQty} {detail.baseUnit}</span>
-                        {pack.isDefault && <span className="ml-2 text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">Default</span>}
+                        {pack.isDefault && <Badge className="ml-2 text-[10px] bg-primary/10 text-primary">Default</Badge>}
                       </div>
                       <div className="flex gap-1 shrink-0">
                         <Button size="xs" variant="outline" onClick={() => setEditPack(pack.id)}>Edit</Button>
@@ -914,7 +916,7 @@ function RecipeTab({
   const estPerUnit = recipe.yieldQty > 0 ? Math.round(totalCost / recipe.yieldQty) : 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Recipe header / yield */}
       <Card>
         <CardHeader><CardTitle>Resep Bahan</CardTitle></CardHeader>
@@ -1167,7 +1169,7 @@ function BulkAddComponentPanel({
     <div className="border border-foreground/10 rounded-lg">
       <button
         type="button"
-        className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-muted/50"
+        className="w-full text-left px-3 py-2 text-sm font-medium hover:bg-muted/50 rounded-lg focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         onClick={() => setOpen((s) => !s)}
       >
         {open ? "▼" : "▶"} Tambah banyak komponen sekaligus

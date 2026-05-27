@@ -46,7 +46,7 @@ export function PaymentScreen({
   onBack: () => void;
   onHome?: () => void;
 }) {
-  const { staffId, staffName, staffRole, storeInfo, defaultTaxPct, defaultServicePct } = useKasir();
+  const { staffId, staffName, staffRole, defaultTaxPct, defaultServicePct } = useKasir();
   const items = useOrderItems(sessionId);
   const existingGroupTx = useTransactionForGroup(sessionId, splitGroup ?? 0);
   const session = useLiveQuery(() => db.table_sessions.get(sessionId), [sessionId]);
@@ -569,16 +569,14 @@ function ChargeField({
     <div className="space-y-1">
       <div className="flex items-center justify-between">
         <Label className="text-xs">{label}</Label>
-        <button
-          type="button"
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={onToggleMode}
-          className={cn(
-            "rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors",
-            "bg-muted text-muted-foreground hover:bg-accent"
-          )}
+          className="h-5 px-2 text-[10px]"
         >
           {mode === "pct" ? "%" : "Rp"}
-        </button>
+        </Button>
       </div>
       <Input
         type="number"

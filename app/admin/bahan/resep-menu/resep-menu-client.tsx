@@ -212,11 +212,11 @@ function RecipeCard({
             {hasCogs && (
               <>
                 <span className="text-xs text-muted-foreground">·</span>
-                <span className="text-xs text-muted-foreground">HPP <span className="font-medium text-foreground">{formatRupiah(recipe.cogs)}</span></span>
+                <span className="text-xs text-muted-foreground">HPP <span className="font-medium text-foreground tabular-nums">{formatRupiah(recipe.cogs)}</span></span>
                 {recipe.sellingPrice > 0 && (
                   <>
                     <span className="text-xs text-muted-foreground">·</span>
-                    <span className="text-xs text-muted-foreground">Harga <span className="font-medium text-foreground">{formatRupiah(recipe.sellingPrice)}</span></span>
+                    <span className="text-xs text-muted-foreground">Harga <span className="font-medium text-foreground tabular-nums">{formatRupiah(recipe.sellingPrice)}</span></span>
                     {recipe.marginPct !== null && (
                       <>
                         <span className="text-xs text-muted-foreground">·</span>
@@ -319,7 +319,7 @@ function RecipeIngRow({
           </span>
         )}
         {cost !== null && (
-          <span className="text-muted-foreground text-xs ml-1">
+          <span className="text-muted-foreground text-xs ml-1 tabular-nums">
             (HPP avg {formatRupiah(cost)}/{unit})
           </span>
         )}
@@ -336,7 +336,7 @@ function RecipeIngRow({
       ) : (
         <div className="flex items-center gap-2 shrink-0 tabular-nums">
           <span className="text-sm">{ing.quantity} {unit}</span>
-          {cost !== null && <span className="text-xs text-muted-foreground">= {formatRupiah(ing.quantity * cost)}</span>}
+          {cost !== null && <span className="text-xs text-muted-foreground tabular-nums">= {formatRupiah(ing.quantity * cost)}</span>}
           <Button size="xs" variant="outline" onClick={startEdit}>Edit</Button>
           <Button size="xs" variant="destructive" disabled={isPending}
             onClick={async () => {
@@ -431,7 +431,7 @@ Cup Plastik 16oz, 1`}</pre>
                         <UnitClassBadge unitClass={r.ingredient.unitClass ?? "COUNT"} />
                         <span className="text-sm tabular-nums">{r.quantity} {r.ingredient.baseUnit}</span>
                         {r.ingredient.averageUnitCost > 0 && (
-                          <span className="text-xs text-muted-foreground">= {formatRupiah(r.quantity * r.ingredient.averageUnitCost)}</span>
+                          <span className="text-xs text-muted-foreground tabular-nums">= {formatRupiah(r.quantity * r.ingredient.averageUnitCost)}</span>
                         )}
                       </>
                     ) : (
@@ -492,14 +492,14 @@ function AddIngredientForm({
       className="space-y-3 border border-foreground/10 rounded-lg p-3"
     >
       <div className="flex gap-2">
-        <button type="button" onClick={() => setIngType("ingredient")}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors ${ingType === "ingredient" ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}>
+        <Button type="button" variant={ingType === "ingredient" ? "default" : "outline"} size="sm"
+          onClick={() => setIngType("ingredient")} className="text-xs h-7">
           Pilih Bahan
-        </button>
-        <button type="button" onClick={() => setIngType("custom")}
-          className={`text-xs px-3 py-1 rounded-full border transition-colors ${ingType === "custom" ? "bg-primary text-primary-foreground border-primary" : "border-input text-muted-foreground"}`}>
+        </Button>
+        <Button type="button" variant={ingType === "custom" ? "default" : "outline"} size="sm"
+          onClick={() => setIngType("custom")} className="text-xs h-7">
           Bahan Lepas (tanpa link)
-        </button>
+        </Button>
       </div>
 
       {ingType === "ingredient" ? (

@@ -73,8 +73,9 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
         {TABS.map((t) => (
           <button
             key={t.key}
+            type="button"
             onClick={() => switchTab(t.key)}
-            className={`whitespace-nowrap shrink-0 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`whitespace-nowrap shrink-0 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
               tab === t.key
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -181,7 +182,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                     <div className="flex items-start justify-between py-2.5 gap-2">
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{m.name}</p>
-                        <p className="text-xs text-muted-foreground">{m.categoryName} · {formatRupiah(m.price)}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">{m.categoryName} · {formatRupiah(m.price)}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
                         {isOwner ? (
@@ -273,7 +274,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                       <div className="min-w-0">
                         <p className="text-sm font-medium">{v.label}</p>
                         <p className="text-xs text-muted-foreground">
-                          {v.menuItemName} · {v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)}
+                          <span className="tabular-nums">{v.menuItemName} · {v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)}</span>
                         </p>
                       </div>
                       {isOwner && (
@@ -322,7 +323,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{m.name}</p>
-                      <p className="text-xs text-muted-foreground">Harga dasar: {formatRupiah(m.price)}</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">Harga dasar: {formatRupiah(m.price)}</p>
                     </div>
                   </div>
                   {/* Base item online prices */}
@@ -348,7 +349,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                     const variantPrices = onlinePrices.filter((op) => op.menuItemId === m.id && op.variantId === v.id);
                     return (
                       <div key={v.id} className="ml-4 border-l-2 border-foreground/10 pl-3 space-y-1">
-                        <p className="text-xs font-medium">{v.label} ({v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)})</p>
+                        <p className="text-xs font-medium tabular-nums">{v.label} ({v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)})</p>
                         <div className="flex flex-col gap-2">
                           {SERVICES.map((svc) => {
                             const existing = variantPrices.find((p) => p.service === svc);
@@ -410,7 +411,7 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
                       ) : (
                         <div>
                           <p className="font-medium">{pkg.name}</p>
-                          <p className="text-xs text-muted-foreground">{formatRupiah(pkg.bundlePrice)}</p>
+                          <p className="text-xs text-muted-foreground tabular-nums">{formatRupiah(pkg.bundlePrice)}</p>
                         </div>
                       )}
                       <div className="flex gap-1 shrink-0">

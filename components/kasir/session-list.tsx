@@ -41,7 +41,7 @@ export function SessionList({
   onOpenSession: (sessionId: string) => void;
   onOpenPaidSession: (sessionId: string) => void;
 }) {
-  const { staffId, staffName, storeInfo } = useKasir();
+  const { staffId, staffName } = useKasir();
   const sessions = useOpenSessions();
   const paidSessions = usePaidSessions();
   const unsyncedCount = useUnsyncedCount();
@@ -145,7 +145,7 @@ export function SessionList({
 
             {/* Create form */}
             {showForm && (
-              <div className="rounded-lg border bg-card p-3 space-y-2">
+              <div className="rounded-2xl border bg-card p-3 space-y-2">
                 <Input
                   placeholder="Meja 1"
                   value={tableName}
@@ -233,11 +233,6 @@ export function SessionList({
                     session={session}
                     onClick={() => onOpenPaidSession(session.id)}
                     onReceipt={() => setReceiptSessionId(session.id)}
-                    onSplitReceipt={(group, total) => {
-                      setReceiptSessionId(session.id);
-                      setReceiptSplitGroup(group);
-                      setReceiptSplitTotal(total);
-                    }}
                     onShowPicker={() => setPickerSessionId(session.id)}
                   />
                 ))}

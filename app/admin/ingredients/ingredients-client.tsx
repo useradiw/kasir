@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { AdminSelect, AdminPageHeader, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
+import { Badge } from "@/components/shared/badge";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { notify } from "@/lib/notify";
-import { formatRupiah, formatRpPerUnit, formatDateTime } from "@/lib/format";
+import { formatRpPerUnit, formatDateTime } from "@/lib/format";
 import { addIngredientsBulk } from "@/app/actions/admin/ingredients";
 import { DEFAULT_BASE_UNIT, type UnitClassName } from "@/lib/unit-class";
 import type { IngredientStockData } from "@/app/actions/admin/queries";
@@ -120,9 +121,9 @@ export default function IngredientsClient({
       <AdminPageHeader title="Daftar Bahan">
         <div className="flex items-center gap-2">
           {lowCount > 0 && (
-            <span className="text-xs bg-destructive/10 text-destructive px-2 py-1 rounded-full font-medium">
+            <Badge className="bg-destructive/10 text-destructive">
               {lowCount} hampir habis
-            </span>
+            </Badge>
           )}
           {isOwner && (
             <Button
@@ -240,17 +241,15 @@ export default function IngredientsClient({
           const count = cat === "SEMUA" ? data.length : data.filter((d) => d.category === cat).length;
           if (cat !== "SEMUA" && count === 0) return null;
           return (
-            <button
+            <Button
               key={cat}
+              variant={activeCategory === cat ? "default" : "secondary"}
+              size="sm"
               onClick={() => setActiveCategory(cat)}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                activeCategory === cat
-                  ? "bg-primary/10 text-primary"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              }`}
+              className="shrink-0 h-7 text-xs"
             >
               {cat === "SEMUA" ? "Semua" : CATEGORY_LABELS[cat]} ({count})
-            </button>
+            </Button>
           );
         })}
       </div>
@@ -258,24 +257,24 @@ export default function IngredientsClient({
       {/* Tag filter */}
       {allTags.length > 0 && (
         <div className="flex gap-2 overflow-x-auto -mx-3 px-3 scrollbar-hide pb-1">
-          <button
+          <Button
+            variant={tagFilter === null ? "default" : "secondary"}
+            size="sm"
             onClick={() => setTagFilter(null)}
-            className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
-              tagFilter === null ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-            }`}
+            className="shrink-0 h-6 text-[11px] px-2"
           >
             semua tag
-          </button>
+          </Button>
           {allTags.map((tag) => (
-            <button
+            <Button
               key={tag}
+              variant={tagFilter === tag ? "default" : "secondary"}
+              size="sm"
               onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-              className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors ${
-                tagFilter === tag ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-              }`}
+              className="shrink-0 h-6 text-[11px] px-2"
             >
               #{tag}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -332,29 +331,29 @@ function IngredientRow({
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-sm">{row.name}</span>
                 <UnitClassBadge unitClass={row.unitClass} baseUnit={row.unit} />
-                <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">
+                <Badge className="text-[10px] bg-muted text-muted-foreground">
                   {CATEGORY_LABELS[row.category] ?? row.category}
-                </span>
+                </Badge>
                 {row.hasRecipe && (
-                  <span className="text-[10px] bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded-full">
+                  <Badge className="text-[10px] bg-primary/10 text-primary">
                     olahan
-                  </span>
+                  </Badge>
                 )}
                 {!row.isActive && (
-                  <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">Nonaktif</span>
+                  <Badge className="text-[10px] bg-muted text-muted-foreground">Nonaktif</Badge>
                 )}
                 {row.isLow && (
-                  <span className="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded-full font-medium">
+                  <Badge className="text-[10px] bg-destructive/10 text-destructive">
                     Hampir habis
-                  </span>
+                  </Badge>
                 )}
                 {needsNormalize && (
-                  <span className="text-[10px] bg-warning/10 text-warning-foreground px-1.5 py-0.5 rounded-full font-medium" title={`Disarankan ganti ke "${expectedBase}" agar konsisten`}>
+                  <Badge className="text-[10px] bg-warning/10 text-warning-foreground" title={`Disarankan ganti ke "${expectedBase}" agar konsisten`}>
                     perlu normalisasi → {expectedBase}
-                  </span>
+                  </Badge>
                 )}
                 {(row.tags ?? []).map((t) => (
-                  <span key={t} className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">#{t}</span>
+                  <Badge key={t} className="text-[10px] bg-muted text-muted-foreground">#{t}</Badge>
                 ))}
               </div>
 
@@ -376,7 +375,7 @@ function IngredientRow({
                 {row.lastUnitCost !== null && row.lastUnitCost !== row.averageUnitCost && (
                   <span className="text-xs text-muted-foreground tabular-nums">
                     Terakhir:{" "}
-                    <span className={`font-medium ${priceArrow === "↑" ? "text-destructive" : priceArrow === "↓" ? "text-green-600 dark:text-green-400" : "text-foreground"}`}>
+                    <span className={`font-medium ${priceArrow === "↑" ? "text-destructive" : priceArrow === "↓" ? "text-primary" : "text-foreground"}`}>
                       {priceArrow}{formatRpPerUnit(row.lastUnitCost)}/{row.unit}
                     </span>
                   </span>
@@ -394,7 +393,7 @@ function IngredientRow({
               </div>
             </div>
 
-            <span className="text-muted-foreground/40 text-lg shrink-0">›</span>
+            <span className="text-muted-foreground/40 text-sm shrink-0">›</span>
           </div>
         </CardContent>
       </Card>

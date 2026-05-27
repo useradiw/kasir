@@ -3,7 +3,10 @@
 import { toast } from "sonner";
 
 function extractMessage(err: unknown, fallback = "Terjadi kesalahan."): string {
-  if (err instanceof Error) return err.message || fallback;
+  if (err instanceof Error) {
+    if (!err.message || err.message.startsWith("NEXT_")) return fallback;
+    return err.message;
+  }
   if (typeof err === "string") return err;
   return fallback;
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useDevView } from "@/components/providers/dev-view-provider";
+import { Button } from "@/components/ui/button";
 import type { RoleEnum } from "@/generated/prisma";
 
 const ROLES: RoleEnum[] = ["OWNER", "MANAGER", "CASHIER", "STAFF"];
@@ -25,15 +26,18 @@ export function DevToolbar() {
 
   if (minimized) {
     return (
-      <button
+      <Button
+        variant="outline"
+        size="icon"
         onClick={() => setMinimized(false)}
-        className="fixed bottom-4 right-4 z-50 size-10 rounded-full bg-background border shadow-lg flex items-center justify-center text-sm"
+        className="fixed bottom-4 right-4 z-50 size-10 rounded-full shadow-lg"
         title="Dev Mode"
+        aria-label="Dev Mode"
       >
         <span
           className={`size-3 rounded-full ${isViewingAs ? "bg-amber-400" : "bg-green-500"}`}
         />
-      </button>
+      </Button>
     );
   }
 
@@ -46,13 +50,15 @@ export function DevToolbar() {
           />
           <span className="text-xs font-semibold text-muted-foreground">Dev Mode</span>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => setMinimized(true)}
-          className="text-muted-foreground hover:text-foreground text-xs leading-none"
-          title="Minimize"
+          className="text-muted-foreground hover:text-foreground text-xs leading-none h-auto p-0.5"
+          aria-label="Minimize"
         >
           ✕
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-1">
@@ -71,12 +77,14 @@ export function DevToolbar() {
       </div>
 
       {isViewingAs && (
-        <button
+        <Button
+          variant="link"
+          size="sm"
           onClick={() => setViewAsRole(realRole)}
-          className="text-xs text-primary underline w-full text-left"
+          className="text-xs text-primary h-auto p-0 w-full justify-start"
         >
           Kembali ke {ROLE_LABEL[realRole]}
-        </button>
+        </Button>
       )}
     </div>
   );

@@ -147,7 +147,7 @@ export default function ExpensesClient({
             <Button onClick={applyFilters} size="sm">Filter</Button>
             <Button variant="ghost" size="sm" onClick={() => { setLocalFilters({ from: "", to: "" }); router.push("/admin/expenses"); }}>Reset</Button>
             <div className="ml-auto text-sm font-medium">
-              Total: <span className="text-lg">{formatRupiah(totalAmount)}</span>
+              Total: <span className="text-lg tabular-nums">{formatRupiah(totalAmount)}</span>
             </div>
           </div>
         </CardContent>
@@ -205,7 +205,7 @@ export default function ExpensesClient({
                             {isExpanded ? <ChevronDown className="size-4 mt-0.5 shrink-0" /> : <ChevronRight className="size-4 mt-0.5 shrink-0" />}
                             <div className="min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-sm font-medium">{formatRupiah(total)}</p>
+                                <p className="text-sm font-medium tabular-nums">{formatRupiah(total)}</p>
                                 {!e.deductFromCash && !e.countToKasPakHar && (
                                   <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
                                     Non-kas
@@ -250,7 +250,7 @@ export default function ExpensesClient({
                             {e.items.map((item) => (
                               <div key={item.id} className="flex items-center justify-between text-xs text-muted-foreground">
                                 <span>{item.description}</span>
-                                <span>
+                                <span className="tabular-nums">
                                   {item.amount}{item.unit ? ` ${item.unit}` : ""} &times; {formatRupiah(item.cost)} = {formatRupiah(item.amount * item.cost)}
                                 </span>
                               </div>
