@@ -5,7 +5,8 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { AdminPageHeader, AdminSelect, UnitClassBadge } from "@/components/admin/ui";
+import { AdminPageHeader, AdminSelect } from "@/components/admin/ui";
+import { Badge } from "@/components/shared/badge";
 import { formatRpPerUnit } from "@/lib/format";
 import type {
   AssembledIngredientsIndex,
@@ -96,7 +97,7 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{p.name}</span>
-                        <UnitClassBadge unitClass={p.unitClass} baseUnit={p.baseUnit} />
+                        <Badge className="text-[10px] bg-muted text-muted-foreground">{p.baseUnit}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 tabular-nums">
                         Hasil/batch: {p.yieldQty} {p.baseUnit} ·{" "}
@@ -135,7 +136,7 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{c.name}</span>
-                        <UnitClassBadge unitClass={c.unitClass} baseUnit={c.baseUnit} />
+                        <Badge className="text-[10px] bg-muted text-muted-foreground">{c.baseUnit}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         Dipakai di: {c.usedIn.map((u) => u.name).join(", ")}

@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminPageHeader, AdminSelect, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
+import { AdminPageHeader, AdminSelect, ErrorBanner } from "@/components/admin/ui";
+import { Badge } from "@/components/shared/badge";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatRpPerUnit } from "@/lib/format";
@@ -428,7 +429,7 @@ Cup Plastik 16oz, 1`}</pre>
                     {r.ok ? (
                       <>
                         <span className="font-medium flex-1">{r.ingredient.name}</span>
-                        <UnitClassBadge unitClass={r.ingredient.unitClass ?? "COUNT"} />
+                        <Badge className="text-[10px] bg-muted text-muted-foreground">{r.ingredient.baseUnit}</Badge>
                         <span className="text-sm tabular-nums">{r.quantity} {r.ingredient.baseUnit}</span>
                         {r.ingredient.averageUnitCost > 0 && (
                           <span className="text-xs text-muted-foreground tabular-nums">= {formatRupiah(r.quantity * r.ingredient.averageUnitCost)}</span>

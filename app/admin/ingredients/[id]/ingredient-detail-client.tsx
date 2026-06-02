@@ -19,9 +19,6 @@ import {
   updateIngredient,
   changeIngredientUnit,
   deactivateIngredient,
-  addIngredientPack,
-  updateIngredientPack,
-  deleteIngredientPack,
   recordWasteAction,
   setIngredientCost,
   linkExpenseItemsToIngredient,
@@ -60,7 +57,6 @@ type Detail = {
   notes: string | null;
   defaultSupplierId: string | null;
   tags: string[];
-  packs: { id: string; label: string; baseQty: number; isDefault: boolean }[];
 };
 
 type SupplierLite = { id: string; name: string };
@@ -346,7 +342,6 @@ export default function IngredientDetailClient({
       {tab === "pengaturan" && (
         <SettingsTab
           detail={detail}
-          purchases={purchases}
           suppliers={suppliers}
           hasHistory={hasHistory}
           unlinkedItems={unlinkedItems}
@@ -361,7 +356,6 @@ export default function IngredientDetailClient({
         <EditPurchaseDialog
           ingredientName={detail.name}
           baseUnit={detail.baseUnit}
-          packs={detail.packs}
           purchase={(() => {
             const p = purchases.find((q) => q.id === editingPurchaseId);
             if (!p) return null;
@@ -387,7 +381,6 @@ export default function IngredientDetailClient({
 
 function SettingsTab({
   detail,
-  purchases,
   suppliers,
   hasHistory,
   unlinkedItems,
@@ -396,7 +389,6 @@ function SettingsTab({
   confirm,
 }: {
   detail: Detail;
-  purchases: IngredientPurchaseHistory;
   suppliers: SupplierLite[];
   hasHistory: boolean;
   unlinkedItems: UnlinkedExpenseItem[];
@@ -405,8 +397,6 @@ function SettingsTab({
   confirm: ReturnType<typeof useConfirm>;
 }) {
   const router = useRouter();
-  const [editPack, setEditPack] = useState<string | null>(null);
-  const [showAddPack, setShowAddPack] = useState(false);
   const [showWaste, setShowWaste] = useState(false);
   const [showUnitChange, setShowUnitChange] = useState(false);
   const [showAdjust, setShowAdjust] = useState(false);
@@ -542,130 +532,6 @@ function SettingsTab({
                 Contoh: dari <code>{detail.baseUnit}</code> ke <code>kg</code>, isi <code>1000</code> jika 1 kg = 1000 {detail.baseUnit}.
               </p>
             </form>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Packs */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Satuan Pack</CardTitle>
-          <Button size="sm" onClick={() => setShowAddPack((v) => !v)}>
-            {showAddPack ? "Batal" : "+ Tambah Pack"}
-          </Button>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {showAddPack && (
-            <form
-              action={(fd) => run(
-                () => addIngredientPack(detail.id, {
-                  label:     fd.get("label") as string,
-                  baseQty:   parseFloat(fd.get("baseQty") as string),
-                  isDefault: fd.get("isDefault") === "true",
-                }),
-                { successMessage: "Pack ditambahkan", onSuccess: () => setShowAddPack(false) },
-              )}
-              className="flex flex-wrap gap-3 items-end border-b border-foreground/10 pb-3"
-            >
-              <div className="grid gap-1">
-                <Label>Label</Label>
-                <Input name="label" required placeholder="cth: dus, krat, kg" className="w-28" />
-              </div>
-              <div className="grid gap-1">
-                <Label>Qty per Pack ({detail.baseUnit})</Label>
-                <div className="flex items-center gap-1">
-                  <DecimalInput name="baseQty" required placeholder={`dlm ${detail.baseUnit}`} className="w-28" />
-                  <span className="text-xs text-muted-foreground">{detail.baseUnit}</span>
-                </div>
-              </div>
-              <div className="grid gap-1">
-                <Label>Default?</Label>
-                <AdminSelect name="isDefault" defaultValue="false">
-                  <option value="false">Tidak</option>
-                  <option value="true">Ya</option>
-                </AdminSelect>
-              </div>
-              <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-            </form>
-          )}
-
-          {detail.packs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Belum ada pack. Pack digunakan sebagai konversi satuan saat beli.</p>
-          ) : (
-            <div className="divide-y divide-foreground/5">
-              {detail.packs.map((pack) => {
-                const usageCount = purchases.filter((p) => p.packLabel === pack.label).length;
-                const baseQtyLocked = usageCount > 0;
-                return (
-                <div key={pack.id} className="py-2">
-                  {editPack === pack.id ? (
-                    <form
-                      action={(fd) => run(
-                        () => updateIngredientPack(pack.id, {
-                          label:     fd.get("label") as string,
-                          baseQty:   parseFloat(fd.get("baseQty") as string),
-                          isDefault: fd.get("isDefault") === "true",
-                        }),
-                        { successMessage: "Pack diperbarui", onSuccess: () => setEditPack(null) },
-                      )}
-                      className="flex flex-wrap gap-3 items-end"
-                    >
-                      <div className="grid gap-1">
-                        <Label>Label</Label>
-                        <Input name="label" defaultValue={pack.label} required className="w-28" />
-                      </div>
-                      <div className="grid gap-1">
-                        <Label>Qty per Pack ({detail.baseUnit})</Label>
-                        <div className="flex items-center gap-1">
-                          <DecimalInput
-                            name="baseQty"
-                            defaultValue={pack.baseQty}
-                            required
-                            className="w-28"
-                            disabled={baseQtyLocked}
-                            title={baseQtyLocked ? `Terkunci: dipakai di ${usageCount} pembelian` : undefined}
-                          />
-                          <span className="text-xs text-muted-foreground">{detail.baseUnit}</span>
-                        </div>
-                        {baseQtyLocked && (
-                          <span className="text-[10px] text-warning-foreground">
-                            Terkunci — sudah dipakai di {usageCount} pembelian
-                          </span>
-                        )}
-                      </div>
-                      <div className="grid gap-1">
-                        <Label>Default?</Label>
-                        <AdminSelect name="isDefault" defaultValue={pack.isDefault ? "true" : "false"}>
-                          <option value="false">Tidak</option>
-                          <option value="true">Ya</option>
-                        </AdminSelect>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditPack(null)}>Batal</Button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm">
-                        <span className="font-medium">1 {pack.label}</span>
-                        <span className="text-muted-foreground"> = {pack.baseQty} {detail.baseUnit}</span>
-                        {pack.isDefault && <Badge className="ml-2 text-[10px] bg-primary/10 text-primary">Default</Badge>}
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button size="xs" variant="outline" onClick={() => setEditPack(pack.id)}>Edit</Button>
-                        <Button size="xs" variant="destructive" disabled={isPending}
-                          onClick={async () => {
-                            if (await confirm({ title: `Hapus pack "${pack.label}"?`, destructive: true, confirmLabel: "Hapus" }))
-                              run(() => deleteIngredientPack(pack.id), { successMessage: "Pack dihapus" });
-                          }}>Hapus</Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                );
-              })}
-            </div>
           )}
         </CardContent>
       </Card>

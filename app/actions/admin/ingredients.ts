@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole, requireRoleStrict } from "@/lib/admin-auth";
+import { requireRole } from "@/lib/admin-auth";
 import { revalidateIngredients } from "@/lib/revalidate";
 import { runAction } from "@/lib/action-error";
 
@@ -14,12 +14,6 @@ const ingredientSchema = z.object({
   notes:             z.string().optional(),
   defaultSupplierId: z.string().nullable().optional(),
   tags:              z.array(z.string().min(1)).optional(),
-});
-
-const packSchema = z.object({
-  label:     z.string().min(1, "Label satuan harus diisi"),
-  baseQty:   z.coerce.number().positive("Qty per satuan harus lebih dari 0"),
-  isDefault: z.boolean().optional(),
 });
 
 /** Returns true if the ingredient has any history that would make a plain unit relabel unsafe. */
@@ -210,68 +204,6 @@ export async function deactivateIngredient(id: string) {
       where: { id },
       data: { isActive: false },
     });
-    revalidateIngredients();
-  });
-}
-
-export async function addIngredientPack(ingredientId: string, data: {
-  label: string;
-  baseQty: number;
-  isDefault?: boolean;
-}) {
-  return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
-    const parsed = packSchema.parse(data);
-
-    await prisma.$transaction(async (tx) => {
-      if (parsed.isDefault) {
-        await tx.ingredientPack.updateMany({
-          where: { ingredientId, isDefault: true },
-          data:  { isDefault: false },
-        });
-      }
-      await tx.ingredientPack.create({
-        data: { ingredientId, label: parsed.label, baseQty: parsed.baseQty, isDefault: parsed.isDefault ?? false },
-      });
-    });
-    revalidateIngredients();
-  });
-}
-
-export async function updateIngredientPack(id: string, data: {
-  label: string;
-  baseQty: number;
-  isDefault?: boolean;
-}) {
-  return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
-    const parsed = packSchema.parse(data);
-
-    const existing = await prisma.ingredientPack.findUniqueOrThrow({
-      where:  { id },
-      select: { ingredientId: true, label: true, baseQty: true },
-    });
-
-    await prisma.$transaction(async (tx) => {
-      if (parsed.isDefault) {
-        await tx.ingredientPack.updateMany({
-          where: { ingredientId: existing.ingredientId, isDefault: true, id: { not: id } },
-          data:  { isDefault: false },
-        });
-      }
-      await tx.ingredientPack.update({
-        where: { id },
-        data:  { label: parsed.label, baseQty: parsed.baseQty, isDefault: parsed.isDefault ?? false },
-      });
-    });
-    revalidateIngredients();
-  });
-}
-
-export async function deleteIngredientPack(id: string) {
-  return runAction(async () => {
-    await requireRoleStrict("OWNER", "MANAGER");
-    await prisma.ingredientPack.delete({ where: { id } });
     revalidateIngredients();
   });
 }

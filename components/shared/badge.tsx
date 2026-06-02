@@ -77,36 +77,6 @@ export function StatusBadge({
   return <span className={cls}>{active ? activeText : inactiveText}</span>;
 }
 
-// ─── Unit Class Badge ───────────────────────────────────────────────────────
-
-const unitClassClass: Record<string, string> = {
-  WEIGHT: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  VOLUME: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  COUNT:  "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
-};
-
-const unitClassLabel: Record<string, string> = {
-  WEIGHT: "Berat",
-  VOLUME: "Volume",
-  COUNT:  "Jumlah",
-};
-
-export function UnitClassBadge({
-  unitClass,
-  baseUnit,
-}: {
-  unitClass: "WEIGHT" | "VOLUME" | "COUNT" | string;
-  baseUnit?: string;
-}) {
-  const cls = unitClassClass[unitClass] ?? "bg-muted text-muted-foreground";
-  const label = unitClassLabel[unitClass] ?? unitClass;
-  return (
-    <Badge className={cls}>
-      {label}{baseUnit ? ` / ${baseUnit}` : ""}
-    </Badge>
-  );
-}
-
 // ─── Sync Badge ─────────────────────────────────────────────────────────────
 
 export function SyncBadge({ synced }: { synced: 0 | 1 }) {

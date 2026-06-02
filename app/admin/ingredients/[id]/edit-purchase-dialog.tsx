@@ -11,8 +11,6 @@ import { formatRpPerUnit, formatRupiah } from "@/lib/format";
 import { editPurchase } from "@/app/actions/admin/ingredient-purchases";
 import { useAdminAction } from "@/hooks/use-admin-action";
 
-type Pack = { label: string; baseQty: number; isDefault: boolean };
-
 type PurchaseInfo = {
   id:        string;
   packLabel: string | null;
@@ -34,7 +32,6 @@ export function EditPurchaseDialog({
 }: {
   ingredientName: string;
   baseUnit: string;
-  packs: Pack[];
   purchase: PurchaseInfo | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;

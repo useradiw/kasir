@@ -53,7 +53,7 @@ export async function getIngredientStockData() {
 
 export type IngredientStockData = Awaited<ReturnType<typeof getIngredientStockData>>;
 
-// ─── Ingredient detail + packs ────────────────────────────────────────────────
+// ─── Ingredient detail ────────────────────────────────────────────────────────
 
 export async function getIngredientDetail(id: string) {
   await requireRole("OWNER", "MANAGER");
@@ -75,7 +75,6 @@ export async function getIngredientDetail(id: string) {
       notes:             true,
       defaultSupplierId: true,
       tags:              true,
-      packs:             { orderBy: { label: "asc" } },
     },
   });
 }
