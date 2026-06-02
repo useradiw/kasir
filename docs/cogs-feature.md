@@ -1,296 +1,159 @@
 # Panduan HPP, Bahan Baku & Resep
 
-Dokumen ini ditulis sebagai **langkah berurutan**. Baca dari atas ke bawah. Setiap langkah membangun di atas langkah sebelumnya — tidak ada konsep yang dipakai sebelum dijelaskan. Lompati hanya langkah yang ditandai `(opsional)`.
+Dokumen ini ditulis sebagai **langkah berurutan**. Baca dari atas ke bawah. Setiap langkah membangun di atas langkah sebelumnya. Lompati hanya langkah yang ditandai `(opsional)`.
 
 ## Mengapa fitur ini ada
 
-Sistem mencatat **stok** dan **HPP rata-rata tertimbang (Weighted Moving Average / WMA)** per bahan. Tujuannya: tiap pesanan yang terjual otomatis menghasilkan angka COGS yang akurat berdasarkan harga rata-rata bahan **saat itu**, bukan harga pembelian terakhir. Tiga konsep yang harus dipahami sebelum mulai:
+Sistem mencatat **stok** dan **HPP (harga pokok) per bahan**, lalu memakai angka itu untuk menghitung COGS tiap pesanan secara otomatis. Dua prinsip yang membuat ini sederhana:
 
-- **Kelas Satuan** — tiap bahan punya kelas WEIGHT (berat), VOLUME (cairan), atau COUNT (jumlah). Kelas menentukan **satuan dasar** (`g` / `ml` / `pcs` per default) yang dipakai untuk menyimpan stok dan HPP. Kelas dikunci ketika bahan sudah punya riwayat.
-- **Pack** — satuan saat **membeli** (mis. `dus`, `tray`, `kg`). Pack adalah jembatan antara "1 dus" yang ada di nota dan stok dasar yang disimpan sistem.
-- **WMA** — HPP rata-rata di-update otomatis tiap kali ada pembelian baru, dengan rumus yang ditulis eksplisit di Langkah 4.
+- **Satu satuan bebas per bahan.** Tiap bahan punya satu satuan yang Anda tentukan sendiri (`gram`, `ml`, `butir`, `pcs`, …). Satuan ini dipakai untuk **stok, resep, dan HPP** — sama di seluruh sistem. Tidak ada kelas satuan, tidak ada pack/konversi otomatis.
+- **HPP = harga pembelian terakhir.** Setiap kali Anda mencatat pembelian, HPP bahan di-set ke harga per satuan pembelian itu. Bukan rata-rata. Sederhana dan mudah dilacak.
 
----
-
-## Langkah 1 — Tetapkan satuan dasar global
-
-**Siapa:** Owner. **Sekali setup, jarang diubah.**
-**Di mana:** Admin → Bahan Baku → Satuan & Konversi (`/admin/bahan/satuan`).
-
-Tiap kelas punya satu satuan dasar yang dipakai di seluruh sistem:
-
-| Kelas | Default | Setting key |
-|---|---|---|
-| WEIGHT | `g` | `unit_base_weight` |
-| VOLUME | `ml` | `unit_base_volume` |
-| COUNT | `pcs` | `unit_base_count` |
-
-Override hanya jika ada alasan kuat (mis. semua bahan WEIGHT Anda dalam `kg` dengan rupiah besar). Override **diblokir** ketika ada bahan dalam kelas itu yang sudah punya stok/pembelian — agar HPP historis tidak rusak. Untuk mengganti satuan satu bahan yang sudah terlanjur salah, gunakan **Konversi Satuan** (dijelaskan di akhir dokumen).
-
-**Hasil setelah langkah ini:** sistem tahu satuan standar tiap kelas. Tiap bahan baru otomatis ikut standar ini.
+> Konversi dari satuan pasar (dus, karton, kg) ke satuan bahan Anda lakukan **sendiri saat mencatat pembelian** — sekali, saat Anda memang tahu angkanya. Contoh: beli "2 dus telur" → isi jumlah `60 butir`.
 
 ---
 
-## Langkah 2 — Buat bahan baku pertama
+## Langkah 1 — Buat bahan baku
 
-**Siapa:** Owner / Manager.
-**Di mana:** Admin → Bahan Baku → Daftar Bahan (`/admin/ingredients`) → tombol **+ Tambah**.
+**Siapa:** Owner / Manager. **Di mana:** Admin → Bahan Baku → Daftar Bahan (`/admin/ingredients`) → tombol **+ Tambah**.
 
 Isi:
 
-- **Nama** — unik, hindari duplikat (`Telur` vs `Telor`).
+- **Nama** — unik (hindari `Telur` vs `Telor`).
 - **Kategori** — Bahan / Kemasan / Perlengkapan / Lainnya (filter saja).
-- **Kelas Satuan** — pilih satu: WEIGHT / VOLUME / COUNT. Satuan dasar otomatis terkunci ke nilai dari Langkah 1.
-- **Supplier Default** *(opsional)* — autofill saat catat pengeluaran.
+- **Satuan** — ketik bebas: `gram`, `ml`, `butir`, `pcs`, `sdm`, … Pilih satuan terkecil yang masuk akal untuk resep.
 - **Batas Stok Min** *(opsional)* — peringatan jika stok ≤ angka ini.
-- **Tag** *(opsional)* — chip filter (mis. `kering`, `frozen`).
+- **Supplier Default / Tag** *(opsional)*.
 
-**Yang dikunci:** kelas + satuan dasar terkunci begitu ada riwayat (pembelian/log/resep/stok). Jika salah pilih, dua opsi: (a) buat bahan baru dan nonaktifkan yang lama, atau (b) gunakan **Konversi Satuan** (Owner-only, lihat bagian terakhir).
-
-**Hasil setelah langkah ini:** bahan ada di sistem. Stok = 0. HPP rata-rata = 0. Belum bisa dipakai di resep secara berarti sampai ada pembelian (Langkah 4).
+**Hasil:** bahan ada di sistem. Stok = 0, HPP = 0. Siap menerima pembelian.
 
 ---
 
-## Langkah 3 — Definisikan pack (satuan pembelian)
+## Langkah 2 — Catat pembelian
 
-**Siapa:** Owner / Manager.
-**Di mana:** Halaman detail bahan → tab **Pengaturan** → kartu **Satuan Pack**.
+**Siapa:** Owner / Manager / Kasir. **Di mana:** `/expenses` (mobile) atau Admin → Laporan → Pengeluaran (`/admin/expenses`).
 
-**Mengapa:** Anda beli "1 dus telur", bukan "30 pcs telur". Pack adalah jembatan dari satuan pasar ke satuan dasar.
-
-Contoh untuk **Telur** (kelas COUNT, satuan dasar `pcs`):
-
-| Label pack | `baseQty` | Arti |
-|---|---|---|
-| `pcs` | 1 | 1 pcs = 1 pcs (pack identitas) |
-| `tray` | 30 | 1 tray = 30 pcs |
-| `kg` | 16 | 1 kg ≈ 16 butir |
-
-Tandai satu pack sebagai **Default** — itu yang otomatis terpilih saat catat pengeluaran. Label pack boleh berupa nama kemasan bebas berbahasa Indonesia (`dus`, `botol`, `bks`, `renteng`) selama bukan satuan ukuran kelas lain (mis. `kg` tidak boleh dipakai di bahan VOLUME).
-
-**Hasil setelah langkah ini:** sistem siap menerima pembelian dalam satuan pasar dan otomatis mengonversi ke satuan dasar.
-
----
-
-## Langkah 4 — Catat pembelian pertama
-
-**Siapa:** siapa saja yang punya akses (Owner / Manager / Kasir / Staff).
-**Di mana:** `/expenses` (mobile) atau Admin → Laporan → Pengeluaran (`/admin/expenses`).
-
-Alur input:
-
-1. **Tambah Pengeluaran**.
-2. Pilih **Supplier** *(opsional)*.
-3. Ketik nama bahan — pilih dari autocomplete bahan (bukan teks bebas). Pack default ikut terpilih.
-4. Isi **Jumlah** (dalam satuan pack, mis. 2 dus) dan **Harga/satuan** (total bayar dalam Rp).
-5. Centang **Potong dari Kas** dan/atau **Catat ke Kas Pak Har** sesuai sumber dana.
+1. **Tambah Pengeluaran** → pilih Supplier *(opsional)*.
+2. Ketik nama bahan → pilih dari autocomplete (jangan ketik bebas, agar tertaut ke bahan).
+3. Isi **Jumlah** **dalam satuan bahan** (bukan jumlah dus). Untuk beli per dus/karton, konversi dulu: mis. 2 dus = `60` butir.
+4. Isi **Biaya/satuan** (Rp per satuan bahan). Saat memilih bahan, kolom ini otomatis terisi HPP terakhir — sesuaikan jika harga berubah.
+5. Centang **Kurangi dari Kas** dan/atau **Kas Pak Har**.
 6. **Simpan**.
 
-### Rumus yang dijalankan sistem
-
-Ketika pembelian disimpan, tiga hitungan dijalankan **dalam satu transaksi**:
+### Rumus
 
 ```
-packBaseQty = baseQty pack yang dipilih              (dari Langkah 3)
-baseQty     = packQty × packBaseQty                  (qty dalam satuan dasar)
-unitCost    = totalCost / baseQty                    (Rp per satuan dasar)
-newAvg      = (averageUnitCost lama × stok lama + totalCost)
-              / (stok lama + baseQty)
+unitCost = totalBayar / jumlah          (totalBayar = jumlah × biaya/satuan)
+HPP bahan = unitCost pembelian TERAKHIR  (berdasarkan tanggal)
+stok += jumlah
 ```
 
-Referensi kode: [lib/cogs-utils.ts:148–158](../lib/cogs-utils.ts).
+Contoh: beli 60 butir telur Rp 120.000 → unitCost = 2.000/butir, HPP = 2.000/butir, stok +60.
 
-Contoh: beli 2 kg telur Rp 60.000 (pack `kg`, baseQty=16):
-
-```
-baseQty  = 2 × 16            = 32 pcs
-unitCost = 60.000 / 32        = Rp 1.875 / pcs
-newAvg   = jika stok lama 0  → Rp 1.875 / pcs
-```
-
-**Hasil setelah langkah ini:** `averageUnitCost` terisi, stok bertambah, satu baris `IngredientPurchase` tercatat dengan snapshot harga + supplier + sumber.
+**Hasil:** stok bertambah, HPP = harga pembelian ini, satu baris riwayat pembelian tercatat.
 
 ---
 
-## Langkah 5 — (opsional) Set HPP manual
+## Langkah 3 — (opsional) Set HPP manual
 
-**Siapa:** Owner / Manager.
 **Di mana:** Detail bahan → tab **Pengaturan** → **Set HPP Manual**.
 
-**Kapan dipakai:** WMA tidak masuk akal karena stok awal salah, atau Anda ingin memaksa nilai HPP untuk perhitungan margin. Sistem akan **menulis nilai itu langsung ke kolom `averageUnitCost`** dan mencatat baris `IngredientPurchase` dengan `source=ADJUSTMENT`.
-
-**Peringatan penting:** Tidak ada kolom "HPP manual" terpisah. Manual override **ditulis ke kolom yang sama** dengan WMA. Pembelian berikutnya akan **kembali menghitung WMA** mulai dari angka manual ini. Jadi manual override hanya bertahan sampai pembelian/produksi berikutnya.
-
-Referensi kode: [app/actions/admin/ingredients.ts:304–337](../app/actions/admin/ingredients.ts).
-
-**Hasil setelah langkah ini:** `averageUnitCost` di-set ke nilai pilihan Anda; log `IngredientPurchase` (ADJUSTMENT) tertulis.
+Memaksa nilai HPP (mis. stok awal salah). Nilai ini menjadi "harga terakhir" sampai ada pembelian baru yang menggantikannya.
 
 ---
 
-## Langkah 6 — Buat resep menu
+## Langkah 4 — Buat resep menu
 
-**Siapa:** Owner / Manager.
-**Di mana:** Admin → Bahan Baku → Resep Menu (`/admin/bahan/resep-menu`).
+**Siapa:** Owner / Manager. **Di mana:** Admin → Bahan Baku → Resep Menu (`/admin/bahan/resep-menu`).
 
-1. **+ Buat Resep** → pilih menu (+ varian jika perlu).
-2. Klik resep di daftar untuk expand.
-3. **Bulk-add** (disarankan): buka panel "▶ Tambah banyak bahan sekaligus", tempel baris `nama, jumlah` (satu per baris dalam satuan dasar bahan). Sistem fuzzy-match nama → preview table → klik **Simpan (N)**.
-4. Atau **+ Tambah satu bahan (manual)** untuk pilih dari dropdown + qty.
+1. **+ Buat Resep** → pilih menu (+ varian bila perlu).
+2. Tambah bahan + **jumlah dalam satuan bahan** (mis. 2 butir telur, 100 gram tepung). Bisa lewat **bulk-add** (tempel baris `nama, jumlah`) atau satu per satu.
 
-HPP per porsi langsung muncul. Warna margin: hijau ≥60%, kuning 30–60%, merah <30%.
-
-**Hasil setelah langkah ini:** kasir bisa jual menu ini; saat pesanan disimpan, sistem akan menghitung COGS otomatis (Langkah 8).
+HPP per porsi dan margin langsung muncul (hijau ≥60%, kuning 30–60%, merah <30%).
 
 ---
 
-## Langkah 7 — (opsional) Bahan olahan & produksi
+## Langkah 5 — (opsional) Bahan olahan & produksi
 
-**Siapa:** Owner / Manager.
 **Di mana:** Admin → Bahan Baku → Resep Bahan Olahan (`/admin/bahan/resep-olahan`).
 
-**Bahan olahan** = bahan yang dirakit dari bahan-bahan lain (sambal, kaldu, bumbu jadi).
+Bahan olahan = bahan yang dirakit dari bahan lain (sambal, kaldu, bumbu jadi).
 
-1. **+ Buat Resep Olahan Baru** → pilih bahan induk → **Buka Editor** → masuk ke tab Resep bahan tersebut.
-2. Isi **Hasil/Batch** (jumlah induk yang dihasilkan per satu produksi).
-3. Tambah komponen via bulk-add atau form single-add.
-4. **Catat Produksi** (Jumlah Batch × Hasil) → komponen berkurang, induk bertambah, HPP induk diperbarui WMA.
+1. Buat resep olahan → pilih bahan induk → isi **Hasil/Batch** (jumlah induk per satu produksi) → tambah komponen + jumlah.
+2. **Catat Produksi** (jumlah batch). Komponen berkurang, induk bertambah, **HPP induk dihitung ulang dari biaya komponen saat itu**.
 
 ### Rumus produksi
 
 ```
-totalCost = Σ component.quantity × n × component.averageUnitCost
-            (n = jumlah batch yang diproduksi)
-newStock  = stok induk lama + (hasilPerBatch × n)
-newAvg    = (averageUnitCost induk lama × stok induk lama + totalCost) / newStock
+totalBiaya = Σ (jumlahKomponen × n × HPPKomponen)     (n = jumlah batch)
+HPP induk  = totalBiaya / (hasilPerBatch × n)
 ```
 
-Referensi kode: [app/actions/admin/ingredient-recipes.ts:201–228](../app/actions/admin/ingredient-recipes.ts).
-
-Komponen boleh beda kelas dari induk (mis. spice WEIGHT pada sauce VOLUME) — biaya selalu dijumlah dalam rupiah, tidak ada pencampuran satuan fisik. Chip kuning *"kelas beda"* tampil sebagai konfirmasi visual.
-
-**Hasil setelah langkah ini:** bahan olahan punya stok + HPP rata-rata sendiri, siap dipakai sebagai bahan di resep menu (Langkah 6).
+Komponen boleh beda satuan dari induk — biaya selalu dijumlah dalam rupiah.
 
 ---
 
-## Langkah 8 — Penjualan menutup loop (otomatis)
+## Langkah 6 — Penjualan menutup loop (otomatis)
 
-**Siapa:** otomatis dari kasir.
-**Di mana:** terjadi saat order tersinkronisasi dari kasir ke server.
-
-Untuk tiap order, sistem menjalankan:
+Saat pesanan tersinkronisasi dari kasir, untuk tiap order:
 
 ```
-untuk tiap orderItem (qty porsi) × tiap recipeIngredient:
-  useQty = recipeIngredient.quantity × order.qty
-  cogs  += useQty × ingredient.averageUnitCost
-  stok bahan turun via IngredientLog (type=SALE)
+COGS = Σ (jumlahBahanDiResep × jumlahPorsi × HPPBahan)
+stok bahan turun otomatis (log SALE)
 ```
 
-Referensi kode: [lib/cogs-utils.ts:285–326](../lib/cogs-utils.ts). COGS disimpan di `Transaction.cogs` sebagai snapshot Rp — tidak akan berubah jika nanti HPP bergerak.
-
-**Hasil setelah langkah ini:** pesanan tercatat lengkap dengan COGS yang akurat; stok turun otomatis; semua pergerakan masuk ke log.
+COGS disimpan sebagai snapshot di `Transaction.cogs` — tidak berubah meski HPP bergerak nanti.
 
 ---
 
-## Langkah 9 — Opname stok rutin
+## Langkah 7 — Opname stok rutin
 
-**Siapa:** Owner / Manager.
-**Di mana:** Admin → Keuangan → Opname Stok (`/admin/stock-opname`). Banner peringatan akan muncul di dashboard jika belum opname bulan ini.
+**Di mana:** Admin → Keuangan → Opname Stok (`/admin/stock-opname`).
 
-1. **+ Mulai Opname**.
-2. Untuk setiap bahan, isi **jumlah fisik** yang dihitung. Sistem otomatis hitung selisih vs stok tercatat.
-3. Tambahkan **catatan** jika perlu.
-4. **Simpan Opname**.
-
-Yang terjadi setelah simpan:
-
-- Stok sistem disetel ke jumlah hasil hitung fisik.
-- Selisih dicatat sebagai `ADJUSTMENT` (shrinkage) atau `OPNAME_GAIN` (kelebihan).
-- Riwayat opname tersimpan dan bisa di-expand kapan saja.
-
-**Hasil setelah langkah ini:** stok sistem ↔ stok fisik tersinkron. Lakukan rutin minimal sebulan sekali.
+Isi jumlah fisik tiap bahan; sistem menyetel stok ke hasil hitung dan mencatat selisih (shrinkage / gain). Lakukan minimal sebulan sekali.
 
 ---
 
-## Memperbaiki pembelian yang salah pack / qty / total bayar
+## Mengganti satuan sebuah bahan (Ubah Satuan)
 
-**Siapa:** Owner saja (DEVELOPER tidak bisa). **Per-baris, transaksional, tidak bisa di-undo.**
-**Di mana:** Detail bahan → tab **Pembelian** → tombol **Edit** pada baris pembelian yang ingin diperbaiki.
+**Di mana:** Detail bahan → tab **Pengaturan** → tautan **Ubah Satuan (konversi)** (muncul saat bahan sudah punya riwayat).
 
-### Kapan dipakai
-
-Ada satu (atau lebih) pembelian yang dicatat dengan pack/qty/total bayar yang salah, sehingga stok atau HPP rata-rata jadi tidak masuk akal. Contoh nyata: bahan **Arang** (kelas WEIGHT, satuan dasar `g`) dengan pack `bks` yang sudah benar (`baseQty = 3300 g`), tapi pembelian historisnya tercatat tanpa pack (`packLabel = null`) — sehingga "2 bks Rp 20.000" tersimpan sebagai "2 g Rp 10.000/g" alih-alih "6600 g Rp 3,03/g".
-
-Editing pack `bks.baseQty` saja **tidak** memperbaiki baris-baris historis, karena `IngredientPurchase.baseQty` dan `unitCost` adalah snapshot — ditulis sekali saat pembelian dicatat, tidak otomatis dihitung ulang. Tombol **Edit** baris ini menutup gap tersebut.
-
-### Cara kerja
-
-1. Buka detail bahan → tab **Pembelian**.
-2. Cari baris yang salah → klik tombol **Edit** di kanan baris.
-3. Dialog muncul. Pilih pack yang benar dari dropdown (atau `tanpa pack` kalau memang dalam satuan dasar), perbaiki qty dan total bayar bila perlu.
-4. Preview "Hasil setelah disimpan" menampilkan baseQty dan harga per satuan dasar yang akan tertulis.
-5. Klik **Simpan & replay**.
-
-### Rumus yang dijalankan
-
-Untuk baris yang diedit:
+Gunakan saat satuan sebuah bahan perlu diganti (mis. dari `gram` ke `kg`) tanpa merusak data. Isi **satuan baru** dan **faktor** (berapa satuan lama dalam 1 satuan baru, mis. 1 kg = `1000` gram). Sistem **mengonversi semuanya sekaligus**: stok, HPP, dan semua resep yang memakai bahan ini.
 
 ```
-packBaseQty   = IngredientPack.baseQty (untuk pack baru) atau 1 (kalau tanpa pack)
-baseQty       = packQty × packBaseQty
-unitCost      = totalCost / baseQty
+stok      = stok / faktor
+HPP       = HPP × faktor
+jumlah di resep = jumlah / faktor
 ```
 
-Lalu **replay** seluruh riwayat bahan ini secara kronologis:
+Total rupiah pembelian tidak berubah.
 
-```
-stock = 0; avg = 0
-untuk tiap event (purchase rows + non-paired log rows) urut waktu:
-  jika purchase EXPENSE/OPNAME_GAIN/ASSEMBLY:
-    newStock = stock + baseQty
-    avg      = (avg × stock + totalCost) / newStock   (WMA)
-    stock    = newStock
-    update purchase.avgUnitCostAfter = avg, purchase.stockAfter = stock
-  jika purchase ADJUSTMENT (manual HPP):
-    avg      = unitCost
-  jika log lain (SALE / WASTE / ADJUSTMENT-from-adjustStock / ASSEMBLY-konsumsi):
-    stock   += quantity (signed)
+---
 
-Ingredient.currentStock    = stock akhir
-Ingredient.averageUnitCost = avg akhir
-Ingredient.lastUnitCost    = unitCost purchase terakhir
-```
+## Menautkan pembelian lama ke sebuah bahan
 
-Referensi kode: [app/actions/admin/ingredient-purchases.ts](../app/actions/admin/ingredient-purchases.ts) → `editPurchase` + `replayIngredientHistory`.
+**Di mana:** Detail bahan → bagian pembelian belum tertaut.
 
-### Yang ikut & yang tidak
+Jika ada pengeluaran lama yang belum tertaut ke bahan, pilih bahannya lalu tautkan. Jika jumlah lama tercatat dalam satuan berbeda (mis. "2 dus"), perbaiki jumlahnya ke satuan bahan (mis. 60 butir) saat menautkan. Stok dan HPP ikut diperbarui.
 
-- **Ikut diperbarui:** baris IngredientPurchase yang diedit (packLabel, packQty, baseQty, totalCost, unitCost), IngredientLog yang berpasangan (quantity, unitCost), ExpenseItem yang ditautkan (unit, amount, cost). Lalu replay menulis ulang `avgUnitCostAfter` + `stockAfter` di setiap purchase row dan finalize `Ingredient.currentStock` + `averageUnitCost` + `lastUnitCost`.
-- **Tidak ikut diperbarui:** `Transaction.cogs` historis (sudah snapshot Rp di tiap order — kalau order lama dihitung dengan HPP yang lama, angka itu tetap). Resep menu / resep olahan tidak disentuh. Pack definition juga tidak diubah — hanya baris pembelian yang diedit.
+---
 
-### Batasan
+## Memperbaiki pembelian yang salah
 
-- Hanya baris dengan `source = EXPENSE` (pembelian dari pengeluaran) yang bisa diedit. Baris `ADJUSTMENT` (set HPP manual), `ASSEMBLY` (produksi), dan `OPNAME_GAIN` (selisih opname) tidak bisa diedit lewat dialog ini — mereka punya jalur masing-masing.
-- Tidak bisa di-undo. Audit log otomatis ditulis (`IngredientLog` type=ADJUSTMENT, quantity=0) mencatat siapa yang edit dan apa yang berubah.
+**Siapa:** Owner. **Di mana:** Detail bahan → tab **Pembelian** → **Edit** pada barisnya.
+
+Perbaiki **jumlah** (dalam satuan bahan) dan **total bayar**. Stok disesuaikan dengan selisihnya, dan HPP bahan diambil dari pembelian terakhir. Pesanan historis (`Transaction.cogs`) tidak diubah. Hanya baris dari Pengeluaran (EXPENSE) yang bisa diedit.
 
 ---
 
 ## Troubleshooting
 
-**Stok tidak bertambah saat catat pengeluaran.**
-Pastikan item dipilih dari autocomplete bahan, bukan diketik manual. `ExpenseItem` tanpa `ingredientId` tidak masuk stok.
+**Stok tidak bertambah saat catat pengeluaran.** Pastikan item dipilih dari autocomplete bahan (bukan teks bebas). Item tanpa bahan tertaut tidak masuk stok.
 
-**HPP rata-rata terasa "salah".**
-Cek tab Pembelian di detail bahan — semua pembelian yang membentuk rata-rata terlihat di sana. Jika ada pembelian dengan harga ekstrem (typo ratusan ribu jadi jutaan), itu yang menarik rata-rata.
+**Jumlah yang dimasukkan salah hitung.** Jumlah diisi dalam **satuan bahan**, bukan jumlah dus/karton. Beli 2 dus (isi 30) → masukkan 60.
 
-**Stok tidak berkurang saat penjualan.**
-COGS dan deduksi stok terjadi saat order **sync** dari kasir ke server. Cek badge SyncBadge di kasir. Cek juga menu punya resep dengan bahan ter-link ke Ingredient (`recipeIngredient.ingredientId`, bukan customName).
+**Stok tidak berkurang saat penjualan.** Deduksi terjadi saat order **sync** ke server. Pastikan menu punya resep dengan bahan tertaut.
 
-**Stok fisik tidak cocok dengan sistem.**
-Lakukan Opname Stok (Langkah 9). Selisih masuk log otomatis.
+**HPP terasa salah.** HPP = harga pembelian **terakhir**. Cek tab Pembelian — pembelian paling baru menentukan HPP. Pakai **Set HPP Manual** untuk menyetel ulang.
 
-**HPP rata-rata = 0.**
-Bahan belum pernah dibeli (`averageUnitCost` masih default 0), atau resep menggunakan bahan custom tanpa link ke Ingredient. COGS akan jatuh ke 0 untuk bahan itu sampai pembelian pertama tercatat.
-
-**Edit/hapus pembelian tidak menggeser HPP rata-rata mundur.**
-Disengaja — WMA tidak dihitung mundur saat purchase di-edit/dihapus, untuk menjaga akurasi historis. Gunakan Set HPP Manual (Langkah 5) untuk menyetel ulang HPP jika perlu.
+**HPP = 0.** Bahan belum pernah dibeli, atau resep memakai bahan tak tertaut.

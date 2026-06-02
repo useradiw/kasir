@@ -127,7 +127,7 @@ export default async function CogsGuidePage() {
 
       <p className="text-xs text-muted-foreground mt-10 pt-6 border-t border-border">
         Sumber: <code className="font-mono">docs/cogs-feature.md</code>
-        <span className="block mt-1">Diperbarui: 26 Mei 2026 — walkthrough Langkah 1–9 + bagian Edit Pembelian per-baris (replay WMA).</span>
+        <span className="block mt-1">Diperbarui: 2 Juni 2026 — model HPP harga terakhir + satu satuan bebas per bahan (tanpa kelas/pack).</span>
       </p>
 
       <BackToTop />

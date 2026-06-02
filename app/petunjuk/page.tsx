@@ -89,7 +89,7 @@ export default async function PetunjukPage() {
             <a href="#admin-bahan-baku" className="text-foreground hover:text-primary transition-colors py-0.5">Bahan Baku & HPP</a>
           )}
           {isAdmin && (
-            <a href="#admin-satuan" className="text-foreground hover:text-primary transition-colors py-0.5">Satuan & Kelas</a>
+            <a href="#admin-satuan" className="text-foreground hover:text-primary transition-colors py-0.5">Satuan Bahan</a>
           )}
           {isAdmin && (
             <a href="#admin-resep-menu" className="text-foreground hover:text-primary transition-colors py-0.5">Resep Menu</a>
@@ -166,14 +166,14 @@ export default async function PetunjukPage() {
           <li>Buka <Link href="/expenses" className="text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
           <li>Ketuk <strong>Tambah Pengeluaran</strong>.</li>
           <li>Pilih <strong>Supplier</strong> dari dropdown jika sudah dibuat (opsional).</li>
-          <li>Mulai ketik nama bahan — pilih dari daftar Bahan Baku. Pack default akan otomatis terpilih.</li>
-          <li>Isi <strong>Jumlah</strong> (dalam satuan pack, misal: 2 dus) dan <strong>Harga/satuan</strong>.</li>
+          <li>Mulai ketik nama bahan — pilih dari daftar Bahan Baku.</li>
+          <li>Isi <strong>Jumlah dalam satuan bahan</strong> (mis. gram/butir), bukan jumlah dus. Untuk beli per dus/karton, konversi dulu: 2 dus = 60 butir. Lalu isi <strong>Harga/satuan</strong>.</li>
           <li>Centang <strong>Potongan Kas</strong> bila mengurangi saldo kas harian, atau <strong>Catat ke Kas Pak Har</strong> untuk jurnal pemilik.</li>
           <li>Ketuk <strong>Simpan</strong>.</li>
         </Steps>
         <Tips>
-          <li>Saat item terhubung ke Bahan Baku, stok <strong>otomatis bertambah</strong> dan <strong>HPP rata-rata</strong> diperbarui.</li>
-          <li>Pack mengubah jumlah pack menjadi satuan dasar (mis. 1 dus = 12 pcs) — tidak perlu hitung manual.</li>
+          <li>Saat item terhubung ke Bahan Baku, stok <strong>otomatis bertambah</strong> dan <strong>HPP</strong> di-set ke harga pembelian ini (harga terakhir).</li>
+          <li>Jumlah selalu dalam satuan bahan — konversi dari dus/karton Anda lakukan sendiri sekali saat mencatat.</li>
         </Tips>
       </section>
 
@@ -269,42 +269,35 @@ export default async function PetunjukPage() {
             <SubHeading id="admin-bahan-baku">Bahan Baku &amp; HPP</SubHeading>
             <p className="text-sm text-muted-foreground mb-3">
               Daftar pusat semua bahan, kemasan, dan perlengkapan. Setiap pembelian
-              memperbarui stok dan <strong>HPP rata-rata tertimbang (WMA)</strong> bahan,
-              jadi laporan HPP selalu akurat. Mulai 26 Mei 2026, semua menu Bahan Baku
-              berada di nav group sendiri: <em>Bahan Baku</em> (Daftar Bahan, Resep Menu,
-              Resep Bahan Olahan, Supplier, Opname Stok, Satuan &amp; Konversi).
+              memperbarui stok dan menyetel <strong>HPP = harga pembelian terakhir</strong>,
+              jadi laporan HPP selalu memakai harga terkini. Menu Bahan Baku ada di nav
+              group sendiri: <em>Bahan Baku</em> (Daftar Bahan, Resep Menu, Resep Bahan
+              Olahan, Supplier, Opname Stok).
             </p>
 
             <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Tambah bahan baru</p>
             <Steps>
               <li>Buka <Link href="/admin/ingredients" className="text-primary hover:underline">Daftar Bahan</Link>.</li>
-              <li>Ketuk <strong>+ Tambah</strong> dan isi: nama, kategori (Bahan/Kemasan/Perlengkapan/Lainnya), <strong>Kelas Satuan</strong> (Berat / Volume / Jumlah), batas stok minimum (opsional), supplier default (opsional), dan tag (opsional, pisah koma).</li>
-              <li>Satuan dasar otomatis ikut kelas: Berat → <code>mg</code>, Volume → <code>ml</code>, Jumlah → <code>pcs</code>. Tidak perlu memilih satuan satu per satu — ini menjamin HPP konsisten.</li>
+              <li>Ketuk <strong>+ Tambah</strong> dan isi: nama, kategori (Bahan/Kemasan/Perlengkapan/Lainnya), <strong>Satuan</strong> (ketik bebas: <code>gram</code>, <code>ml</code>, <code>butir</code>, <code>pcs</code>…), batas stok minimum (opsional), supplier default (opsional), dan tag (opsional, pisah koma).</li>
+              <li>Satuan ini dipakai untuk stok, resep, dan HPP — sama di seluruh sistem. Pilih satuan terkecil yang praktis.</li>
               <li>Klik baris bahan untuk masuk ke halaman detail.</li>
             </Steps>
 
             <Tips>
-              <li><strong>Kelas terkunci</strong> begitu ada riwayat (pembelian, log, resep). Bila salah pilih, buat bahan baru atau opname-nol dulu.</li>
-              <li>Chip kuning <em>&quot;perlu normalisasi → g/ml/pcs&quot;</em> muncul pada bahan lama yang masih pakai satuan dasar berbeda dari kelasnya. Tidak otomatis diubah agar HPP historis tidak rusak. Kalau ada baris pembelian yang tercatat dengan pack/qty/total bayar salah, <strong>Owner</strong> bisa menekan tombol <em>Edit</em> di kanan baris itu di tab Pembelian — sistem akan re-derive baseQty dari pack saat ini dan replay seluruh riwayat agar stok + HPP konsisten. Detail di <Link href="/petunjuk/cogs" className="text-primary hover:underline">panduan COGS</Link>.</li>
+              <li>Untuk mengganti satuan bahan yang sudah punya riwayat, pakai <strong>Ubah Satuan (konversi)</strong> di tab Pengaturan — stok, HPP, dan semua resep ikut dikonversi otomatis.</li>
               <li>Filter tag (chip kecil di atas daftar) memudahkan mencari bahan: misal <code>#frozen</code>, <code>#kering</code>.</li>
             </Tips>
 
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Pack / Satuan Pembelian</p>
+            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Pembelian per dus / karton</p>
             <p className="text-sm text-muted-foreground">
-              Pack adalah satuan saat beli (mis. <code>dus</code>, <code>kg</code>, <code>tray</code>) yang dikonversi otomatis ke satuan dasar.
+              Tidak ada pack/konversi otomatis. Saat mencatat pembelian, isi <strong>jumlah dalam satuan bahan</strong>. Untuk beli per dus, konversi dulu: mis. 2 dus telur = <code>60</code> butir. Anda hitung sekali, saat memang tahu angkanya.
             </p>
-            <Steps>
-              <li>Di halaman detail bahan, buka tab <strong>Pengaturan</strong>.</li>
-              <li>Pada kartu <strong>Satuan Pack</strong>, ketuk <strong>+ Tambah Pack</strong>.</li>
-              <li>Isi label (mis. <code>tray</code>) dan qty per pack (mis. <code>30</code> jika 1 tray = 30 pcs).</li>
-              <li>Tandai satu pack sebagai <strong>Default</strong> — itu yang otomatis dipilih saat catat pengeluaran.</li>
-            </Steps>
 
             <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Halaman detail bahan</p>
             <Tips>
-              <li><strong>Tab Pembelian</strong> — grafik tren HPP, daftar semua pembelian dengan supplier, sumber, dan HPP rata-rata setelah tiap pembelian.</li>
+              <li><strong>Tab Pembelian</strong> — daftar semua pembelian dengan supplier, sumber, dan tombol <strong>Edit</strong> (Owner) untuk memperbaiki jumlah/total bayar.</li>
               <li><strong>Tab Pemakaian</strong> — semua log stok (PURCHASE, SALE, ADJUSTMENT, WASTE) dari mana pun.</li>
-              <li><strong>Tab Pengaturan</strong> — edit info, kelola pack, sesuaikan stok manual, catat pemborosan, nonaktifkan bahan.</li>
+              <li><strong>Tab Pengaturan</strong> — edit info, Ubah Satuan, Set HPP Manual, sesuaikan stok, catat pemborosan, nonaktifkan bahan.</li>
             </Tips>
 
             <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Koreksi stok manual</p>
@@ -315,8 +308,8 @@ export default async function PetunjukPage() {
             </Steps>
 
             <Tips>
-              <li>HPP dihitung dengan <strong>rata-rata tertimbang</strong> dari semua pembelian — bukan harga pembelian terakhir saja.</li>
-              <li>Edit/hapus pengeluaran akan mengembalikan stok, tapi HPP rata-rata <strong>tidak dihitung mundur</strong> agar laporan historis tetap akurat.</li>
+              <li>HPP = <strong>harga pembelian terakhir</strong> (berdasarkan tanggal), bukan rata-rata.</li>
+              <li>Edit/hapus pengeluaran mengembalikan stok dan menghitung ulang HPP dari pembelian yang tersisa.</li>
             </Tips>
 
             <Link
@@ -326,25 +319,24 @@ export default async function PetunjukPage() {
               Baca panduan lengkap Bahan, Supplier &amp; Opname →
             </Link>
 
-            {/* Satuan & Kelas */}
-            <SubHeading id="admin-satuan">Satuan &amp; Kelas</SubHeading>
+            {/* Satuan */}
+            <SubHeading id="admin-satuan">Satuan Bahan</SubHeading>
             <p className="text-sm text-muted-foreground mb-2">
-              Setiap bahan punya <strong>kelas satuan</strong> (Berat / Volume / Jumlah)
-              dan <strong>satuan dasar</strong> yang dikunci per kelas. Ini menjamin
-              perhitungan HPP tidak pernah salah-konversi (mis. mengira 1 kg = 1 ml).
+              Setiap bahan punya <strong>satu satuan bebas</strong> yang Anda tentukan
+              (<code>gram</code>, <code>ml</code>, <code>butir</code>, <code>pcs</code>, …).
+              Satuan itu dipakai untuk stok, resep, dan HPP sekaligus — konsisten di seluruh sistem.
             </p>
             <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Aturan</p>
             <Tips>
-              <li>Default: Berat = <code>g</code>, Volume = <code>ml</code>, Jumlah = <code>pcs</code> — satuan terkecil yang masih praktis (untuk bahan murah seperti arang, <code>mg</code> menyebabkan precision loss di kolom Rp/satuan).</li>
-              <li>Resep selalu pakai satuan dasar bahan. Misal kopi dalam <code>mg</code>: tulis 18000 untuk 18 g.</li>
-              <li>Stok, log, HPP semuanya dalam satuan dasar. Pack saat beli (mis. &quot;1 dus&quot;) hanya pengali konversi.</li>
-              <li>Mencampur bahan beda kelas dalam satu resep menu <strong>aman</strong> — sistem hanya menjumlah rupiah, bukan satuan fisik.</li>
+              <li>Resep memakai satuan bahan yang sama. Mis. kopi dalam <code>gram</code>: tulis 18 untuk 18 g.</li>
+              <li>Konversi dari satuan pasar (dus/karton/kg) Anda lakukan sendiri saat mencatat pembelian — tidak ada pack otomatis.</li>
+              <li>Mencampur bahan beda satuan dalam satu resep <strong>aman</strong> — sistem menjumlah rupiah, bukan satuan fisik.</li>
             </Tips>
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Pengaturan satuan global (Owner)</p>
+            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Mengganti satuan (Ubah Satuan)</p>
             <Steps>
-              <li>Buka <Link href="/admin/bahan/satuan" className="text-primary hover:underline">Satuan &amp; Konversi</Link> (atau klik ikon ⚙ di halaman Daftar Bahan).</li>
-              <li>Ubah satuan dasar suatu kelas — hanya bisa jika <strong>belum ada bahan kelas itu</strong> yang punya stok/riwayat (proteksi konsistensi HPP).</li>
-              <li>Jika ada bahan kelas tersebut yang aktif, opname-nol dulu semua bahan kelas itu sebelum mengubah.</li>
+              <li>Buka detail bahan → tab <strong>Pengaturan</strong> → tautan <strong>Ubah Satuan (konversi)</strong>.</li>
+              <li>Isi satuan baru dan <strong>faktor</strong> (berapa satuan lama dalam 1 satuan baru, mis. 1 kg = 1000 gram).</li>
+              <li>Sistem mengonversi stok, HPP, dan semua resep yang memakai bahan ini sekaligus. Total rupiah tidak berubah.</li>
             </Steps>
 
             {/* Resep Menu */}
@@ -365,20 +357,20 @@ export default async function PetunjukPage() {
               <li>Tempel daftar bahan, satu per baris, format <code>nama bahan, jumlah</code>. Contoh:
                 <pre className="text-xs bg-muted/40 rounded p-2 mt-1 leading-relaxed">{`Susu UHT, 180\nKopi Arabika, 18000\nCup Plastik 16oz, 1`}</pre>
               </li>
-              <li>Sistem mencari bahan secara fuzzy. Baris yang cocok ditandai hijau dengan kelas satuan-nya; yang tidak cocok ditandai merah dengan alasan.</li>
+              <li>Sistem mencari bahan secara fuzzy. Baris yang cocok ditandai hijau dengan satuannya; yang tidak cocok ditandai merah dengan alasan.</li>
               <li>Perbaiki baris merah (atau hapus), lalu ketuk <strong>Simpan (N)</strong> — semua baris masuk dalam satu transaksi.</li>
             </Steps>
             <Tips>
               <li>Tombol &quot;+ Tambah satu bahan (manual)&quot; tetap tersedia untuk kasus khusus (bahan lepas tanpa link).</li>
-              <li>Jumlah selalu dalam satuan dasar bahan tersebut (lihat info di dropdown).</li>
+              <li>Jumlah selalu dalam satuan bahan tersebut (lihat info di dropdown).</li>
             </Tips>
 
             {/* Resep Bahan Olahan */}
             <SubHeading id="admin-resep-olahan">Resep Bahan Olahan</SubHeading>
             <p className="text-sm text-muted-foreground mb-2">
               Bahan olahan = bahan yang dirakit dari bahan-bahan lain (sambal, kaldu, bumbu jadi).
-              Setiap produksi (assembly) memotong stok komponen dan menambah stok induk
-              dengan HPP rata-rata yang dihitung otomatis.
+              Setiap produksi (assembly) memotong stok komponen dan menambah stok induk;
+              HPP induk dihitung ulang dari biaya komponen saat produksi.
             </p>
             <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Membuat resep olahan baru</p>
             <Steps>
@@ -390,12 +382,12 @@ export default async function PetunjukPage() {
             <Steps>
               <li>Buka panel <strong>&quot;▶ Tambah banyak komponen sekaligus&quot;</strong> di tab Resep bahan.</li>
               <li>Tempel baris <code>nama bahan, jumlah</code> seperti pada Resep Menu.</li>
-              <li>Komponen berbeda kelas dengan induk akan ditandai chip kuning <em>&quot;kelas beda&quot;</em> — diperbolehkan (cost dihitung dalam rupiah), tapi konfirmasi visual.</li>
+              <li>Komponen boleh beda satuan dari induk — biaya selalu dijumlah dalam rupiah.</li>
             </Steps>
             <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Mencatat produksi (assembly)</p>
             <Steps>
               <li>Setelah komponen lengkap, isi <strong>Jumlah Batch</strong> di kartu Produksi, lalu <strong>Catat Produksi</strong>.</li>
-              <li>Stok komponen otomatis berkurang; stok bahan induk bertambah <code>yieldQty × batch</code>; HPP induk diperbarui dengan rata-rata baru.</li>
+              <li>Stok komponen otomatis berkurang; stok bahan induk bertambah <code>yieldQty × batch</code>; HPP induk dihitung ulang dari biaya komponen.</li>
             </Steps>
             <Tips>
               <li>Halaman daftar Bahan menampilkan chip biru <em>&quot;olahan&quot;</em> pada bahan yang punya resep olahan.</li>
