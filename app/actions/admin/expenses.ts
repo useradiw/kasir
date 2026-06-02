@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireOwnerStrict, requireRole } from "@/lib/admin-auth";
 import { runAction } from "@/lib/action-error";
 import { expenseSchema, type ExpenseData } from "@/lib/expense-schema";
-import { recordPurchasesBatch, reversePurchasesBatch, recomputeLastCost } from "@/lib/cogs-utils";
+import { recordPurchasesBatch, reverseExpenseItemPurchases } from "@/lib/cogs-utils";
 
 export async function addExpense(data: ExpenseData) {
   return runAction(async () => {
@@ -91,33 +91,17 @@ export async function updateExpense(id: string, data: ExpenseData) {
     }
 
     await prisma.$transaction(async (tx) => {
-      // 1. Reverse stock for old ingredient-linked items
-      const oldItems = await tx.expenseItem.findMany({
-        where: { expenseId: id, ingredientId: { not: null } },
-        select: { ingredientId: true, amount: true, cost: true, unit: true },
-      });
-
-      await reversePurchasesBatch(
-        tx,
-        oldItems
-          .filter((old) => old.ingredientId)
-          .map((old) => ({
-            ingredientId: old.ingredientId!,
-            packLabel:    old.unit,
-            packQty:      old.amount,
-            unitCost:     old.cost,
-            note:         "Expense edited",
-          })),
-      );
-
-      // Also clean up linked IngredientPurchase rows
+      // 1. Reverse stock for old ingredient-linked items via their actual purchase
+      //    rows (correct for both pre-migration pack-expanded rows and new rows).
       const oldItemIds = await tx.expenseItem.findMany({
         where: { expenseId: id },
         select: { id: true },
       });
-      await tx.ingredientPurchase.deleteMany({
-        where: { expenseItemId: { in: oldItemIds.map((i) => i.id) } },
-      });
+      await reverseExpenseItemPurchases(
+        tx,
+        oldItemIds.map((i) => i.id),
+        "Expense edited",
+      );
 
       // 2. Remove old kas pak har entries and items, then recreate
       await tx.kasPakHar.deleteMany({ where: { expenseId: id } });
@@ -183,11 +167,8 @@ export async function updateExpense(id: string, data: ExpenseData) {
             recordedById:  staff.id,
           })),
       );
-
-      // Recompute cost for ingredients whose links were removed (recordPurchasesBatch
-      // already recomputes the ones that received new purchase rows).
-      const oldIds = [...new Set(oldItems.map((o) => o.ingredientId).filter(Boolean) as string[])];
-      for (const ingId of oldIds) await recomputeLastCost(tx, ingId);
+      // Cost already re-derived: reverseExpenseItemPurchases for reversed ingredients,
+      // recordPurchasesBatch for the new rows.
     });
 
     revalidateExpenses();
@@ -200,39 +181,13 @@ export async function deleteExpense(id: string) {
     await requireOwnerStrict();
 
     await prisma.$transaction(async (tx) => {
-      // Reverse stock for ingredient-linked items
-      const items = await tx.expenseItem.findMany({
-        where: { expenseId: id, ingredientId: { not: null } },
-        select: { ingredientId: true, amount: true, cost: true, unit: true },
-      });
-
-      await reversePurchasesBatch(
-        tx,
-        items
-          .filter((item) => item.ingredientId)
-          .map((item) => ({
-            ingredientId: item.ingredientId!,
-            packLabel:    item.unit,
-            packQty:      item.amount,
-            unitCost:     item.cost,
-            note:         "Expense deleted",
-          })),
-      );
-
-      // Drop the purchase rows tied to this expense, then re-derive cost from the
-      // latest remaining purchase for each affected ingredient.
+      // Reverse stock via the actual linked purchase rows, then delete the expense.
       const itemIds = await tx.expenseItem.findMany({
         where: { expenseId: id },
         select: { id: true },
       });
-      await tx.ingredientPurchase.deleteMany({
-        where: { expenseItemId: { in: itemIds.map((i) => i.id) } },
-      });
-
+      await reverseExpenseItemPurchases(tx, itemIds.map((i) => i.id), "Expense deleted");
       await tx.expense.delete({ where: { id } });
-
-      const affectedIds = [...new Set(items.map((i) => i.ingredientId).filter(Boolean) as string[])];
-      for (const ingId of affectedIds) await recomputeLastCost(tx, ingId);
     });
 
     revalidateExpenses();

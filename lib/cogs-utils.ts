@@ -168,49 +168,47 @@ export async function recordPurchasesBatch(
   }
 }
 
-export interface ReversePurchaseInput {
-  ingredientId: string;
-  packLabel?: string | null;  // unused for resolution; kept for signature parity
-  packQty: number;            // quantity in the ingredient's unit, as stored
-  unitCost: number;
-  note?: string | null;
-}
-
 /**
- * Reverses a batch of purchases (e.g. on expense edit/delete): decrements stock
- * by the recorded quantity and writes one ADJUSTMENT log per item. Does NOT
- * delete the IngredientPurchase rows (the caller handles that) and does NOT
- * recompute cost — the caller calls recomputeLastCost after deleting the rows.
+ * Reverses the stock effect of expense items by their ACTUAL linked
+ * IngredientPurchase rows (uses the stored `baseQty`, so it's correct for both
+ * pre-migration pack-expanded rows and new qty-in-unit rows), deletes those
+ * purchase rows, writes one ADJUSTMENT log per ingredient, then re-derives cost.
+ * Returns the affected ingredient ids.
  */
-export async function reversePurchasesBatch(
+export async function reverseExpenseItemPurchases(
   tx: PrismaTx,
-  items: ReversePurchaseInput[],
-): Promise<void> {
-  if (items.length === 0) return;
+  expenseItemIds: string[],
+  note = "Expense reversed",
+): Promise<string[]> {
+  if (expenseItemIds.length === 0) return [];
 
-  const decrements = new Map<string, number>();
+  const purchases = await tx.ingredientPurchase.findMany({
+    where:  { expenseItemId: { in: expenseItemIds } },
+    select: { id: true, ingredientId: true, baseQty: true, unitCost: true },
+  });
+  if (purchases.length === 0) return [];
+
+  const perIngredient = new Map<string, number>();
   const logRows: Prisma.IngredientLogCreateManyInput[] = [];
-
-  for (const item of items) {
-    const qty = item.packQty;
-    decrements.set(item.ingredientId, (decrements.get(item.ingredientId) ?? 0) + qty);
+  for (const p of purchases) {
+    perIngredient.set(p.ingredientId, (perIngredient.get(p.ingredientId) ?? 0) + p.baseQty);
     logRows.push({
-      ingredientId: item.ingredientId,
+      ingredientId: p.ingredientId,
       type:        "ADJUSTMENT",
-      quantity:    -qty,
-      unitCost:    item.unitCost,
-      note:        item.note ?? "Purchase reversed",
+      quantity:    -p.baseQty,
+      unitCost:    p.unitCost,
+      note,
     });
   }
 
   await tx.ingredientLog.createMany({ data: logRows });
+  await tx.ingredientPurchase.deleteMany({ where: { id: { in: purchases.map((p) => p.id) } } });
 
-  for (const [id, total] of decrements) {
-    await tx.ingredient.update({
-      where: { id },
-      data: { currentStock: { decrement: total } },
-    });
+  for (const [id, total] of perIngredient) {
+    await tx.ingredient.update({ where: { id }, data: { currentStock: { decrement: total } } });
+    await recomputeLastCost(tx, id);
   }
+  return [...perIngredient.keys()];
 }
 
 // ─── COGS computation ─────────────────────────────────────────────────────────

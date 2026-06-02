@@ -157,63 +157,14 @@ export function ItemRow({
         )}
       </div>
 
-      {/* Pack selector (when ingredient has packs).
-          Base-unit chip sets unit="" so server treats it as "already in base units"
-          (packLabel=null path) instead of attempting a pack lookup. */}
-      {selectedIngredient && selectedIngredient.packs.length > 0 && (
-        <div className="flex items-center gap-2 text-sm flex-wrap">
-          <span className="text-muted-foreground text-xs">Satuan:</span>
-          <div className="flex flex-wrap gap-1">
-            <Button
-              variant={item.unit === "" ? "default" : "outline"}
-              size="sm"
-              onClick={() => onUpdate(item.id, "unit", "")}
-              className="text-xs h-6 px-2"
-            >
-              {selectedIngredient.baseUnit} (satuan dasar)
-            </Button>
-            {selectedIngredient.packs.map((p) => (
-              <Button
-                key={p.label}
-                variant={item.unit === p.label ? "default" : "outline"}
-                size="sm"
-                onClick={() => onUpdate(item.id, "unit", p.label)}
-                className="text-xs h-6 px-2"
-              >
-                {p.label} (×{p.baseQty} {selectedIngredient.baseUnit})
-              </Button>
-            ))}
-          </div>
-          <a
-            href={`/admin/ingredients/${selectedIngredient.id}?tab=pengaturan`}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-primary hover:underline"
-          >
-            + tambah satuan
-          </a>
-        </div>
-      )}
-
-      {/* Ingredient picked but no packs defined — block free-form entry,
-          force user to add a pack first. Silent 1:1 fallback was the source
-          of the Arang stock corruption bug. */}
-      {selectedIngredient && selectedIngredient.packs.length === 0 && (
-        <div className="rounded-md bg-warning/10 text-warning-foreground border border-warning/30 px-2.5 py-2 text-xs space-y-1">
-          <p className="font-medium">Belum ada satuan untuk bahan ini.</p>
-          <p>
-            Tambahkan dulu satuan & konversi (mis. <em>1 bks = 3300 g</em>) di{" "}
-            <a
-              href={`/admin/ingredients/${selectedIngredient.id}?tab=pengaturan`}
-              target="_blank"
-              rel="noreferrer"
-              className="underline text-primary"
-            >
-              pengaturan bahan
-            </a>{" "}
-            sebelum mencatat pembelian.
-          </p>
-        </div>
+      {/* When an ingredient is selected, the quantity is entered directly in the
+          ingredient's unit (gram/ml/butir/…). Convert bulk buys (e.g. "2 dus")
+          to that unit yourself, e.g. 60 butir. */}
+      {selectedIngredient && (
+        <p className="text-xs text-muted-foreground">
+          Jumlah dalam satuan <strong>{selectedIngredient.baseUnit}</strong>. Untuk pembelian
+          per dus/karton, isi total dalam {selectedIngredient.baseUnit} (mis. 2 dus = 60 {selectedIngredient.baseUnit}).
+        </p>
       )}
 
       {/* Amount, Unit (text fallback), Cost, Remove */}
@@ -247,11 +198,8 @@ export function ItemRow({
               ))}
             </datalist>
           )}
-          {/* Selected pack label as a small badge (base-unit chip shows nothing). */}
-          {selectedIngredient && selectedIngredient.packs.length > 0 && item.unit && (
-            <span className="text-xs text-muted-foreground font-medium">{item.unit}</span>
-          )}
-          {selectedIngredient && selectedIngredient.packs.length > 0 && !item.unit && (
+          {/* For a linked ingredient the unit is fixed to its own unit. */}
+          {selectedIngredient && (
             <span className="text-xs text-muted-foreground font-medium">{selectedIngredient.baseUnit}</span>
           )}
         </div>

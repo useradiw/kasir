@@ -94,14 +94,15 @@ export function ExpenseForm({
   }
 
   function applyIngredient(rowId: string, ing: IngredientOption) {
-    const defaultPack = ing.packs.find((p) => p.isDefault);
+    // Quantity is entered directly in the ingredient's own unit; cost defaults to
+    // its current per-unit cost. No pack expansion anymore.
     setItems((prev) =>
       prev.map((item) =>
         item.id === rowId
           ? {
               ...item,
               description:  ing.name,
-              unit:         defaultPack?.label ?? ing.baseUnit,
+              unit:         ing.baseUnit,
               cost:         ing.averageUnitCost > 0 ? ing.averageUnitCost : item.cost,
               ingredientId: ing.id,
               templateId:   null,
