@@ -325,9 +325,9 @@ function IngredientRow({
                     <span className="text-muted-foreground/60"> (min: {row.lowStockAlert})</span>
                   )}
                 </span>
-                {row.averageUnitCost > 0 && (
+                {row.unitCost > 0 && (
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    HPP: <span className="text-foreground font-medium">{formatRpPerUnit(row.averageUnitCost)}/{row.unit}</span>
+                    HPP: <span className="text-foreground font-medium">{formatRpPerUnit(row.unitCost)}/{row.unit}</span>
                   </span>
                 )}
                 {row.defaultSupplierName && (

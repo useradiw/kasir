@@ -46,10 +46,10 @@ type Detail = {
   id: string;
   name: string;
   category: string;
-  baseUnit: string;
+  unit: string;
   unitClass: "WEIGHT" | "VOLUME" | "COUNT";
   currentStock: number;
-  averageUnitCost: number;
+  unitCost: number;
   lastUnitCost: number | null;
   lastPurchasedAt: Date | null;
   lowStockAlert: number | null;
@@ -139,7 +139,7 @@ export default function IngredientDetailClient({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-base font-semibold">{detail.name}</h1>
-                <Badge className="text-[10px] bg-muted text-muted-foreground">{detail.baseUnit}</Badge>
+                <Badge className="text-[10px] bg-muted text-muted-foreground">{detail.unit}</Badge>
                 <Badge className="text-[10px] bg-muted text-muted-foreground">
                   {CATEGORY_LABELS[detail.category] ?? detail.category}
                 </Badge>
@@ -160,20 +160,20 @@ export default function IngredientDetailClient({
             <div className="text-xs text-muted-foreground">
               Stok saat ini:{" "}
               <span className="font-semibold text-foreground tabular-nums">
-                {detail.currentStock % 1 === 0 ? detail.currentStock.toFixed(0) : detail.currentStock.toFixed(3)} {detail.baseUnit}
+                {detail.currentStock % 1 === 0 ? detail.currentStock.toFixed(0) : detail.currentStock.toFixed(3)} {detail.unit}
               </span>
               {detail.lowStockAlert !== null && (
                 <span className="text-muted-foreground/60"> (min: {detail.lowStockAlert})</span>
               )}
             </div>
-            {detail.averageUnitCost > 0 && (
+            {detail.unitCost > 0 && (
               <div className="text-xs text-muted-foreground tabular-nums">
-                HPP avg: <span className="font-semibold text-foreground">{formatRpPerUnit(detail.averageUnitCost)}/{detail.baseUnit}</span>
+                HPP avg: <span className="font-semibold text-foreground">{formatRpPerUnit(detail.unitCost)}/{detail.unit}</span>
               </div>
             )}
             {detail.lastUnitCost !== null && (
               <div className="text-xs text-muted-foreground tabular-nums">
-                Harga terakhir: <span className="font-medium text-foreground">{formatRpPerUnit(detail.lastUnitCost ?? 0)}/{detail.baseUnit}</span>
+                Harga terakhir: <span className="font-medium text-foreground">{formatRpPerUnit(detail.lastUnitCost ?? 0)}/{detail.unit}</span>
               </div>
             )}
             {detail.lastPurchasedAt && (
@@ -211,7 +211,7 @@ export default function IngredientDetailClient({
           {/* Price history chart */}
           {purchases.length >= 2 && (
             <Card>
-              <CardHeader><CardTitle className="text-sm">Riwayat HPP ({detail.baseUnit})</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="text-sm">Riwayat HPP ({detail.unit})</CardTitle></CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={140}>
                   <LineChart data={[...purchases].reverse().map((p) => ({
@@ -257,7 +257,7 @@ export default function IngredientDetailClient({
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-medium tabular-nums">{formatRupiah(p.totalCost)}</span>
                             <span className="text-xs text-muted-foreground">
-                              {p.packQty}{p.packLabel ? ` ${p.packLabel}` : ""} × {formatRpPerUnit(p.unitCost)}/{detail.baseUnit}
+                              {p.packQty}{p.packLabel ? ` ${p.packLabel}` : ""} × {formatRpPerUnit(p.unitCost)}/{detail.unit}
                             </span>
                             <Badge className="text-[10px] bg-muted text-muted-foreground">
                               {SOURCE_LABEL[p.source] ?? p.source}
@@ -270,8 +270,8 @@ export default function IngredientDetailClient({
                           {p.notes && <p className="text-xs text-muted-foreground">{p.notes}</p>}
                         </div>
                         <div className="text-right shrink-0 text-xs text-muted-foreground tabular-nums space-y-1">
-                          <p>+{p.baseQty % 1 === 0 ? p.baseQty.toFixed(0) : p.baseQty.toFixed(3)} {detail.baseUnit}</p>
-                          <p>HPP avg → {formatRpPerUnit(p.avgUnitCostAfter)}/{detail.baseUnit}</p>
+                          <p>+{p.baseQty % 1 === 0 ? p.baseQty.toFixed(0) : p.baseQty.toFixed(3)} {detail.unit}</p>
+                          <p>HPP avg → {formatRpPerUnit(p.avgUnitCostAfter)}/{detail.unit}</p>
                           {isOwner && p.source === "EXPENSE" && (
                             <Button
                               size="sm"
@@ -313,9 +313,9 @@ export default function IngredientDetailClient({
                     </div>
                     <div className="text-right shrink-0 tabular-nums space-y-0.5">
                       <p className={`font-medium ${log.quantity >= 0 ? "text-primary" : "text-destructive"}`}>
-                        {log.quantity >= 0 ? "+" : ""}{log.quantity % 1 === 0 ? log.quantity.toFixed(0) : log.quantity.toFixed(3)} {detail.baseUnit}
+                        {log.quantity >= 0 ? "+" : ""}{log.quantity % 1 === 0 ? log.quantity.toFixed(0) : log.quantity.toFixed(3)} {detail.unit}
                       </p>
-                      <p className="text-muted-foreground">{formatRpPerUnit(log.unitCost)}/{detail.baseUnit}</p>
+                      <p className="text-muted-foreground">{formatRpPerUnit(log.unitCost)}/{detail.unit}</p>
                       <p className="text-muted-foreground">{formatDateTime(log.createdAt)}</p>
                     </div>
                   </div>
@@ -355,7 +355,7 @@ export default function IngredientDetailClient({
       {isOwner && (
         <EditPurchaseDialog
           ingredientName={detail.name}
-          baseUnit={detail.baseUnit}
+          baseUnit={detail.unit}
           purchase={(() => {
             const p = purchases.find((q) => q.id === editingPurchaseId);
             if (!p) return null;
@@ -434,7 +434,7 @@ function SettingsTab({
               () => updateIngredient(detail.id, {
                 name:              fd.get("name") as string,
                 category:          (fd.get("category") as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA"),
-                unit:              (fd.get("unit") as string) || detail.baseUnit,
+                unit:              (fd.get("unit") as string) || detail.unit,
                 lowStockAlert:     fd.get("lowStockAlert") ? parseFloat(fd.get("lowStockAlert") as string) : null,
                 notes:             fd.get("notes") as string || undefined,
                 defaultSupplierId: (fd.get("defaultSupplierId") as string) || null,
@@ -461,7 +461,7 @@ function SettingsTab({
                 <Label>Satuan</Label>
                 <Input
                   name="unit"
-                  defaultValue={detail.baseUnit}
+                  defaultValue={detail.unit}
                   disabled={hasHistory}
                   className={`w-28 ${hasHistory ? "bg-muted/40 cursor-not-allowed" : ""}`}
                   title={hasHistory ? "Sudah ada riwayat — pakai \"Ubah Satuan\" untuk konversi" : "Satuan bebas: gram, ml, butir, pcs…"}
@@ -512,7 +512,7 @@ function SettingsTab({
               className="mt-4 border-t border-foreground/10 pt-3 space-y-2"
             >
               <p className="text-xs text-muted-foreground">
-                Konversi satuan <strong>{detail.baseUnit}</strong> → satuan baru. Stok, HPP, dan semua resep
+                Konversi satuan <strong>{detail.unit}</strong> → satuan baru. Stok, HPP, dan semua resep
                 yang memakai bahan ini ikut dihitung ulang otomatis.
               </p>
               <div className="flex flex-wrap gap-3 items-end">
@@ -521,7 +521,7 @@ function SettingsTab({
                   <Input name="newUnit" required placeholder="cth: kg" className="w-28" />
                 </div>
                 <div className="grid gap-1">
-                  <Label>1 satuan baru = ? {detail.baseUnit}</Label>
+                  <Label>1 satuan baru = ? {detail.unit}</Label>
                   <DecimalInput name="factor" required placeholder={`mis. 1000`} className="w-32" />
                 </div>
                 <Button type="submit" size="sm" variant="outline" disabled={isPending}>
@@ -529,7 +529,7 @@ function SettingsTab({
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                Contoh: dari <code>{detail.baseUnit}</code> ke <code>kg</code>, isi <code>1000</code> jika 1 kg = 1000 {detail.baseUnit}.
+                Contoh: dari <code>{detail.unit}</code> ke <code>kg</code>, isi <code>1000</code> jika 1 kg = 1000 {detail.unit}.
               </p>
             </form>
           )}
@@ -568,7 +568,7 @@ function SettingsTab({
           {showCost ? (
             <div className="flex flex-wrap gap-3 items-end">
               <div className="grid gap-1 w-36">
-                <Label>HPP per {detail.baseUnit} (Rp)</Label>
+                <Label>HPP per {detail.unit} (Rp)</Label>
                 <DecimalInput placeholder="cth: 1500" defaultValue={costValue} onValueChange={setCostValue} className="h-8" />
               </div>
               <div className="grid gap-1 flex-1 min-w-36">
@@ -616,7 +616,7 @@ function SettingsTab({
               className="flex flex-wrap gap-3 items-end"
             >
               <div className="grid gap-1 w-32">
-                <Label>Jumlah ({detail.baseUnit})</Label>
+                <Label>Jumlah ({detail.unit})</Label>
                 <DecimalInput name="quantity" required className="h-8" />
               </div>
               <div className="grid gap-1 flex-1 min-w-36">
@@ -793,7 +793,7 @@ function RecipeTab({
             className="flex flex-wrap gap-3 items-end"
           >
             <div className="grid gap-1">
-              <Label>Hasil / Batch ({detail.baseUnit})</Label>
+              <Label>Hasil / Batch ({detail.unit})</Label>
               <DecimalInput name="yieldQty" required defaultValue={1} className="w-32" />
             </div>
             <div className="grid gap-1 flex-1 min-w-40">
@@ -827,7 +827,7 @@ function RecipeTab({
             className="flex flex-wrap gap-3 items-end"
           >
             <div className="grid gap-1">
-              <Label>Hasil / Batch ({detail.baseUnit})</Label>
+              <Label>Hasil / Batch ({detail.unit})</Label>
               <DecimalInput name="yieldQty" required defaultValue={recipe.yieldQty} className="w-32" />
             </div>
             <div className="grid gap-1 flex-1 min-w-40">
@@ -838,8 +838,8 @@ function RecipeTab({
           </form>
           <div className="text-xs text-muted-foreground tabular-nums">
             Estimasi HPP:{" "}
-            <span className="font-semibold text-foreground">{formatRupiah(estPerUnit)}/{detail.baseUnit}</span>
-            {" "}(total bahan {formatRupiah(Math.round(totalCost))} per {recipe.yieldQty} {detail.baseUnit})
+            <span className="font-semibold text-foreground">{formatRupiah(estPerUnit)}/{detail.unit}</span>
+            {" "}(total bahan {formatRupiah(Math.round(totalCost))} per {recipe.yieldQty} {detail.unit})
           </div>
         </CardContent>
       </Card>
@@ -880,7 +880,7 @@ function RecipeTab({
                   <option value="" disabled>Pilih bahan…</option>
                   {components.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.baseUnit}) [{c.unitClass}]
+                      {c.name} ({c.unit}) [{c.unitClass}]
                       {c.unitClass !== detail.unitClass ? " ⚠ kelas beda" : ""}
                     </option>
                   ))}
@@ -1089,7 +1089,7 @@ function BulkAddComponentPanel({
                   {r.ok ? (
                     <>
                       <span className="font-medium flex-1">{r.ingredient.name}</span>
-                      <span className="text-sm tabular-nums">{r.quantity} {r.ingredient.baseUnit}</span>
+                      <span className="text-sm tabular-nums">{r.quantity} {r.ingredient.unit}</span>
                     </>
                   ) : (
                     <>

@@ -11,12 +11,12 @@ async function main() {
   console.log("ingredients total:", total, "| missing unitClass:", missing);
 
   const dist = await prisma.ingredient.groupBy({
-    by: ["unitClass", "baseUnit"],
+    by: ["unitClass", "unit"],
     _count: { _all: true },
     orderBy: [{ unitClass: "asc" }],
   });
-  console.log("\nunitClass × baseUnit:");
-  for (const r of dist) console.log(`  ${r.unitClass.padEnd(7)} ${r.baseUnit.padEnd(8)} ${r._count._all}`);
+  console.log("\nunitClass × unit:");
+  for (const r of dist) console.log(`  ${r.unitClass.padEnd(7)} ${r.unit.padEnd(8)} ${r._count._all}`);
 
   const settings = await prisma.setting.findMany({
     where: { key: { startsWith: "unit_base_" } },

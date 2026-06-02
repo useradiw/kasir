@@ -46,7 +46,7 @@ export async function addIngredient(data: {
       data: {
         name:              parsed.name,
         category:          parsed.category,
-        baseUnit:          parsed.unit.trim(),
+        unit:              parsed.unit.trim(),
         lowStockAlert:     parsed.lowStockAlert ?? null,
         notes:             parsed.notes || null,
         defaultSupplierId: parsed.defaultSupplierId || null,
@@ -73,11 +73,11 @@ export async function updateIngredient(id: string, data: {
 
     const current = await prisma.ingredient.findUniqueOrThrow({
       where:  { id },
-      select: { baseUnit: true },
+      select: { unit: true },
     });
 
     const wantUnit   = parsed.unit.trim();
-    const unitChange = current.baseUnit !== wantUnit;
+    const unitChange = current.unit !== wantUnit;
 
     // A plain relabel is only safe with no history — otherwise stock/cost/recipe
     // quantities would silently mean a different thing. Use changeIngredientUnit
@@ -94,7 +94,7 @@ export async function updateIngredient(id: string, data: {
       data: {
         name:              parsed.name,
         category:          parsed.category,
-        baseUnit:          wantUnit,
+        unit:              wantUnit,
         lowStockAlert:     parsed.lowStockAlert ?? null,
         notes:             parsed.notes || null,
         defaultSupplierId: parsed.defaultSupplierId || null,
@@ -124,16 +124,16 @@ export async function changeIngredientUnit(id: string, newUnit: string, factor: 
     await prisma.$transaction(async (tx) => {
       const ing = await tx.ingredient.findUniqueOrThrow({
         where:  { id },
-        select: { baseUnit: true, currentStock: true, averageUnitCost: true, lastUnitCost: true },
+        select: { unit: true, currentStock: true, unitCost: true, lastUnitCost: true },
       });
 
       // Ingredient denormalized values
       await tx.ingredient.update({
         where: { id },
         data: {
-          baseUnit:        unit,
+          unit:            unit,
           currentStock:    ing.currentStock / f,
-          averageUnitCost: ing.averageUnitCost * f,
+          unitCost:        ing.unitCost * f,
           lastUnitCost:    ing.lastUnitCost == null ? null : ing.lastUnitCost * f,
         },
       });
@@ -188,7 +188,7 @@ export async function changeIngredientUnit(id: string, newUnit: string, factor: 
           type:         "ADJUSTMENT",
           quantity:     0,
           unitCost:     0,
-          note:         `Ubah satuan: ${ing.baseUnit} → ${unit} (1 ${unit} = ${f} ${ing.baseUnit})`,
+          note:         `Ubah satuan: ${ing.unit} → ${unit} (1 ${unit} = ${f} ${ing.unit})`,
         },
       });
     }, { timeout: 30_000 });
@@ -256,7 +256,7 @@ export async function addIngredientsBulk(rows: Array<{
         data: toCreate.map((r) => ({
           name:              r.name,
           category:          r.category,
-          baseUnit:          r.unit.trim(),
+          unit:              r.unit.trim(),
           lowStockAlert:     r.lowStockAlert ?? null,
           notes:             r.notes || null,
           defaultSupplierId: r.defaultSupplierId || null,
@@ -283,7 +283,7 @@ export async function setIngredientCost(id: string, unitCost: number, note?: str
       });
       await tx.ingredient.update({
         where: { id },
-        data:  { averageUnitCost: cost, lastUnitCost: cost },
+        data:  { unitCost: cost, lastUnitCost: cost },
       });
       await tx.ingredientPurchase.create({
         data: {

@@ -103,7 +103,7 @@ export function ExpenseForm({
     setItems((prev) =>
       prev.map((item) =>
         item.id === rowId
-          ? { ...item, description: ing.name, unit: ing.baseUnit, ingredientId: ing.id, templateId: null }
+          ? { ...item, description: ing.name, unit: ing.unit, ingredientId: ing.id, templateId: null }
           : item,
       ),
     );

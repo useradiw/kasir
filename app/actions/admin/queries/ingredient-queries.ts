@@ -14,10 +14,10 @@ export async function getIngredientStockData() {
       id:                true,
       name:              true,
       category:          true,
-      baseUnit:          true,
+      unit:              true,
       unitClass:         true,
       currentStock:      true,
-      averageUnitCost:   true,
+      unitCost:          true,
       lastUnitCost:      true,
       lastPurchasedAt:   true,
       lowStockAlert:     true,
@@ -34,10 +34,10 @@ export async function getIngredientStockData() {
     id:                i.id,
     name:              i.name,
     category:          i.category,
-    unit:              i.baseUnit,
+    unit:              i.unit,
     unitClass:         i.unitClass,
     currentStock:      i.currentStock,
-    averageUnitCost:   i.averageUnitCost,
+    unitCost:          i.unitCost,
     lastUnitCost:      i.lastUnitCost,
     lastPurchasedAt:   i.lastPurchasedAt,
     lowStockAlert:     i.lowStockAlert,
@@ -64,10 +64,10 @@ export async function getIngredientDetail(id: string) {
       id:                true,
       name:              true,
       category:          true,
-      baseUnit:          true,
+      unit:              true,
       unitClass:         true,
       currentStock:      true,
-      averageUnitCost:   true,
+      unitCost:          true,
       lastUnitCost:      true,
       lastPurchasedAt:   true,
       lowStockAlert:     true,
@@ -142,7 +142,7 @@ export async function adjustIngredientStock(
 
   const ing = await prisma.ingredient.findUniqueOrThrow({
     where:  { id: ingredientId },
-    select: { averageUnitCost: true },
+    select: { unitCost: true },
   });
 
   await prisma.$transaction(async (tx) => {
@@ -151,7 +151,7 @@ export async function adjustIngredientStock(
         ingredientId,
         type:       quantity > 0 ? "PURCHASE" : "ADJUSTMENT",
         quantity,
-        unitCost:   ing.averageUnitCost,
+        unitCost:   ing.unitCost,
         note:       note.trim() || null,
       },
     });
@@ -180,7 +180,7 @@ export async function getIngredientRecipe(ingredientId: string) {
     include: {
       items: {
         include: {
-          ingredient: { select: { id: true, name: true, baseUnit: true, unitClass: true, averageUnitCost: true } },
+          ingredient: { select: { id: true, name: true, unit: true, unitClass: true, unitCost: true } },
         },
         orderBy: { ingredient: { name: "asc" } },
       },
@@ -199,9 +199,9 @@ export async function getIngredientRecipe(ingredientId: string) {
       id:              it.id,
       ingredientId:    it.ingredientId,
       ingredientName:  it.ingredient.name,
-      ingredientUnit:  it.ingredient.baseUnit,
+      ingredientUnit:  it.ingredient.unit,
       ingredientClass: it.ingredient.unitClass,
-      averageUnitCost: it.ingredient.averageUnitCost,
+      averageUnitCost: it.ingredient.unitCost,
       quantity:        it.quantity,
     })),
   };
@@ -218,11 +218,11 @@ export async function getActiveIngredientsLite() {
     where:   { isActive: true },
     orderBy: { name: "asc" },
     select:  {
-      id:              true,
-      name:            true,
-      baseUnit:        true,
-      unitClass:       true,
-      averageUnitCost: true,
+      id:       true,
+      name:     true,
+      unit:     true,
+      unitClass: true,
+      unitCost: true,
     },
   });
 }
@@ -237,12 +237,12 @@ export async function getAssembledIngredientsIndex() {
     where: { producedRecipe: { is: {} } },
     orderBy: { name: "asc" },
     select: {
-      id:              true,
-      name:            true,
-      baseUnit:        true,
-      unitClass:       true,
-      currentStock:    true,
-      averageUnitCost: true,
+      id:           true,
+      name:         true,
+      unit:         true,
+      unitClass:    true,
+      currentStock: true,
+      unitCost:     true,
       producedRecipe:  {
         select: {
           yieldQty: true,
@@ -256,7 +256,7 @@ export async function getAssembledIngredientsIndex() {
   const componentRows = await prisma.ingredientRecipeItem.findMany({
     select: {
       ingredient: {
-        select: { id: true, name: true, baseUnit: true, unitClass: true },
+        select: { id: true, name: true, unit: true, unitClass: true },
       },
       recipe: {
         select: { ingredient: { select: { id: true, name: true } } },
@@ -267,7 +267,7 @@ export async function getAssembledIngredientsIndex() {
   type CompAgg = {
     id: string;
     name: string;
-    baseUnit: string;
+    unit: string;
     unitClass: "WEIGHT" | "VOLUME" | "COUNT";
     usedIn: { id: string; name: string }[];
   };
@@ -278,7 +278,7 @@ export async function getAssembledIngredientsIndex() {
     let agg = componentMap.get(c.id);
     if (!agg) {
       agg = {
-        id: c.id, name: c.name, baseUnit: c.baseUnit,
+        id: c.id, name: c.name, unit: c.unit,
         unitClass: c.unitClass as CompAgg["unitClass"],
         usedIn: [],
       };
@@ -291,10 +291,10 @@ export async function getAssembledIngredientsIndex() {
     parents: parents.map((p) => ({
       id:              p.id,
       name:            p.name,
-      baseUnit:        p.baseUnit,
-      unitClass:       p.unitClass,
-      currentStock:    p.currentStock,
-      averageUnitCost: p.averageUnitCost,
+      unit:         p.unit,
+      unitClass:    p.unitClass,
+      currentStock: p.currentStock,
+      unitCost:     p.unitCost,
       yieldQty:        p.producedRecipe?.yieldQty ?? 0,
       componentCount:  p.producedRecipe?.items.length ?? 0,
     })),

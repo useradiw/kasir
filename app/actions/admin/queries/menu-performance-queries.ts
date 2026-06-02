@@ -118,14 +118,14 @@ export async function getMenuPerformanceData(opts: {
     }
   }
 
-  // Single bulk fetch of averageUnitCost — no raw SQL needed
+  // Single bulk fetch of unitCost — no raw SQL needed
   const ingredientCosts = allIngredientIds.size > 0
     ? await prisma.ingredient.findMany({
         where:  { id: { in: [...allIngredientIds] } },
-        select: { id: true, averageUnitCost: true },
+        select: { id: true, unitCost: true },
       })
     : [];
-  const costMap = new Map(ingredientCosts.map((i) => [i.id, i.averageUnitCost]));
+  const costMap = new Map(ingredientCosts.map((i) => [i.id, i.unitCost]));
 
   const pkgMembersMap = new Map<string, { menuItemId: string; variantId: string | null }[]>();
   for (const pi of packageItems) {

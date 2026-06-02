@@ -63,9 +63,9 @@ await test("recordPurchasesBatch last-cost", async (tx) => {
   const ing = await tx.ingredient.create({
     data: {
       name: `__test_${uniqueSuffix}`,
-      baseUnit: "gr",
+      unit: "gr",
       currentStock: 0,
-      averageUnitCost: 0,
+      unitCost: 0,
     },
   });
 
@@ -83,8 +83,8 @@ await test("recordPurchasesBatch last-cost", async (tx) => {
   const updated = await tx.ingredient.findUnique({ where: { id: ing.id } });
   assert(updated.currentStock === 100, `currentStock expected 100, got ${updated.currentStock}`);
   assert(
-    updated.averageUnitCost === 2500,
-    `averageUnitCost expected 2500, got ${updated.averageUnitCost}`,
+    updated.unitCost === 2500,
+    `unitCost expected 2500, got ${updated.unitCost}`,
   );
 
   const purchase = await tx.ingredientPurchase.findFirst({ where: { ingredientId: ing.id } });
@@ -99,9 +99,9 @@ await test("backdated purchase keeps latest cost", async (tx) => {
   const ing = await tx.ingredient.create({
     data: {
       name: `__test_${uniqueSuffix}`,
-      baseUnit: "gr",
+      unit: "gr",
       currentStock: 0,
-      averageUnitCost: 0,
+      unitCost: 0,
     },
   });
 
@@ -132,8 +132,8 @@ await test("backdated purchase keeps latest cost", async (tx) => {
   // recomputeLastCost picks the LATEST by purchasedAt — still 2500
   const updated = await tx.ingredient.findUnique({ where: { id: ing.id } });
   assert(
-    updated.averageUnitCost === 2500,
-    `averageUnitCost expected 2500 (latest cost), got ${updated.averageUnitCost}`,
+    updated.unitCost === 2500,
+    `unitCost expected 2500 (latest cost), got ${updated.unitCost}`,
   );
   assert(updated.currentStock === 110, `currentStock expected 110, got ${updated.currentStock}`);
 });
@@ -144,9 +144,9 @@ await test("reverseExpenseItemPurchases by stored baseQty", async (tx) => {
   const ing = await tx.ingredient.create({
     data: {
       name: `__test_${uniqueSuffix}`,
-      baseUnit: "pcs",
+      unit: "pcs",
       currentStock: 0,
-      averageUnitCost: 1000,
+      unitCost: 1000,
     },
   });
 
@@ -220,9 +220,9 @@ await test("computeOrderCogs", async (tx) => {
   const ing = await tx.ingredient.create({
     data: {
       name: `__test_${uniqueSuffix}`,
-      baseUnit: "gr",
+      unit: "gr",
       currentStock: 100,
-      averageUnitCost: 500,
+      unitCost: 500,
     },
   });
 

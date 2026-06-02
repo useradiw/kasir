@@ -384,10 +384,10 @@ model Ingredient {
   id                String             @id @default(uuid())
   name              String             @unique
   category          IngredientCategory @default(BAHAN)
-  baseUnit          String             @default("pcs")
+  unit              String             @default("pcs") @map("baseUnit")
   unitClass         UnitClass          @default(COUNT)
   currentStock      Float              @default(0)
-  averageUnitCost   Float              @default(0)
+  unitCost          Float              @default(0) @map("averageUnitCost")
   lastUnitCost      Float?
   lastPurchasedAt   DateTime?
   lowStockAlert     Float?

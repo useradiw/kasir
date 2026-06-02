@@ -156,22 +156,25 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
       break;
 
     case "ingredients": {
-      const baseUnit = (row.baseUnit as string) ?? "pcs";
+      // Accept both old keys (baseUnit, averageUnitCost) and new keys (unit, unitCost)
+      // so that backups created before the rename can still be restored.
+      const unit = ((row.unit ?? row.baseUnit) as string) ?? "pcs";
       const unitClass =
         (row.unitClass as "WEIGHT" | "VOLUME" | "COUNT" | undefined) ??
-        inferUnitClass(baseUnit) ??
+        inferUnitClass(unit) ??
         "COUNT";
       const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
+      const restoredUnitCost = ((row.unitCost ?? row.averageUnitCost) as number) ?? 0;
       await prisma.ingredient.upsert({
         where: { id: row.id as string },
         create: {
           id:                row.id as string,
           name:              row.name as string,
           category:          (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
-          baseUnit,
+          unit,
           unitClass,
           currentStock:      row.currentStock as number ?? 0,
-          averageUnitCost:   row.averageUnitCost as number ?? 0,
+          unitCost:          restoredUnitCost,
           lastUnitCost:      row.lastUnitCost as number | null ?? undefined,
           lastPurchasedAt:   toDate(row.lastPurchasedAt),
           lowStockAlert:     row.lowStockAlert as number | null ?? undefined,
@@ -184,10 +187,10 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
         update: {
           name:              row.name as string,
           category:          (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
-          baseUnit,
+          unit,
           unitClass,
           currentStock:      row.currentStock as number ?? 0,
-          averageUnitCost:   row.averageUnitCost as number ?? 0,
+          unitCost:          restoredUnitCost,
           lastUnitCost:      row.lastUnitCost as number | null ?? undefined,
           lastPurchasedAt:   toDate(row.lastPurchasedAt),
           lowStockAlert:     row.lowStockAlert as number | null ?? undefined,

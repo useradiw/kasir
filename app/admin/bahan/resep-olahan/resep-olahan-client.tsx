@@ -58,7 +58,7 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
                 <option value="">— Pilih bahan —</option>
                 {candidates.map((i) => (
                   <option key={i.id} value={i.id}>
-                    {i.name} · {i.baseUnit} ({i.unitClass})
+                    {i.name} · {i.unit} ({i.unitClass})
                   </option>
                 ))}
               </AdminSelect>
@@ -97,13 +97,13 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{p.name}</span>
-                        <Badge className="text-[10px] bg-muted text-muted-foreground">{p.baseUnit}</Badge>
+                        <Badge className="text-[10px] bg-muted text-muted-foreground">{p.unit}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5 tabular-nums">
-                        Hasil/batch: {p.yieldQty} {p.baseUnit} ·{" "}
+                        Hasil/batch: {p.yieldQty} {p.unit} ·{" "}
                         {p.componentCount} komponen ·{" "}
-                        Stok: {p.currentStock} {p.baseUnit}
-                        {p.averageUnitCost > 0 && ` · HPP ${formatRpPerUnit(p.averageUnitCost)}/${p.baseUnit}`}
+                        Stok: {p.currentStock} {p.unit}
+                        {p.unitCost > 0 && ` · HPP ${formatRpPerUnit(p.unitCost)}/${p.unit}`}
                       </div>
                     </div>
                     <span className="text-xs text-muted-foreground">→</span>
@@ -136,7 +136,7 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{c.name}</span>
-                        <Badge className="text-[10px] bg-muted text-muted-foreground">{c.baseUnit}</Badge>
+                        <Badge className="text-[10px] bg-muted text-muted-foreground">{c.unit}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground mt-0.5">
                         Dipakai di: {c.usedIn.map((u) => u.name).join(", ")}

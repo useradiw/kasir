@@ -34,7 +34,7 @@ async function main() {
           const settings = Object.fromEntries((await prisma.setting.findMany()).map(s => [s.key, s.value]));
           const baseUnit = resolveBaseUnit(d.unitClass, settings);
           const r = await prisma.ingredient.create({
-            data: { name: d.name, category: d.category ?? "BAHAN", unitClass: d.unitClass, baseUnit, tags: d.tags ?? [] },
+            data: { name: d.name, category: d.category ?? "BAHAN", unitClass: d.unitClass, unit: baseUnit, tags: d.tags ?? [] },
           });
           return { ok: true, data: r.id };
         },
@@ -73,10 +73,10 @@ async function main() {
       name: `${TAG} Susu`,
       category: "BAHAN",
       unitClass: "VOLUME",
-      baseUnit: volumeBase,
+      unit: volumeBase,
     },
   });
-  console.log(`  created VOLUME ingredient id=${ing.id} baseUnit=${ing.baseUnit}`);
+  console.log(`  created VOLUME ingredient id=${ing.id} unit=${ing.unit}`);
 
   console.log("\nChecks:");
   // 1) Free-form Indonesian label should pass

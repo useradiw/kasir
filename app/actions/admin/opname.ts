@@ -25,7 +25,7 @@ export async function getOpnameHistory() {
     include: {
       performedBy: { select: { name: true } },
       lines: {
-        include: { ingredient: { select: { name: true, baseUnit: true } } },
+        include: { ingredient: { select: { name: true, unit: true } } },
         orderBy: { ingredient: { name: "asc" } },
       },
     },
@@ -41,7 +41,7 @@ export async function getOpnameIngredients() {
       id:           true,
       name:         true,
       category:     true,
-      baseUnit:     true,
+      unit:         true,
       currentStock: true,
     },
   });
@@ -66,7 +66,7 @@ export async function submitOpname(data: {
       const ingredientIds = data.lines.map((l) => l.ingredientId);
       const ings = await tx.ingredient.findMany({
         where: { id: { in: ingredientIds } },
-        select: { id: true, currentStock: true, averageUnitCost: true },
+        select: { id: true, currentStock: true, unitCost: true },
       });
       const ingMap = new Map(ings.map((i) => [i.id, i]));
 
@@ -92,7 +92,7 @@ export async function submitOpname(data: {
         });
 
         if (delta !== 0) {
-          const avgCost = ing.averageUnitCost;
+          const avgCost = ing.unitCost;
           logRows.push({
             ingredientId: line.ingredientId,
             type:         "ADJUSTMENT",

@@ -154,7 +154,7 @@ export async function assembleIngredient(
         include: {
           items: {
             include: {
-              ingredient: { select: { id: true, name: true, averageUnitCost: true } },
+              ingredient: { select: { id: true, name: true, unitCost: true } },
             },
           },
         },
@@ -170,13 +170,13 @@ export async function assembleIngredient(
       for (const item of recipe.items) {
         const consumed = item.quantity * n;
         const comp     = item.ingredient;
-        totalCost += consumed * comp.averageUnitCost;
+        totalCost += consumed * comp.unitCost;
         await tx.ingredientLog.create({
           data: {
             ingredientId: comp.id,
             type:         "ASSEMBLY",
             quantity:     -consumed,
-            unitCost:     comp.averageUnitCost,
+            unitCost:     comp.unitCost,
             referenceId:  runId,
             note:         `Dipakai untuk produksi ${n} batch`,
           },
@@ -227,7 +227,7 @@ export async function assembleIngredient(
         where: { id: ingredientId },
         data:  {
           currentStock:    newStock,
-          averageUnitCost: unitCost,
+          unitCost:        unitCost,
           lastUnitCost:    unitCost,
           lastPurchasedAt: purchasedAt,
         },

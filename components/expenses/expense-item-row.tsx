@@ -11,8 +11,8 @@ import { formatRpPerUnit } from "@/lib/format";
 export type IngredientOption = {
   id:              string;
   name:            string;
-  baseUnit:        string;
-  averageUnitCost: number;
+  unit:     string;
+  unitCost: number;
   category:        string;
 };
 
@@ -63,7 +63,7 @@ export function ItemRow({
   const selectedIngredient = item.ingredientId
     ? ingredients.find((i) => i.id === item.ingredientId)
     : null;
-  const unitLabel = selectedIngredient ? selectedIngredient.baseUnit : (item.unit || "satuan");
+  const unitLabel = selectedIngredient ? selectedIngredient.unit : (item.unit || "satuan");
   const perUnit = total != null && qty != null && qty > 0 ? total / qty : 0;
 
   // Push derived per-unit cost + qty + exact total up to the parent whenever total/qty change.
@@ -132,7 +132,7 @@ export function ItemRow({
             <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5">
               {categoryLabel[selectedIngredient?.category ?? ""] ?? ""}
             </span>
-            <span className="tabular-nums">HPP terakhir {formatRpPerUnit(selectedIngredient?.averageUnitCost ?? 0)}/{selectedIngredient?.baseUnit ?? ""}</span>
+            <span className="tabular-nums">HPP terakhir {formatRpPerUnit(selectedIngredient?.unitCost ?? 0)}/{selectedIngredient?.unit ?? ""}</span>
           </div>
         )}
         {showDropdown && hasSuggestions && (
@@ -149,8 +149,8 @@ export function ItemRow({
                   >
                     <span className="truncate">{ing.name}</span>
                     <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-                      {ing.baseUnit}
-                      {ing.averageUnitCost > 0 ? ` · ${formatRpPerUnit(ing.averageUnitCost)}/${ing.baseUnit}` : ""}
+                      {ing.unit}
+                      {ing.unitCost > 0 ? ` · ${formatRpPerUnit(ing.unitCost)}/${ing.unit}` : ""}
                     </span>
                   </button>
                 ))}
@@ -228,7 +228,7 @@ export function ItemRow({
         <p className="text-xs text-muted-foreground tabular-nums">
           ≈ {formatRpPerUnit(perUnit)}/{unitLabel}
           {selectedIngredient && (
-            <span className="text-muted-foreground/60"> · jumlah dalam {selectedIngredient.baseUnit} (mis. 2 dus = 60 {selectedIngredient.baseUnit})</span>
+            <span className="text-muted-foreground/60"> · jumlah dalam {selectedIngredient.unit} (mis. 2 dus = 60 {selectedIngredient.unit})</span>
           )}
         </p>
       )}

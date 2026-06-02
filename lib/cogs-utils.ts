@@ -1,12 +1,12 @@
 /**
  * COGS (Cost of Goods Sold) and inventory stock utilities.
  *
- * Costing model: LAST PURCHASE COST. `Ingredient.averageUnitCost` holds the unit
+ * Costing model: LAST PURCHASE COST. `Ingredient.unitCost` holds the unit
  * cost (Rp per unit) of the most recent purchase — there is no weighted moving
  * average and no chronological replay. Editing/deleting a purchase simply
  * recomputes the cost from whatever the latest remaining purchase is.
  *
- * Unit model: each ingredient has ONE free-text unit (`Ingredient.baseUnit`).
+ * Unit model: each ingredient has ONE free-text unit (`Ingredient.unit`).
  * Stock, recipe quantities and cost are all expressed in that unit. There is no
  * pack/unit-conversion layer — a purchase line's `packQty` IS the quantity in the
  * ingredient's unit (the user converts "2 dus" → "60 butir" themselves when
@@ -36,9 +36,9 @@ export async function getIngredientAvgCost(
 ): Promise<number> {
   const row = await tx.ingredient.findUnique({
     where: { id: ingredientId },
-    select: { averageUnitCost: true },
+    select: { unitCost: true },
   });
-  return row?.averageUnitCost ?? 0;
+  return row?.unitCost ?? 0;
 }
 
 /**
@@ -63,7 +63,7 @@ export async function recomputeLastCost(
   await tx.ingredient.update({
     where: { id: ingredientId },
     data: {
-      averageUnitCost: latest.unitCost,
+      unitCost:        latest.unitCost,
       lastUnitCost:    latest.unitCost,
       lastPurchasedAt: latest.purchasedAt,
     },
@@ -223,7 +223,7 @@ export interface OrderItemLike {
 
 /**
  * Computes COGS (Rp, rounded) and per-ingredient stock movements for a set
- * of order items. Uses Ingredient.averageUnitCost (last purchase cost).
+ * of order items. Uses Ingredient.unitCost (last purchase cost).
  * Skips CANCELLED items and recipe ingredients without an ingredientId.
  */
 export async function computeOrderCogs(
@@ -274,10 +274,10 @@ export async function computeOrderCogs(
   const costRows = ingredientIds.size > 0
     ? await tx.ingredient.findMany({
         where: { id: { in: [...ingredientIds] } },
-        select: { id: true, averageUnitCost: true },
+        select: { id: true, unitCost: true },
       })
     : [];
-  const costMap = new Map(costRows.map((r) => [r.id, r.averageUnitCost]));
+  const costMap = new Map(costRows.map((r) => [r.id, r.unitCost]));
 
   let totalCogs = 0;
   const movements: StockMovement[] = [];

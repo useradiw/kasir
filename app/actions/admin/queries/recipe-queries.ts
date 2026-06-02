@@ -10,7 +10,7 @@ export async function getRecipeData() {
     prisma.ingredient.findMany({
       where:   { isActive: true },
       orderBy: { name: "asc" },
-      select:  { id: true, name: true, baseUnit: true, unitClass: true, averageUnitCost: true, lastUnitCost: true, category: true },
+      select:  { id: true, name: true, unit: true, unitClass: true, unitCost: true, lastUnitCost: true, category: true },
     }),
     prisma.recipe.findMany({
       include: {
@@ -18,7 +18,7 @@ export async function getRecipeData() {
         variant:  { select: { id: true, label: true, priceModifier: true } },
         ingredients: {
           include: {
-            ingredient: { select: { name: true, baseUnit: true, averageUnitCost: true, lastUnitCost: true } },
+            ingredient: { select: { name: true, unit: true, unitCost: true, lastUnitCost: true } },
           },
           orderBy: { id: "asc" },
         },
@@ -27,16 +27,16 @@ export async function getRecipeData() {
     }),
   ]);
 
-  // Build cost map from Ingredient.averageUnitCost (O(1) per ingredient — no raw SQL needed)
+  // Build cost map from Ingredient.unitCost (O(1) per ingredient — no raw SQL needed)
   const ingMap = new Map(ingredients.map((i) => [i.id, i]));
 
   return {
     ingredients: ingredients.map((i) => ({
       id:              i.id,
       name:            i.name,
-      baseUnit:        i.baseUnit,
+      baseUnit:        i.unit,
       unitClass:       i.unitClass,
-      averageUnitCost: i.averageUnitCost,
+      averageUnitCost: i.unitCost,
       category:        i.category,
     })),
     recipes: recipes.map((r) => {
@@ -46,7 +46,7 @@ export async function getRecipeData() {
         const ingId = ing.ingredientId ?? ing.templateId;
         if (!ingId) return sum;
         const ingRow = ing.ingredient ?? ingMap.get(ingId);
-        const unitCost = ingRow?.averageUnitCost ?? 0;
+        const unitCost = ingRow?.unitCost ?? 0;
         return sum + ing.quantity * unitCost;
       }, 0);
 
@@ -70,8 +70,8 @@ export async function getRecipeData() {
             id:              i.id,
             ingredientId:    ingId,
             ingredientName:  ingRow?.name ?? i.customName ?? null,
-            ingredientUnit:  ingRow?.baseUnit ?? i.customUnit ?? null,
-            averageUnitCost: ingRow?.averageUnitCost ?? 0,
+            ingredientUnit:  ingRow?.unit ?? i.customUnit ?? null,
+            averageUnitCost: ingRow?.unitCost ?? 0,
             lastUnitCost:    ingRow?.lastUnitCost ?? null,
             customName:      i.customName,
             customUnit:      i.customUnit,

@@ -10,7 +10,7 @@ export default async function ExpensesPage() {
     where:   { isActive: true },
     orderBy: [{ category: "asc" }, { name: "asc" }],
     select: {
-      id: true, name: true, baseUnit: true, averageUnitCost: true, category: true,
+      id: true, name: true, unit: true, unitCost: true, category: true,
     },
   });
 

@@ -3,7 +3,7 @@
 // Reproduces the real arang failure mode: a purchase recorded with packLabel=null
 // (qty interpreted as base units) when it should have used a "bks" pack with
 // baseQty=3300. Fixing the row should produce currentStock=6600 g and
-// averageUnitCost≈3.03 Rp/g, with total Rp on hand unchanged.
+// unitCost≈3.03 Rp/g, with total Rp on hand unchanged.
 //
 // Run: $env:DATABASE_URL=<dev>; node scripts/smoke-purchase-edit.mjs
 import { PrismaClient } from "../generated/prisma/client.js";
@@ -117,7 +117,7 @@ async function runEdit(purchaseId, { packLabel, packQty, totalCost }) {
     }
     await tx.ingredient.update({
       where: { id: purchase.ingredientId },
-      data: { currentStock: stock, averageUnitCost: avg, lastUnitCost },
+      data: { currentStock: stock, unitCost: avg, lastUnitCost },
     });
   });
 }
@@ -129,7 +129,7 @@ async function main() {
   console.log("\nSetup: arang WEIGHT with pack bks (baseQty=3300), one bad purchase (packLabel=null)");
 
   const ing = await prisma.ingredient.create({
-    data: { name: `${TAG} Arang`, category: "BAHAN", unitClass: "WEIGHT", baseUnit: "g", currentStock: 2, averageUnitCost: 10000, lastUnitCost: 10000 },
+    data: { name: `${TAG} Arang`, category: "BAHAN", unitClass: "WEIGHT", unit: "g", currentStock: 2, unitCost: 10000, lastUnitCost: 10000 },
   });
   await prisma.ingredientPack.create({
     data: { ingredientId: ing.id, label: "bks", baseQty: 3300, isDefault: false },
@@ -163,8 +163,8 @@ async function main() {
   });
 
   const pre = await prisma.ingredient.findUniqueOrThrow({ where: { id: ing.id } });
-  const preRpOnHand = pre.currentStock * pre.averageUnitCost;
-  console.log(`  pre: stock=${pre.currentStock} g, avg=${pre.averageUnitCost} Rp/g, RpOnHand=${preRpOnHand}`);
+  const preRpOnHand = pre.currentStock * pre.unitCost;
+  console.log(`  pre: stock=${pre.currentStock} g, avg=${pre.unitCost} Rp/g, RpOnHand=${preRpOnHand}`);
 
   console.log("\nEdit: packLabel=bks, packQty=2, totalCost=20000");
   await runEdit(purchase.id, { packLabel: "bks", packQty: 2, totalCost: 20000 });
@@ -175,13 +175,13 @@ async function main() {
     where: { ingredientId: ing.id, type: "PURCHASE", referenceId: expenseItem.id },
   });
   const postExp = await prisma.expenseItem.findUniqueOrThrow({ where: { id: expenseItem.id } });
-  const postRpOnHand = post.currentStock * post.averageUnitCost;
+  const postRpOnHand = post.currentStock * post.unitCost;
 
-  console.log(`  post: stock=${post.currentStock} g, avg=${post.averageUnitCost.toFixed(4)} Rp/g, RpOnHand=${postRpOnHand.toFixed(2)}`);
+  console.log(`  post: stock=${post.currentStock} g, avg=${post.unitCost.toFixed(4)} Rp/g, RpOnHand=${postRpOnHand.toFixed(2)}`);
 
   console.log("\nInvariants:");
   check("currentStock = 6600 g (2 × 3300)", APPROX(post.currentStock, 6600));
-  check("averageUnitCost ≈ 3.0303 Rp/g (20000/6600)", APPROX(post.averageUnitCost, 20000 / 6600, 0.01));
+  check("unitCost ≈ 3.0303 Rp/g (20000/6600)", APPROX(post.unitCost, 20000 / 6600, 0.01));
   check("Rp on hand = totalCost = 20000 (avg × stock)", APPROX(postRpOnHand, 20000, 0.5), `was ${preRpOnHand}, now ${postRpOnHand.toFixed(2)}`);
   check("purchase.packLabel = bks", postPurchase.packLabel === "bks");
   check("purchase.baseQty = 6600", APPROX(postPurchase.baseQty, 6600));

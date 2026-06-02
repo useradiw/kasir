@@ -45,22 +45,22 @@ function scaleFor(unit) {
 
 async function planAndScaleStandard(tx, ing) {
   // Standard kg/g/mg rescale for non-Arang WEIGHT ingredients.
-  const scale = scaleFor(ing.baseUnit);
+  const scale = scaleFor(ing.unit);
   if (scale === null) {
-    console.warn(`  SKIP   ${ing.name.padEnd(25)} baseUnit="${ing.baseUnit}" (unrecognised; fix manually)`);
+    console.warn(`  SKIP   ${ing.name.padEnd(25)} baseUnit="${ing.unit}" (unrecognised; fix manually)`);
     return false;
   }
   const note = scale === 1 ? "(no rescale)" : `× ${scale} qty, ÷ ${scale} cost`;
-  console.log(`  PLAN   ${ing.name.padEnd(25)} ${ing.baseUnit.padEnd(4)} → g   ${note}`);
+  console.log(`  PLAN   ${ing.name.padEnd(25)} ${ing.unit.padEnd(4)} → g   ${note}`);
 
   if (!apply) return true;
 
   await tx.ingredient.update({
     where: { id: ing.id },
     data: {
-      baseUnit:        "g",
+      unit:            "g",
       currentStock:    ing.currentStock * scale,
-      averageUnitCost: ing.averageUnitCost / scale,
+      unitCost:        ing.unitCost / scale,
       lastUnitCost:    ing.lastUnitCost == null ? null : ing.lastUnitCost / scale,
     },
   });
@@ -230,9 +230,9 @@ async function replayArang(tx) {
   await tx.ingredient.update({
     where: { id: ARANG_ID },
     data: {
-      baseUnit:        "g",
+      unit:            "g",
       currentStock:    runningStock,
-      averageUnitCost: runningAvg,
+      unitCost:        runningAvg,
       lastUnitCost:    lastCost,
     },
   });
@@ -248,8 +248,8 @@ async function main() {
 
   const weight = await prisma.ingredient.findMany({
     where:   { unitClass: "WEIGHT" },
-    select:  { id: true, name: true, baseUnit: true, currentStock: true,
-               averageUnitCost: true, lastUnitCost: true },
+    select:  { id: true, name: true, unit: true, currentStock: true,
+               unitCost: true, lastUnitCost: true },
     orderBy: { name: "asc" },
   });
 

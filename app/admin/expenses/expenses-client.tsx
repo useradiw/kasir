@@ -29,7 +29,7 @@ type Expense = {
 };
 
 type IngredientOption = {
-  id: string; name: string; baseUnit: string; averageUnitCost: number; category: string;
+  id: string; name: string; unit: string; unitCost: number; category: string;
 };
 
 export default function ExpensesClient({

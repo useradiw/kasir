@@ -10,7 +10,7 @@ import { useAdminAction } from "@/hooks/use-admin-action";
 import { formatDateTime } from "@/lib/format";
 import { submitOpname } from "@/app/actions/admin/opname";
 
-type Ingredient = { id: string; name: string; category: string; baseUnit: string; currentStock: number };
+type Ingredient = { id: string; name: string; category: string; unit: string; currentStock: number };
 type OpnameLine = { ingredientId: string; countedQty: number | null };
 
 type HistoryLine = {
@@ -19,7 +19,7 @@ type HistoryLine = {
   systemQty: number;
   countedQty: number;
   delta: number;
-  ingredient: { name: string; baseUnit: string };
+  ingredient: { name: string; unit: string };
 };
 type HistoryItem = {
   id: string;
@@ -111,7 +111,7 @@ export default function OpnameClient({
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{ing.name}</p>
                       <p className="text-xs text-muted-foreground tabular-nums">
-                        Sistem: {ing.currentStock % 1 === 0 ? ing.currentStock.toFixed(0) : ing.currentStock.toFixed(2)} {ing.baseUnit}
+                        Sistem: {ing.currentStock % 1 === 0 ? ing.currentStock.toFixed(0) : ing.currentStock.toFixed(2)} {ing.unit}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -120,7 +120,7 @@ export default function OpnameClient({
                         onValueChange={(v) => updateLine(ing.id, v)}
                         className="w-24 h-8 text-sm tabular-nums text-right"
                       />
-                      <span className="text-xs text-muted-foreground w-8">{ing.baseUnit}</span>
+                      <span className="text-xs text-muted-foreground w-8">{ing.unit}</span>
                       {delta !== null && (
                         <span className={`text-xs font-medium w-16 text-right tabular-nums ${delta > 0 ? "text-green-600 dark:text-green-400" : delta < 0 ? "text-destructive" : "text-muted-foreground"}`}>
                           {delta > 0 ? "+" : ""}{delta % 1 === 0 ? delta.toFixed(0) : delta.toFixed(2)}
@@ -191,7 +191,7 @@ export default function OpnameClient({
                               {" → "}
                               {l.countedQty % 1 === 0 ? l.countedQty.toFixed(0) : l.countedQty.toFixed(2)}
                               {" "}
-                              {l.ingredient.baseUnit}
+                              {l.ingredient.unit}
                               {" "}
                               <span className={l.delta > 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
                                 ({l.delta > 0 ? "+" : ""}{l.delta % 1 === 0 ? l.delta.toFixed(0) : l.delta.toFixed(2)})
