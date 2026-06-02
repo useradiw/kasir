@@ -177,6 +177,7 @@ model ExpenseItem {
   description  String
   amount       Float
   cost         Int
+  lineTotal    Int?             // exact total paid; old rows (null) fall back to amount * cost
   unit         String?
   templateId   String?          // legacy FK → ExpenseTemplate (kept until migration 2)
   template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)

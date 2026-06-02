@@ -33,6 +33,7 @@ export async function addExpense(data: ExpenseData) {
               description:  i.description,
               amount:       i.amount,
               cost:         i.cost,
+              lineTotal:    i.total ?? Math.round(i.amount * i.cost),
               unit:         i.unit || null,
               templateId:   null,
               ingredientId: i.ingredientId ?? null,
@@ -43,7 +44,7 @@ export async function addExpense(data: ExpenseData) {
       });
 
       if (countToKasPakHar) {
-        const total = parsed.items.reduce((sum, i) => sum + i.amount * i.cost, 0);
+        const total = parsed.items.reduce((s, i) => s + (i.total ?? i.amount * i.cost), 0);
         await tx.kasPakHar.create({
           data: {
             type:        "EXPENSE_DEDUCTION",
@@ -66,7 +67,7 @@ export async function addExpense(data: ExpenseData) {
             source:        "EXPENSE" as const,
             packLabel:     item.unit,
             packQty:       item.amount,
-            totalCost:     Math.round(item.amount * item.cost),
+            totalCost:     item.lineTotal ?? Math.round(item.amount * item.cost),
             purchasedAt:   expense.recordedAt,
             recordedById:  staff.id,
           })),
@@ -119,6 +120,7 @@ export async function updateExpense(id: string, data: ExpenseData) {
               description:  i.description,
               amount:       i.amount,
               cost:         i.cost,
+              lineTotal:    i.total ?? Math.round(i.amount * i.cost),
               unit:         i.unit || null,
               templateId:   null,
               ingredientId: i.ingredientId ?? null,
@@ -128,7 +130,7 @@ export async function updateExpense(id: string, data: ExpenseData) {
       });
 
       if (countToKasPakHar) {
-        const total = parsed.items.reduce((sum, i) => sum + i.amount * i.cost, 0);
+        const total = parsed.items.reduce((s, i) => s + (i.total ?? i.amount * i.cost), 0);
         await tx.kasPakHar.create({
           data: {
             type:        "EXPENSE_DEDUCTION",
@@ -143,7 +145,7 @@ export async function updateExpense(id: string, data: ExpenseData) {
       // 3. Stock IN for new items
       const newItems = await tx.expenseItem.findMany({
         where: { expenseId: id, ingredientId: { not: null } },
-        select: { id: true, ingredientId: true, amount: true, cost: true, unit: true },
+        select: { id: true, ingredientId: true, amount: true, cost: true, lineTotal: true, unit: true },
       });
 
       const expense = await tx.expense.findUniqueOrThrow({
@@ -162,7 +164,7 @@ export async function updateExpense(id: string, data: ExpenseData) {
             source:        "EXPENSE" as const,
             packLabel:     item.unit,
             packQty:       item.amount,
-            totalCost:     Math.round(item.amount * item.cost),
+            totalCost:     item.lineTotal ?? Math.round(item.amount * item.cost),
             purchasedAt:   expense.recordedAt,
             recordedById:  staff.id,
           })),

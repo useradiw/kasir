@@ -31,6 +31,7 @@ export async function getExpensesData(opts: { from: string; to: string }) {
       description: i.description,
       amount: i.amount,
       cost: i.cost,
+      lineTotal: i.lineTotal,
       unit: i.unit,
       templateId: i.templateId,
     }));

@@ -5,6 +5,7 @@ export const expenseItemSchema = z.object({
   amount:       z.coerce.number().min(0.001, "Jumlah harus lebih dari 0"),
   cost:         z.coerce.number().int().min(0, "Biaya tidak boleh negatif"),
   unit:         z.string().optional(),
+  total:        z.coerce.number().int().min(0).optional(),
   templateId:   z.string().nullable().optional(),
   ingredientId: z.string().nullable().optional(),
 });

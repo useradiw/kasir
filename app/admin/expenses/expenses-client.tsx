@@ -16,7 +16,7 @@ import { addExpense, updateExpense, deleteExpense } from "@/app/actions/admin/ex
 import { exportPDF } from "@/lib/export-pdf";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 
-type ExpenseItem = { id: string; description: string; amount: number; cost: number; unit?: string | null; templateId?: string | null; ingredientId?: string | null };
+type ExpenseItem = { id: string; description: string; amount: number; cost: number; lineTotal?: number | null; unit?: string | null; templateId?: string | null; ingredientId?: string | null };
 type Expense = {
   id: string;
   description: string | null;
@@ -180,6 +180,7 @@ export default function ExpensesClient({
                             description: i.description,
                             amount: i.amount,
                             cost: i.cost,
+                            total: i.lineTotal ?? undefined,
                             unit: i.unit ?? undefined,
                             templateId: i.templateId ?? null,
                             ingredientId: i.ingredientId ?? i.templateId ?? null,

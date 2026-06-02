@@ -6,7 +6,6 @@ const { PrismaClient } = await import("../../generated/prisma/index.js");
 const { PrismaPg } = await import("@prisma/adapter-pg");
 const {
   recordPurchasesBatch,
-  recomputeLastCost,
   reverseExpenseItemPurchases,
   computeOrderCogs,
 } = await import("../../lib/cogs-utils.ts");

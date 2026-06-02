@@ -28,6 +28,7 @@ type Props = {
       description:  string;
       amount:       number;
       cost:         number;
+      total?:       number;
       unit?:        string;
       templateId?:  string | null;
       ingredientId?: string | null;
@@ -42,6 +43,7 @@ type Props = {
       description:  string;
       amount:       number;
       cost:         number;
+      total?:       number;
       unit?:        string;
       templateId?:  string | null;
       ingredientId?: string | null;
@@ -52,7 +54,7 @@ type Props = {
 
 let nextId = 0;
 function createRow(defaults?: {
-  description: string; amount: number; cost: number;
+  description: string; amount: number; cost: number; total?: number;
   unit?: string; templateId?: string | null; ingredientId?: string | null;
 }): ExpenseItemRow {
   return {
@@ -60,6 +62,7 @@ function createRow(defaults?: {
     description:  defaults?.description ?? "",
     amount:       defaults?.amount ?? 1,
     cost:         defaults?.cost ?? 0,
+    total:        defaults?.total ?? (defaults?.amount && defaults?.cost ? Math.round(defaults.amount * defaults.cost) : null),
     unit:         defaults?.unit ?? "",
     templateId:   defaults?.templateId ?? null,
     ingredientId: defaults?.ingredientId ?? null,
@@ -137,10 +140,11 @@ export function ExpenseForm({
       supplierId:       supplierId || null,
       deductFromCash,
       countToKasPakHar,
-      items: items.map(({ description, amount, cost, unit, ingredientId }) => ({
+      items: items.map(({ description, amount, cost, total, unit, ingredientId }) => ({
         description,
         amount,
         cost,
+        total:        total ?? undefined,
         unit:         unit || undefined,
         templateId:   null,
         ingredientId: ingredientId ?? null,

@@ -17,6 +17,7 @@ export async function addExpenseForStaff(data: {
     description: string;
     amount: number;
     cost: number;
+    total?: number;
     unit?: string;
     templateId?: string | null;
     ingredientId?: string | null;
@@ -47,6 +48,7 @@ export async function addExpenseForStaff(data: {
               description:  i.description,
               amount:       i.amount,
               cost:         i.cost,
+              lineTotal:    i.total ?? Math.round(i.amount * i.cost),
               unit:         i.unit || null,
               templateId:   null,
               ingredientId: i.ingredientId ?? null,
@@ -57,7 +59,7 @@ export async function addExpenseForStaff(data: {
       });
 
       if (countToKasPakHar) {
-        const total = parsed.items.reduce((sum, i) => sum + i.amount * i.cost, 0);
+        const total = parsed.items.reduce((s, i) => s + (i.total ?? i.amount * i.cost), 0);
         await tx.kasPakHar.create({
           data: {
             type:        "EXPENSE_DEDUCTION",
@@ -81,7 +83,7 @@ export async function addExpenseForStaff(data: {
             source:        "EXPENSE" as const,
             packLabel:     item.unit,
             packQty:       item.amount,
-            totalCost:     Math.round(item.amount * item.cost),
+            totalCost:     item.lineTotal ?? Math.round(item.amount * item.cost),
             purchasedAt:   expense.recordedAt,
             recordedById:  staff.id,
           })),

@@ -24,6 +24,7 @@ export type ExpenseItemRow = {
   description:  string;
   amount:       number;
   cost:         number;  // per-unit (derived from total ÷ amount); stored on ExpenseItem
+  total:        number | null; // exact line total paid; source of truth (new rows); null = legacy fallback
   unit:         string;
   templateId:   string | null; // legacy
   ingredientId: string | null; // new
@@ -65,14 +66,18 @@ export function ItemRow({
   const unitLabel = selectedIngredient ? selectedIngredient.baseUnit : (item.unit || "satuan");
   const perUnit = total != null && qty != null && qty > 0 ? total / qty : 0;
 
-  // Push derived per-unit cost + qty up to the parent whenever total/qty change.
+  // Push derived per-unit cost + qty + exact total up to the parent whenever total/qty change.
   function pushDerived(nextQty: number | null, nextTotal: number | null) {
     const c = nextQty != null && nextQty > 0 && nextTotal != null ? Math.round(nextTotal / nextQty) : 0;
     onUpdate(item.id, "amount", nextQty ?? 0);
     onUpdate(item.id, "cost", c);
   }
   function handleQty(v: number | null) { setQty(v); pushDerived(v, total); }
-  function handleTotal(v: number | null) { setTotal(v); pushDerived(qty, v); }
+  function handleTotal(v: number | null) {
+    setTotal(v);
+    onUpdate(item.id, "total", v !== null ? Math.round(v) : null);
+    pushDerived(qty, v);
+  }
 
   useEffect(() => {
     function handler(e: MouseEvent) {
