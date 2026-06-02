@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
-import { AdminSelect, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
+import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
 import { Badge } from "@/components/shared/badge";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
@@ -17,6 +17,7 @@ import { formatRupiah, formatRpPerUnit, formatDateTime } from "@/lib/format";
 import { findIngredientByName } from "@/lib/ingredient-search";
 import {
   updateIngredient,
+  changeIngredientUnit,
   deactivateIngredient,
   addIngredientPack,
   updateIngredientPack,
@@ -35,7 +36,6 @@ import {
   assembleIngredient,
 } from "@/app/actions/admin/ingredient-recipes";
 import { adjustIngredientStock } from "@/app/actions/admin/queries";
-import type { UnitClassName } from "@/lib/unit-class";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from "recharts";
@@ -101,7 +101,6 @@ export default function IngredientDetailClient({
   ingredientOptions,
   unlinkedItems,
   suppliers,
-  resolvedBaseUnits,
   hasHistory,
   isOwner,
   tab,
@@ -113,7 +112,6 @@ export default function IngredientDetailClient({
   ingredientOptions: ActiveIngredientLite[];
   unlinkedItems: UnlinkedExpenseItem[];
   suppliers: SupplierLite[];
-  resolvedBaseUnits: Record<UnitClassName, string>;
   hasHistory: boolean;
   isOwner: boolean;
   tab: string;
@@ -145,7 +143,7 @@ export default function IngredientDetailClient({
             <div>
               <div className="flex items-center gap-2 flex-wrap">
                 <h1 className="text-base font-semibold">{detail.name}</h1>
-                <UnitClassBadge unitClass={detail.unitClass} baseUnit={detail.baseUnit} />
+                <Badge className="text-[10px] bg-muted text-muted-foreground">{detail.baseUnit}</Badge>
                 <Badge className="text-[10px] bg-muted text-muted-foreground">
                   {CATEGORY_LABELS[detail.category] ?? detail.category}
                 </Badge>
@@ -350,7 +348,6 @@ export default function IngredientDetailClient({
           detail={detail}
           purchases={purchases}
           suppliers={suppliers}
-          resolvedBaseUnits={resolvedBaseUnits}
           hasHistory={hasHistory}
           unlinkedItems={unlinkedItems}
           isPending={isPending}
@@ -392,7 +389,6 @@ function SettingsTab({
   detail,
   purchases,
   suppliers,
-  resolvedBaseUnits,
   hasHistory,
   unlinkedItems,
   isPending,
@@ -402,7 +398,6 @@ function SettingsTab({
   detail: Detail;
   purchases: IngredientPurchaseHistory;
   suppliers: SupplierLite[];
-  resolvedBaseUnits: Record<UnitClassName, string>;
   hasHistory: boolean;
   unlinkedItems: UnlinkedExpenseItem[];
   isPending: boolean;
@@ -413,6 +408,7 @@ function SettingsTab({
   const [editPack, setEditPack] = useState<string | null>(null);
   const [showAddPack, setShowAddPack] = useState(false);
   const [showWaste, setShowWaste] = useState(false);
+  const [showUnitChange, setShowUnitChange] = useState(false);
   const [showAdjust, setShowAdjust] = useState(false);
   const [adjustQty, setAdjustQty] = useState<number | null>(null);
   const [adjustNote, setAdjustNote] = useState("");
@@ -448,7 +444,7 @@ function SettingsTab({
               () => updateIngredient(detail.id, {
                 name:              fd.get("name") as string,
                 category:          (fd.get("category") as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA"),
-                unitClass:         (fd.get("unitClass") as UnitClassName) || detail.unitClass,
+                unit:              (fd.get("unit") as string) || detail.baseUnit,
                 lowStockAlert:     fd.get("lowStockAlert") ? parseFloat(fd.get("lowStockAlert") as string) : null,
                 notes:             fd.get("notes") as string || undefined,
                 defaultSupplierId: (fd.get("defaultSupplierId") as string) || null,
@@ -472,25 +468,23 @@ function SettingsTab({
                 </AdminSelect>
               </div>
               <div className="grid gap-1">
-                <Label>Kelas Satuan</Label>
-                <AdminSelect name="unitClass" defaultValue={detail.unitClass} disabled={hasHistory}>
-                  <option value="WEIGHT">Berat ({resolvedBaseUnits.WEIGHT})</option>
-                  <option value="VOLUME">Volume ({resolvedBaseUnits.VOLUME})</option>
-                  <option value="COUNT">Jumlah ({resolvedBaseUnits.COUNT})</option>
-                </AdminSelect>
-                {hasHistory && (
-                  <span className="text-[10px] text-muted-foreground">terkunci — sudah ada riwayat</span>
-                )}
-              </div>
-              <div className="grid gap-1">
-                <Label>Satuan Dasar (terkunci)</Label>
+                <Label>Satuan</Label>
                 <Input
-                  value={detail.baseUnit}
-                  readOnly
-                  disabled
-                  className="w-28 bg-muted/40 cursor-not-allowed"
-                  title="Ditentukan otomatis dari Kelas Satuan. Ubah di Pengaturan → Satuan & Konversi."
+                  name="unit"
+                  defaultValue={detail.baseUnit}
+                  disabled={hasHistory}
+                  className={`w-28 ${hasHistory ? "bg-muted/40 cursor-not-allowed" : ""}`}
+                  title={hasHistory ? "Sudah ada riwayat — pakai \"Ubah Satuan\" untuk konversi" : "Satuan bebas: gram, ml, butir, pcs…"}
                 />
+                {hasHistory && (
+                  <button
+                    type="button"
+                    className="text-[10px] text-primary text-left hover:underline"
+                    onClick={() => setShowUnitChange((v) => !v)}
+                  >
+                    {showUnitChange ? "tutup" : "Ubah Satuan (konversi)"}
+                  </button>
+                )}
               </div>
               <div className="grid gap-1">
                 <Label>Batas Min</Label>
@@ -514,6 +508,41 @@ function SettingsTab({
             </div>
             <Button type="submit" size="sm" disabled={isPending}>Simpan Perubahan</Button>
           </form>
+
+          {showUnitChange && (
+            <form
+              action={(fd) => run(
+                () => changeIngredientUnit(
+                  detail.id,
+                  (fd.get("newUnit") as string) || "",
+                  parseFloat(fd.get("factor") as string),
+                ),
+                { successMessage: "Satuan dikonversi", onSuccess: () => setShowUnitChange(false) },
+              )}
+              className="mt-4 border-t border-foreground/10 pt-3 space-y-2"
+            >
+              <p className="text-xs text-muted-foreground">
+                Konversi satuan <strong>{detail.baseUnit}</strong> → satuan baru. Stok, HPP, dan semua resep
+                yang memakai bahan ini ikut dihitung ulang otomatis.
+              </p>
+              <div className="flex flex-wrap gap-3 items-end">
+                <div className="grid gap-1">
+                  <Label>Satuan Baru</Label>
+                  <Input name="newUnit" required placeholder="cth: kg" className="w-28" />
+                </div>
+                <div className="grid gap-1">
+                  <Label>1 satuan baru = ? {detail.baseUnit}</Label>
+                  <DecimalInput name="factor" required placeholder={`mis. 1000`} className="w-32" />
+                </div>
+                <Button type="submit" size="sm" variant="outline" disabled={isPending}>
+                  Konversi
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Contoh: dari <code>{detail.baseUnit}</code> ke <code>kg</code>, isi <code>1000</code> jika 1 kg = 1000 {detail.baseUnit}.
+              </p>
+            </form>
+          )}
         </CardContent>
       </Card>
 
@@ -1194,10 +1223,6 @@ function BulkAddComponentPanel({
                   {r.ok ? (
                     <>
                       <span className="font-medium flex-1">{r.ingredient.name}</span>
-                      <UnitClassBadge unitClass={r.ingredient.unitClass} />
-                      {r.classWarn && (
-                        <span className="text-[10px] bg-warning/10 text-warning-foreground px-1.5 py-0.5 rounded-full">kelas beda</span>
-                      )}
                       <span className="text-sm tabular-nums">{r.quantity} {r.ingredient.baseUnit}</span>
                     </>
                   ) : (

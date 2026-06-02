@@ -1,6 +1,22 @@
 /**
  * COGS (Cost of Goods Sold) and inventory stock utilities.
- * Uses weighted moving average (WMA) cost stored on Ingredient.averageUnitCost.
+ *
+ * Costing model: LAST PURCHASE COST. `Ingredient.averageUnitCost` holds the unit
+ * cost (Rp per unit) of the most recent purchase — there is no weighted moving
+ * average and no chronological replay. Editing/deleting a purchase simply
+ * recomputes the cost from whatever the latest remaining purchase is.
+ *
+ * Unit model: each ingredient has ONE free-text unit (`Ingredient.baseUnit`).
+ * Stock, recipe quantities and cost are all expressed in that unit. There is no
+ * pack/unit-conversion layer — a purchase line's `packQty` IS the quantity in the
+ * ingredient's unit (the user converts "2 dus" → "60 butir" themselves when
+ * recording). `packLabel` is kept only as a free-text memory note.
+ *
+ * Legacy columns (`packLabel`, `packQty`/`baseQty`, `avgUnitCostAfter`,
+ * `stockAfter`, `unitClass`, IngredientPack) are still populated/present so the
+ * DB schema is untouched in this phase; they are dormant and slated for a later
+ * destructive cleanup migration. See docs/cogs-redesign-plan.md.
+ *
  * All functions that write to the DB operate inside a Prisma interactive transaction.
  */
 
@@ -8,36 +24,10 @@ import { Prisma } from "@/generated/prisma";
 
 export type PrismaTx = Prisma.TransactionClient;
 
-// ─── Pack unit conversion ─────────────────────────────────────────────────────
-
-/**
- * Resolve packBaseQty against a prefetched pack map.
- * Empty/null packLabel means "already in base units" → returns 1.
- * A non-empty label MUST match an existing IngredientPack — otherwise we throw
- * loudly. The previous silent `?? 1` fallback caused real data corruption: a
- * mislabeled "bks" expense against a pack saved as "1 bks" treated 3 packs as
- * 3 mg instead of 9,900,000 mg. Better to fail fast than silently miscalculate.
- */
-function resolvePackBaseQty(
-  packMap: Map<string, number>,
-  ingredientId: string,
-  packLabel: string | null | undefined,
-): number {
-  if (!packLabel) return 1;
-  const found = packMap.get(`${ingredientId}::${packLabel}`);
-  if (found === undefined) {
-    throw new Error(
-      `Satuan "${packLabel}" belum terdaftar untuk bahan ini. ` +
-      `Tambahkan dulu di pengaturan bahan (Pack/Satuan) sebelum mencatat pembelian.`,
-    );
-  }
-  return found;
-}
-
 // ─── WMA cost read ────────────────────────────────────────────────────────────
 
 /**
- * Returns the current weighted-average unit cost (Rp) for an ingredient.
+ * Returns the current unit cost (Rp) for an ingredient.
  * O(1) — reads the denormalized field directly from the Ingredient row.
  */
 export async function getIngredientAvgCost(
@@ -51,6 +41,35 @@ export async function getIngredientAvgCost(
   return row?.averageUnitCost ?? 0;
 }
 
+/**
+ * Recomputes an ingredient's unit cost from its LATEST purchase row (by
+ * purchasedAt). This is the whole costing rule: cost = most recent purchase's
+ * unitCost. Robust to backdated purchases (e.g. linking historical expenses) and
+ * to deletions (falls back to the next-latest remaining purchase).
+ *
+ * If no purchase rows remain, the existing cost is left untouched (we don't zero
+ * a previously-known cost just because every purchase was removed).
+ */
+export async function recomputeLastCost(
+  tx: PrismaTx,
+  ingredientId: string,
+): Promise<void> {
+  const latest = await tx.ingredientPurchase.findFirst({
+    where:   { ingredientId },
+    orderBy: [{ purchasedAt: "desc" }, { id: "desc" }],
+    select:  { unitCost: true, purchasedAt: true },
+  });
+  if (!latest) return;
+  await tx.ingredient.update({
+    where: { id: ingredientId },
+    data: {
+      averageUnitCost: latest.unitCost,
+      lastUnitCost:    latest.unitCost,
+      lastPurchasedAt: latest.purchasedAt,
+    },
+  });
+}
+
 // ─── Purchase recording ───────────────────────────────────────────────────────
 
 export interface PurchaseInput {
@@ -58,23 +77,22 @@ export interface PurchaseInput {
   supplierId?: string | null;
   expenseItemId?: string | null;
   source: "EXPENSE" | "ADJUSTMENT" | "OPNAME_GAIN";
-  packLabel?: string | null;
-  packQty: number;       // qty in pack unit (e.g. 2 if buying 2 dus)
-  totalCost: number;     // total Rp paid for this line
+  packLabel?: string | null;  // free-text memory note (e.g. "2 dus"); NOT resolved
+  packQty: number;            // quantity in the ingredient's unit
+  totalCost: number;          // total Rp paid for this line
   purchasedAt?: Date;
   recordedById?: string | null;
   notes?: string | null;
 }
 
 /**
- * Records a batch of ingredient purchases in a fixed number of DB round trips,
- * regardless of how many items are passed. Behaviour is identical to applying
- * the legacy per-item recordPurchase sequentially:
- * 1. Prefetches pack definitions and ingredient states (2 queries total).
- * 2. Folds the WMA per ingredient in memory, in input order, so repeated
- *    ingredients chain their average correctly.
- * 3. Inserts all IngredientPurchase + IngredientLog rows via createMany.
- * 4. Writes one Ingredient.update per distinct ingredient with final values.
+ * Records a batch of ingredient purchases.
+ * 1. Inserts all IngredientPurchase + IngredientLog rows.
+ * 2. Increments each ingredient's stock by the purchased quantity.
+ * 3. Sets each affected ingredient's cost to its latest purchase cost.
+ *
+ * No pack resolution, no weighted average. `packQty` is taken as the quantity in
+ * the ingredient's unit directly. unitCost = totalCost / qty.
  */
 export async function recordPurchasesBatch(
   tx: PrismaTx,
@@ -84,31 +102,14 @@ export async function recordPurchasesBatch(
 
   const ingredientIds = [...new Set(inputs.map((i) => i.ingredientId))];
 
-  const packs = await tx.ingredientPack.findMany({
-    where: { ingredientId: { in: ingredientIds } },
-    select: { ingredientId: true, label: true, baseQty: true },
-  });
-  const packMap = new Map<string, number>();
-  for (const p of packs) packMap.set(`${p.ingredientId}::${p.label}`, p.baseQty);
-
   const ings = await tx.ingredient.findMany({
     where: { id: { in: ingredientIds } },
-    select: { id: true, currentStock: true, averageUnitCost: true },
+    select: { id: true, currentStock: true },
   });
-  const state = new Map<
-    string,
-    { stock: number; avg: number; lastUnitCost: number; lastPurchasedAt: Date }
-  >();
-  for (const ing of ings) {
-    state.set(ing.id, {
-      stock: ing.currentStock,
-      avg: ing.averageUnitCost,
-      lastUnitCost: 0,
-      lastPurchasedAt: new Date(0),
-    });
-  }
+  const stockState = new Map<string, number>();
+  for (const ing of ings) stockState.set(ing.id, ing.currentStock);
   for (const id of ingredientIds) {
-    if (!state.has(id)) throw new Error("Bahan tidak ditemukan.");
+    if (!stockState.has(id)) throw new Error("Bahan tidak ditemukan.");
   }
 
   const now = new Date();
@@ -119,17 +120,12 @@ export async function recordPurchasesBatch(
     const { ingredientId, supplierId, expenseItemId, source, packLabel, packQty,
             totalCost, purchasedAt, recordedById, notes } = input;
 
-    const packBaseQty = resolvePackBaseQty(packMap, ingredientId, packLabel);
-    const baseQty = packQty * packBaseQty;
-    const unitCost = baseQty > 0 ? totalCost / baseQty : 0;
+    const qty = packQty;
+    const unitCost = qty > 0 ? totalCost / qty : 0;
 
-    const s = state.get(ingredientId)!;
-    const oldStock = s.stock;
-    const oldAvg = s.avg;
-    const newStock = oldStock + baseQty;
-    const newAvg = newStock > 0
-      ? (oldAvg * oldStock + totalCost) / newStock
-      : unitCost;
+    const oldStock = stockState.get(ingredientId)!;
+    const newStock = oldStock + qty;
+    stockState.set(ingredientId, newStock);
 
     const ts = purchasedAt ?? now;
 
@@ -139,11 +135,11 @@ export async function recordPurchasesBatch(
       expenseItemId:    expenseItemId ?? null,
       source,
       packLabel:        packLabel ?? null,
-      packQty,
-      baseQty,
+      packQty:          qty,
+      baseQty:          qty,
       totalCost,
       unitCost,
-      avgUnitCostAfter: newAvg,
+      avgUnitCostAfter: unitCost,  // legacy column: last cost, not an average
       stockAfter:       newStock,
       purchasedAt:      ts,
       recordedById:     recordedById ?? null,
@@ -153,48 +149,38 @@ export async function recordPurchasesBatch(
     logRows.push({
       ingredientId,
       type:        "PURCHASE",
-      quantity:    baseQty,
+      quantity:    qty,
       unitCost,
       referenceId: expenseItemId ?? null,
       note:        notes ?? null,
     });
-
-    s.stock = newStock;
-    s.avg = newAvg;
-    s.lastUnitCost = unitCost;
-    s.lastPurchasedAt = ts;
   }
 
   await tx.ingredientPurchase.createMany({ data: purchaseRows });
   await tx.ingredientLog.createMany({ data: logRows });
 
   for (const id of ingredientIds) {
-    const s = state.get(id)!;
     await tx.ingredient.update({
       where: { id },
-      data: {
-        currentStock:    s.stock,
-        averageUnitCost: s.avg,
-        lastUnitCost:    s.lastUnitCost,
-        lastPurchasedAt: s.lastPurchasedAt,
-      },
+      data:  { currentStock: stockState.get(id)! },
     });
+    await recomputeLastCost(tx, id);
   }
 }
 
 export interface ReversePurchaseInput {
   ingredientId: string;
-  packLabel?: string | null;
-  packQty: number;   // qty in pack unit, as stored on the expense item
+  packLabel?: string | null;  // unused for resolution; kept for signature parity
+  packQty: number;            // quantity in the ingredient's unit, as stored
   unitCost: number;
   note?: string | null;
 }
 
 /**
- * Reverses a batch of purchases (e.g. on expense edit/delete) in a fixed number
- * of round trips. Decrements stock by the resolved base quantity. WMA is NOT
- * recalculated backward to avoid distorting historical averages; only stock is
- * adjusted. Writes one ADJUSTMENT log per item.
+ * Reverses a batch of purchases (e.g. on expense edit/delete): decrements stock
+ * by the recorded quantity and writes one ADJUSTMENT log per item. Does NOT
+ * delete the IngredientPurchase rows (the caller handles that) and does NOT
+ * recompute cost — the caller calls recomputeLastCost after deleting the rows.
  */
 export async function reversePurchasesBatch(
   tx: PrismaTx,
@@ -202,30 +188,16 @@ export async function reversePurchasesBatch(
 ): Promise<void> {
   if (items.length === 0) return;
 
-  const ingredientIds = [...new Set(items.map((i) => i.ingredientId))];
-
-  const packs = await tx.ingredientPack.findMany({
-    where: { ingredientId: { in: ingredientIds } },
-    select: { ingredientId: true, label: true, baseQty: true },
-  });
-  const packMap = new Map<string, number>();
-  for (const p of packs) packMap.set(`${p.ingredientId}::${p.label}`, p.baseQty);
-
   const decrements = new Map<string, number>();
   const logRows: Prisma.IngredientLogCreateManyInput[] = [];
 
   for (const item of items) {
-    const packBaseQty = resolvePackBaseQty(packMap, item.ingredientId, item.packLabel);
-    const baseQty = item.packQty * packBaseQty;
-
-    decrements.set(
-      item.ingredientId,
-      (decrements.get(item.ingredientId) ?? 0) + baseQty,
-    );
+    const qty = item.packQty;
+    decrements.set(item.ingredientId, (decrements.get(item.ingredientId) ?? 0) + qty);
     logRows.push({
       ingredientId: item.ingredientId,
       type:        "ADJUSTMENT",
-      quantity:    -baseQty,
+      quantity:    -qty,
       unitCost:    item.unitCost,
       note:        item.note ?? "Purchase reversed",
     });
@@ -253,11 +225,8 @@ export interface OrderItemLike {
 
 /**
  * Computes COGS (Rp, rounded) and per-ingredient stock movements for a set
- * of order items. Uses Ingredient.averageUnitCost (WMA) — O(1) per ingredient.
+ * of order items. Uses Ingredient.averageUnitCost (last purchase cost).
  * Skips CANCELLED items and recipe ingredients without an ingredientId.
- *
- * Batch-fetches all recipes and ingredient costs upfront (2–3 queries total)
- * instead of issuing per-item queries.
  */
 export async function computeOrderCogs(
   tx: PrismaTx,
@@ -266,14 +235,12 @@ export async function computeOrderCogs(
   const active = orderItems.filter((i) => i.status !== "CANCELLED");
   if (active.length === 0) return { totalCogs: 0, movements: [] };
 
-  // Collect all menuItemIds (direct + from packages)
   const directMenuItemIds = active
     .filter((i) => i.menuItemId)
     .map((i) => i.menuItemId!);
 
   const packageIds = [...new Set(active.filter((i) => i.packageId).map((i) => i.packageId!))];
 
-  // Batch-fetch package members
   const packageMembers = packageIds.length > 0
     ? await tx.packageItem.findMany({
         where: { packageId: { in: packageIds } },
@@ -284,7 +251,6 @@ export async function computeOrderCogs(
   const packageMenuItemIds = packageMembers.map((m) => m.menuItemId);
   const allMenuItemIds = [...new Set([...directMenuItemIds, ...packageMenuItemIds])];
 
-  // Batch-fetch all recipes for these menu items
   const recipes = await tx.recipe.findMany({
     where: { menuItemId: { in: allMenuItemIds } },
     select: {
@@ -294,13 +260,11 @@ export async function computeOrderCogs(
     },
   });
 
-  // Build recipe lookup: "menuItemId::variantId" → ingredients
   const recipeMap = new Map<string, typeof recipes[0]["ingredients"]>();
   for (const r of recipes) {
     recipeMap.set(`${r.menuItemId}::${r.variantId ?? ""}`, r.ingredients);
   }
 
-  // Collect all ingredient IDs needed for cost lookup
   const ingredientIds = new Set<string>();
   for (const r of recipes) {
     for (const ing of r.ingredients) {
@@ -309,7 +273,6 @@ export async function computeOrderCogs(
     }
   }
 
-  // Batch-fetch all ingredient costs
   const costRows = ingredientIds.size > 0
     ? await tx.ingredient.findMany({
         where: { id: { in: [...ingredientIds] } },
@@ -318,7 +281,6 @@ export async function computeOrderCogs(
     : [];
   const costMap = new Map(costRows.map((r) => [r.id, r.averageUnitCost]));
 
-  // Compute COGS in-memory
   let totalCogs = 0;
   const movements: StockMovement[] = [];
 
@@ -356,12 +318,12 @@ export async function computeOrderCogs(
 export interface StockMovement {
   ingredientId: string;
   quantity:     number; // positive = IN, negative = OUT
-  unitCost:     number; // Rp per baseUnit
+  unitCost:     number; // Rp per unit
 }
 
 /**
  * Writes IngredientLog entries and updates Ingredient.currentStock for each
- * movement. Does NOT update WMA (WMA only changes on purchases).
+ * movement. Does NOT change unit cost (cost only changes on purchases).
  */
 export async function applyStockMovements(
   tx: PrismaTx,
@@ -397,8 +359,7 @@ export async function applyStockMovements(
 
 /**
  * Reverses all SALE stock movements for a given transaction (called on void).
- * Restores stock via ADJUSTMENT logs at the original unitCost.
- * Does NOT recalculate WMA.
+ * Restores stock via ADJUSTMENT logs at the original unitCost. Does NOT change cost.
  */
 export async function reverseTransactionStock(
   tx: PrismaTx,
@@ -438,8 +399,7 @@ export async function reverseTransactionStock(
 // ─── Waste recording ──────────────────────────────────────────────────────────
 
 /**
- * Records ingredient waste. Decrements stock at current WMA cost.
- * Does NOT affect WMA.
+ * Records ingredient waste. Decrements stock at current unit cost. Does NOT change cost.
  */
 export async function recordWaste(
   tx: PrismaTx,
@@ -470,8 +430,8 @@ export async function recordWaste(
 /**
  * Applies a single opname line result.
  * Sets stock to the counted quantity and writes an ADJUSTMENT log for the delta.
- * If delta > 0 (gain), also records as OPNAME_GAIN IngredientPurchase at current WMA
- * so the purchase history is complete.
+ * If delta > 0 (gain), also records an OPNAME_GAIN IngredientPurchase at current
+ * cost so the purchase history is complete. Cost is unchanged (gain at current cost).
  */
 export async function recordOpnameLine(
   tx: PrismaTx,
@@ -519,4 +479,3 @@ export async function recordOpnameLine(
     });
   }
 }
-

@@ -5,20 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { requireRole, requireRoleStrict } from "@/lib/admin-auth";
 import { revalidateIngredients } from "@/lib/revalidate";
 import { runAction } from "@/lib/action-error";
-import { getSettings } from "@/lib/settings";
-import {
-  resolveBaseUnit,
-  inferStrictUnitClass,
-  type UnitClassName,
-} from "@/lib/unit-class";
-
-const UnitClassEnum = z.enum(["WEIGHT", "VOLUME", "COUNT"]);
 
 const ingredientSchema = z.object({
   name:              z.string().min(1, "Nama tidak boleh kosong"),
   category:          z.enum(["BAHAN", "KEMASAN", "PERLENGKAPAN", "LAINNYA"]).default("BAHAN"),
-  unitClass:         UnitClassEnum,
-  baseUnit:          z.string().min(1).optional(), // ignored on create — derived from unitClass + Setting
+  unit:              z.string().min(1, "Satuan tidak boleh kosong"),
   lowStockAlert:     z.coerce.number().nullable().optional(),
   notes:             z.string().optional(),
   defaultSupplierId: z.string().nullable().optional(),
@@ -31,25 +22,7 @@ const packSchema = z.object({
   isDefault: z.boolean().optional(),
 });
 
-/**
- * Soft cross-class check on a pack label: if the user typed a strict unit name
- * (e.g. "kg" or "ml"), block it when that class doesn't match the parent
- * ingredient. Packaging labels like "bks" / "dus" / "renteng" / "pack" pass
- * through unchanged regardless of parent class — they're container names, not
- * units, and the baseQty multiplier carries the real conversion. (You can buy
- * arang in bks even though arang is WEIGHT.)
- */
-function assertPackLabelClassMatches(label: string, parentClass: UnitClassName) {
-  const inferred = inferStrictUnitClass(label);
-  if (inferred && inferred !== parentClass) {
-    throw new Error(
-      `Label "${label}" adalah satuan kelas ${inferred}, tapi bahan ini kelas ${parentClass}. ` +
-      `Gunakan satuan dalam kelas ${parentClass} atau ganti label menjadi nama paket (mis. "dus", "botol", "bks", "renteng").`,
-    );
-  }
-}
-
-/** Returns true if the ingredient has any history that would make base-unit changes unsafe. */
+/** Returns true if the ingredient has any history that would make a plain unit relabel unsafe. */
 async function hasStockHistory(id: string): Promise<boolean> {
   const [purchases, logs, recipeRefs, componentRefs, ing] = await Promise.all([
     prisma.ingredientPurchase.count({ where: { ingredientId: id } }),
@@ -66,7 +39,7 @@ async function hasStockHistory(id: string): Promise<boolean> {
 export async function addIngredient(data: {
   name: string;
   category?: "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA";
-  unitClass: UnitClassName;
+  unit: string;
   lowStockAlert?: number | null;
   notes?: string;
   defaultSupplierId?: string | null;
@@ -75,14 +48,11 @@ export async function addIngredient(data: {
   return runAction(async () => {
     await requireRole("OWNER", "MANAGER");
     const parsed = ingredientSchema.parse(data);
-    const settings = await getSettings();
-    const baseUnit = resolveBaseUnit(parsed.unitClass, settings);
     const ing = await prisma.ingredient.create({
       data: {
         name:              parsed.name,
         category:          parsed.category,
-        unitClass:         parsed.unitClass,
-        baseUnit,
+        baseUnit:          parsed.unit.trim(),
         lowStockAlert:     parsed.lowStockAlert ?? null,
         notes:             parsed.notes || null,
         defaultSupplierId: parsed.defaultSupplierId || null,
@@ -97,8 +67,7 @@ export async function addIngredient(data: {
 export async function updateIngredient(id: string, data: {
   name: string;
   category?: "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA";
-  unitClass: UnitClassName;
-  baseUnit?: string;
+  unit: string;
   lowStockAlert?: number | null;
   notes?: string;
   defaultSupplierId?: string | null;
@@ -110,18 +79,19 @@ export async function updateIngredient(id: string, data: {
 
     const current = await prisma.ingredient.findUniqueOrThrow({
       where:  { id },
-      select: { unitClass: true, baseUnit: true },
+      select: { baseUnit: true },
     });
 
-    const settings   = await getSettings();
-    const wantBase   = resolveBaseUnit(parsed.unitClass, settings);
-    const classChange = current.unitClass !== parsed.unitClass;
-    const baseChange  = current.baseUnit  !== wantBase;
+    const wantUnit   = parsed.unit.trim();
+    const unitChange = current.baseUnit !== wantUnit;
 
-    if ((classChange || baseChange) && await hasStockHistory(id)) {
+    // A plain relabel is only safe with no history — otherwise stock/cost/recipe
+    // quantities would silently mean a different thing. Use changeIngredientUnit
+    // (Ubah Satuan) to rescale everything atomically instead.
+    if (unitChange && await hasStockHistory(id)) {
       throw new Error(
-        "Tidak bisa mengubah satuan/kelas: sudah ada riwayat stok/pemakaian/resep. " +
-        "Buat bahan baru atau lakukan opname nol dulu.",
+        "Tidak bisa mengganti satuan langsung: sudah ada riwayat stok/pemakaian/resep. " +
+        "Gunakan \"Ubah Satuan\" agar stok, HPP, dan resep ikut dikonversi.",
       );
     }
 
@@ -130,14 +100,105 @@ export async function updateIngredient(id: string, data: {
       data: {
         name:              parsed.name,
         category:          parsed.category,
-        unitClass:         parsed.unitClass,
-        baseUnit:          wantBase,
+        baseUnit:          wantUnit,
         lowStockAlert:     parsed.lowStockAlert ?? null,
         notes:             parsed.notes || null,
         defaultSupplierId: parsed.defaultSupplierId || null,
         tags:              parsed.tags ?? [],
       },
     });
+    revalidateIngredients();
+  });
+}
+
+/**
+ * Owner-guided unit conversion. Rescales EVERYTHING tracked in the old unit to a
+ * new unit in one transaction, so stock, cost and every recipe stay coherent.
+ *
+ * `factor` = how many OLD units equal ONE new unit (e.g. converting "g" → "kg",
+ * factor = 1000). Quantities are divided by the factor; per-unit costs are
+ * multiplied by it. Rupiah totals (purchase totalCost) are unchanged.
+ */
+export async function changeIngredientUnit(id: string, newUnit: string, factor: number) {
+  return runAction(async () => {
+    await requireRole("OWNER", "MANAGER");
+    const unit = String(newUnit ?? "").trim();
+    const f = Number(factor);
+    if (!unit) throw new Error("Satuan baru tidak boleh kosong.");
+    if (!Number.isFinite(f) || f <= 0) throw new Error("Faktor konversi harus lebih dari 0.");
+
+    await prisma.$transaction(async (tx) => {
+      const ing = await tx.ingredient.findUniqueOrThrow({
+        where:  { id },
+        select: { baseUnit: true, currentStock: true, averageUnitCost: true, lastUnitCost: true },
+      });
+
+      // Ingredient denormalized values
+      await tx.ingredient.update({
+        where: { id },
+        data: {
+          baseUnit:        unit,
+          currentStock:    ing.currentStock / f,
+          averageUnitCost: ing.averageUnitCost * f,
+          lastUnitCost:    ing.lastUnitCost == null ? null : ing.lastUnitCost * f,
+        },
+      });
+
+      // Recipe quantities that reference this ingredient (menu + assembled BOM)
+      const recipeItems = await tx.recipeIngredient.findMany({
+        where: { ingredientId: id }, select: { id: true, quantity: true },
+      });
+      for (const r of recipeItems) {
+        await tx.recipeIngredient.update({ where: { id: r.id }, data: { quantity: r.quantity / f } });
+      }
+      const bomItems = await tx.ingredientRecipeItem.findMany({
+        where: { ingredientId: id }, select: { id: true, quantity: true },
+      });
+      for (const b of bomItems) {
+        await tx.ingredientRecipeItem.update({ where: { id: b.id }, data: { quantity: b.quantity / f } });
+      }
+
+      // Purchase ledger snapshots (qty ÷ f, per-unit costs × f; totalCost unchanged)
+      const purchases = await tx.ingredientPurchase.findMany({
+        where: { ingredientId: id },
+        select: { id: true, packQty: true, baseQty: true, unitCost: true, avgUnitCostAfter: true, stockAfter: true },
+      });
+      for (const p of purchases) {
+        await tx.ingredientPurchase.update({
+          where: { id: p.id },
+          data: {
+            packQty:          p.packQty / f,
+            baseQty:          p.baseQty / f,
+            unitCost:         p.unitCost * f,
+            avgUnitCostAfter: p.avgUnitCostAfter * f,
+            stockAfter:       p.stockAfter / f,
+          },
+        });
+      }
+
+      // Movement ledger (quantity ÷ f, unitCost × f)
+      const logs = await tx.ingredientLog.findMany({
+        where: { ingredientId: id }, select: { id: true, quantity: true, unitCost: true },
+      });
+      for (const l of logs) {
+        await tx.ingredientLog.update({
+          where: { id: l.id },
+          data: { quantity: l.quantity / f, unitCost: l.unitCost * f },
+        });
+      }
+
+      // Audit trail
+      await tx.ingredientLog.create({
+        data: {
+          ingredientId: id,
+          type:         "ADJUSTMENT",
+          quantity:     0,
+          unitCost:     0,
+          note:         `Ubah satuan: ${ing.baseUnit} → ${unit} (1 ${unit} = ${f} ${ing.baseUnit})`,
+        },
+      });
+    }, { timeout: 30_000 });
+
     revalidateIngredients();
   });
 }
@@ -161,12 +222,6 @@ export async function addIngredientPack(ingredientId: string, data: {
   return runAction(async () => {
     await requireRole("OWNER", "MANAGER");
     const parsed = packSchema.parse(data);
-
-    const parent = await prisma.ingredient.findUniqueOrThrow({
-      where:  { id: ingredientId },
-      select: { unitClass: true },
-    });
-    assertPackLabelClassMatches(parsed.label, parent.unitClass);
 
     await prisma.$transaction(async (tx) => {
       if (parsed.isDefault) {
@@ -194,26 +249,8 @@ export async function updateIngredientPack(id: string, data: {
 
     const existing = await prisma.ingredientPack.findUniqueOrThrow({
       where:  { id },
-      select: { ingredientId: true, label: true, baseQty: true,
-                ingredient: { select: { unitClass: true } } },
+      select: { ingredientId: true, label: true, baseQty: true },
     });
-    assertPackLabelClassMatches(parsed.label, existing.ingredient.unitClass);
-
-    // Changing baseQty after purchases reference this pack would silently
-    // invalidate the historical baseQty math (and through it, every WMA/COGS
-    // number computed since). Block it. Label rename and default toggle stay
-    // free — they don't change the conversion factor.
-    if (parsed.baseQty !== existing.baseQty) {
-      const inUse = await prisma.ingredientPurchase.count({
-        where: { ingredientId: existing.ingredientId, packLabel: existing.label },
-      });
-      if (inUse > 0) {
-        throw new Error(
-          `Konversi (${existing.baseQty}) tidak bisa diubah: paket "${existing.label}" ` +
-          `sudah dipakai di ${inUse} pembelian. Buat satuan baru jika konversinya beda.`,
-        );
-      }
-    }
 
     await prisma.$transaction(async (tx) => {
       if (parsed.isDefault) {
@@ -258,7 +295,7 @@ export async function recordWasteAction(
 export async function addIngredientsBulk(rows: Array<{
   name: string;
   category?: "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA";
-  unitClass: UnitClassName;
+  unit: string;
   lowStockAlert?: number | null;
   notes?: string;
   defaultSupplierId?: string | null;
@@ -283,13 +320,11 @@ export async function addIngredientsBulk(rows: Array<{
     }
 
     if (toCreate.length > 0) {
-      const settings = await getSettings();
       await prisma.ingredient.createMany({
         data: toCreate.map((r) => ({
           name:              r.name,
           category:          r.category,
-          unitClass:         r.unitClass,
-          baseUnit:          resolveBaseUnit(r.unitClass, settings),
+          baseUnit:          r.unit.trim(),
           lowStockAlert:     r.lowStockAlert ?? null,
           notes:             r.notes || null,
           defaultSupplierId: r.defaultSupplierId || null,
@@ -338,7 +373,20 @@ export async function setIngredientCost(id: string, unitCost: number, note?: str
   });
 }
 
-export async function linkExpenseItemsToIngredient(ingredientId: string, expenseItemIds: string[]) {
+/**
+ * Links historical expense items to an ingredient and records them as purchases.
+ *
+ * No unit conversion / pack resolution: the quantity that goes to stock is the
+ * expense item's `amount`, unless `qtyOverrides[expenseItemId]` supplies a
+ * corrected quantity expressed in the ingredient's unit (e.g. the item says
+ * "2 dus" but the ingredient is tracked in "butir" → override with 60). The
+ * original `unit` text is kept as a free-text note on the purchase.
+ */
+export async function linkExpenseItemsToIngredient(
+  ingredientId: string,
+  expenseItemIds: string[],
+  qtyOverrides?: Record<string, number>,
+) {
   return runAction(async () => {
     const staff = await requireRole("OWNER", "MANAGER");
     if (expenseItemIds.length === 0) throw new Error("Pilih minimal satu pembelian.");
@@ -363,17 +411,20 @@ export async function linkExpenseItemsToIngredient(ingredientId: string, expense
       });
       await recordPurchasesBatch(
         tx,
-        items.map((i) => ({
-          ingredientId,
-          supplierId:    i.expense.supplierId ?? null,
-          expenseItemId: i.id,
-          source:        "EXPENSE" as const,
-          packLabel:     i.unit,
-          packQty:       i.amount,
-          totalCost:     Math.round(i.amount * i.cost),
-          purchasedAt:   i.expense.recordedAt,
-          recordedById:  staff.id,
-        })),
+        items.map((i) => {
+          const qty = qtyOverrides?.[i.id] ?? i.amount;
+          return {
+            ingredientId,
+            supplierId:    i.expense.supplierId ?? null,
+            expenseItemId: i.id,
+            source:        "EXPENSE" as const,
+            packLabel:     i.unit,            // free-text memory note only
+            packQty:       qty,               // quantity in the ingredient's unit
+            totalCost:     Math.round(i.amount * i.cost),
+            purchasedAt:   i.expense.recordedAt,
+            recordedById:  staff.id,
+          };
+        }),
       );
       linked = items.length;
     });

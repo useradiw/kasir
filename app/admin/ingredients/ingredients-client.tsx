@@ -1,21 +1,19 @@
 "use client";
 
 import { useState, useRef, useMemo } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Trash2, Settings2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
-import { AdminSelect, AdminPageHeader, ErrorBanner, UnitClassBadge } from "@/components/admin/ui";
+import { AdminSelect, AdminPageHeader, ErrorBanner } from "@/components/admin/ui";
 import { Badge } from "@/components/shared/badge";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { notify } from "@/lib/notify";
 import { formatRpPerUnit, formatDateTime } from "@/lib/format";
 import { addIngredientsBulk } from "@/app/actions/admin/ingredients";
-import { DEFAULT_BASE_UNIT, type UnitClassName } from "@/lib/unit-class";
 import type { IngredientStockData } from "@/app/actions/admin/queries";
 
 type Category = "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA";
@@ -31,24 +29,14 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORIES = ["SEMUA", "BAHAN", "KEMASAN", "PERLENGKAPAN", "LAINNYA"] as const;
 
-const UNIT_CLASSES: { value: UnitClassName; label: string; help: string }[] = [
-  { value: "WEIGHT", label: "Berat", help: `dasar: ${DEFAULT_BASE_UNIT.WEIGHT}` },
-  { value: "VOLUME", label: "Volume", help: `dasar: ${DEFAULT_BASE_UNIT.VOLUME}` },
-  { value: "COUNT",  label: "Jumlah", help: `dasar: ${DEFAULT_BASE_UNIT.COUNT}` },
-];
-
 type SupplierLite = { id: string; name: string };
 
 export default function IngredientsClient({
   data,
   suppliers,
-  resolvedBaseUnits,
-  isOwner,
 }: {
   data: IngredientStockData;
   suppliers: SupplierLite[];
-  resolvedBaseUnits: Record<UnitClassName, string>;
-  isOwner: boolean;
 }) {
   const router = useRouter();
   const { isPending, run, error, setError } = useAdminAction();
@@ -60,7 +48,6 @@ export default function IngredientsClient({
 
   const lowCount = data.filter((d) => d.isLow && d.isActive).length;
 
-  // Aggregate distinct tags for filter chips
   const allTags = useMemo(() => {
     const s = new Set<string>();
     for (const r of data) for (const t of r.tags ?? []) s.add(t);
@@ -81,7 +68,7 @@ export default function IngredientsClient({
   function handleBulkAdd(fd: FormData) {
     const names      = fd.getAll("name").map(String);
     const categories = fd.getAll("category").map(String);
-    const unitClasses = fd.getAll("unitClass").map(String);
+    const units      = fd.getAll("unit").map(String);
     const lowStocks  = fd.getAll("lowStockAlert").map(String);
     const notesArr   = fd.getAll("notes").map(String);
     const supplierArr = fd.getAll("defaultSupplierId").map(String);
@@ -91,7 +78,7 @@ export default function IngredientsClient({
       .map((name, i) => ({
         name:              name.trim(),
         category:          (categories[i] as Category) || "BAHAN",
-        unitClass:         (unitClasses[i] as UnitClassName) || "COUNT",
+        unit:              units[i]?.trim() || "",
         lowStockAlert:     lowStocks[i] ? parseFloat(lowStocks[i]) : null,
         notes:             notesArr[i]?.trim() || undefined,
         defaultSupplierId: supplierArr[i] || null,
@@ -100,6 +87,7 @@ export default function IngredientsClient({
       .filter((r) => r.name);
 
     if (rows.length === 0) { setError("Isi minimal satu nama bahan."); return; }
+    if (rows.some((r) => !r.unit)) { setError("Setiap bahan harus punya satuan."); return; }
 
     run(
       async () => {
@@ -125,17 +113,6 @@ export default function IngredientsClient({
               {lowCount} hampir habis
             </Badge>
           )}
-          {isOwner && (
-            <Button
-              size="sm"
-              variant="outline"
-              render={<Link href="/admin/bahan/satuan" />}
-              title="Satuan dasar per kelas (Berat/Volume/Jumlah)"
-            >
-              <Settings2 className="size-4" />
-              <span className="hidden sm:inline">Satuan</span>
-            </Button>
-          )}
           <Button size="sm" onClick={() => { setShowAdd((v) => !v); setError(null); }}>
             {showAdd ? "Batal" : "+ Tambah"}
           </Button>
@@ -150,8 +127,8 @@ export default function IngredientsClient({
           <CardContent className="pt-4">
             <form action={handleBulkAdd} className="space-y-3">
               <p className="text-xs text-muted-foreground">
-                Pilih <strong>Kelas Satuan</strong> sekali per bahan. Satuan dasar otomatis ikut kelas
-                ({UNIT_CLASSES.map((u) => `${u.label}→${resolvedBaseUnits[u.value]}`).join(", ")}).
+                Tentukan <strong>satuan</strong> tiap bahan (cth: <code>gram</code>, <code>ml</code>, <code>butir</code>, <code>pcs</code>).
+                Satuan ini dipakai untuk stok, resep, dan HPP — konsisten di seluruh sistem.
               </p>
               <div className="space-y-3">
                 {rowKeys.map((key) => (
@@ -172,12 +149,8 @@ export default function IngredientsClient({
                       </AdminSelect>
                     </div>
                     <div className="grid gap-1">
-                      <Label>Kelas Satuan</Label>
-                      <AdminSelect name="unitClass" defaultValue="COUNT">
-                        {UNIT_CLASSES.map((u) => (
-                          <option key={u.value} value={u.value}>{u.label} ({resolvedBaseUnits[u.value]})</option>
-                        ))}
-                      </AdminSelect>
+                      <Label>Satuan</Label>
+                      <Input name="unit" placeholder="cth: gram, butir" className="w-28" />
                     </div>
                     <div className="grid gap-1">
                       <Label>Batas Stok Min</Label>
@@ -292,7 +265,6 @@ export default function IngredientsClient({
             <IngredientRow
               key={row.id}
               row={row}
-              resolvedBaseUnits={resolvedBaseUnits}
               onClick={() => router.push(`/admin/ingredients/${row.id}`)}
             />
           ))}
@@ -304,20 +276,11 @@ export default function IngredientsClient({
 
 function IngredientRow({
   row,
-  resolvedBaseUnits,
   onClick,
 }: {
   row: Row;
-  resolvedBaseUnits: Record<UnitClassName, string>;
   onClick: () => void;
 }) {
-  const priceArrow = row.lastUnitCost !== null && row.averageUnitCost > 0
-    ? row.lastUnitCost > row.averageUnitCost ? "↑" : row.lastUnitCost < row.averageUnitCost ? "↓" : null
-    : null;
-
-  const expectedBase = resolvedBaseUnits[row.unitClass as UnitClassName];
-  const needsNormalize = expectedBase && row.unit !== expectedBase;
-
   return (
     <button
       type="button"
@@ -330,7 +293,7 @@ function IngredientRow({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-medium text-sm">{row.name}</span>
-                <UnitClassBadge unitClass={row.unitClass} baseUnit={row.unit} />
+                <Badge className="text-[10px] bg-muted text-muted-foreground">{row.unit}</Badge>
                 <Badge className="text-[10px] bg-muted text-muted-foreground">
                   {CATEGORY_LABELS[row.category] ?? row.category}
                 </Badge>
@@ -345,11 +308,6 @@ function IngredientRow({
                 {row.isLow && (
                   <Badge className="text-[10px] bg-destructive/10 text-destructive">
                     Hampir habis
-                  </Badge>
-                )}
-                {needsNormalize && (
-                  <Badge className="text-[10px] bg-warning/10 text-warning-foreground" title={`Disarankan ganti ke "${expectedBase}" agar konsisten`}>
-                    perlu normalisasi → {expectedBase}
                   </Badge>
                 )}
                 {(row.tags ?? []).map((t) => (
@@ -369,15 +327,7 @@ function IngredientRow({
                 </span>
                 {row.averageUnitCost > 0 && (
                   <span className="text-xs text-muted-foreground tabular-nums">
-                    HPP avg: <span className="text-foreground font-medium">{formatRpPerUnit(row.averageUnitCost)}/{row.unit}</span>
-                  </span>
-                )}
-                {row.lastUnitCost !== null && row.lastUnitCost !== row.averageUnitCost && (
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    Terakhir:{" "}
-                    <span className={`font-medium ${priceArrow === "↑" ? "text-destructive" : priceArrow === "↓" ? "text-primary" : "text-foreground"}`}>
-                      {priceArrow}{formatRpPerUnit(row.lastUnitCost)}/{row.unit}
-                    </span>
+                    HPP: <span className="text-foreground font-medium">{formatRpPerUnit(row.averageUnitCost)}/{row.unit}</span>
                   </span>
                 )}
                 {row.defaultSupplierName && (

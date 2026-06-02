@@ -9,8 +9,6 @@ import {
   getActiveIngredientsLite,
   getUnlinkedExpenseItems,
 } from "@/app/actions/admin/queries/ingredient-queries";
-import { getSettings } from "@/lib/settings";
-import { resolveBaseUnit } from "@/lib/unit-class";
 import IngredientDetailClient from "./ingredient-detail-client";
 
 export default async function IngredientDetailPage({
@@ -26,7 +24,7 @@ export default async function IngredientDetailPage({
   // Rescale is OWNER-only (requireOwnerStrict on the server blocks DEVELOPER too).
   const isOwner = staff.role === "OWNER";
 
-  const [detail, purchases, logs, recipe, ingredientOptions, unlinkedItems, suppliers, settings] = await Promise.all([
+  const [detail, purchases, logs, recipe, ingredientOptions, unlinkedItems, suppliers] = await Promise.all([
     getIngredientDetail(id),
     getIngredientPurchaseHistory(id, 60),
     getIngredientLogs(id, 80),
@@ -38,10 +36,9 @@ export default async function IngredientDetailPage({
       orderBy: { name: "asc" },
       select:  { id: true, name: true },
     }),
-    getSettings(),
   ]);
 
-  // Determine whether class/baseUnit edit should be locked
+  // A plain unit relabel is only safe with no history (use "Ubah Satuan" otherwise)
   const [purchaseCount, logCount, recipeIngCount, componentCount] = await Promise.all([
     prisma.ingredientPurchase.count({ where: { ingredientId: id } }),
     prisma.ingredientLog.count({ where: { ingredientId: id } }),
@@ -51,12 +48,6 @@ export default async function IngredientDetailPage({
   const hasHistory =
     purchaseCount > 0 || logCount > 0 || recipeIngCount > 0 ||
     componentCount > 0 || detail.currentStock !== 0;
-
-  const resolvedBaseUnits = {
-    WEIGHT: resolveBaseUnit("WEIGHT", settings),
-    VOLUME: resolveBaseUnit("VOLUME", settings),
-    COUNT:  resolveBaseUnit("COUNT", settings),
-  };
 
   return (
     <Container id="ingredient-detail" sectionStyle="" className="py-6">
@@ -68,7 +59,6 @@ export default async function IngredientDetailPage({
         ingredientOptions={ingredientOptions}
         unlinkedItems={unlinkedItems}
         suppliers={suppliers}
-        resolvedBaseUnits={resolvedBaseUnits}
         hasHistory={hasHistory}
         isOwner={isOwner}
         tab={tab}

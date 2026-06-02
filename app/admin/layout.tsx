@@ -24,7 +24,6 @@ const navItemsBase = [
     { href: "/admin/bahan/resep-olahan", label: "Resep Bahan Olahan" },
     { href: "/admin/suppliers", label: "Supplier" },
     { href: "/admin/stock-opname", label: "Opname Stok" },
-    { href: "/admin/bahan/satuan", label: "Satuan & Konversi", ownerOnly: true },
   ]},
   { trigger: "Keuangan", content: [
     { href: "/admin/cash-register", label: "Kas Harian" },

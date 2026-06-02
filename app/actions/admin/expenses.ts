@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireOwnerStrict, requireRole } from "@/lib/admin-auth";
 import { runAction } from "@/lib/action-error";
 import { expenseSchema, type ExpenseData } from "@/lib/expense-schema";
-import { recordPurchasesBatch, reversePurchasesBatch } from "@/lib/cogs-utils";
+import { recordPurchasesBatch, reversePurchasesBatch, recomputeLastCost } from "@/lib/cogs-utils";
 
 export async function addExpense(data: ExpenseData) {
   return runAction(async () => {
@@ -183,6 +183,11 @@ export async function updateExpense(id: string, data: ExpenseData) {
             recordedById:  staff.id,
           })),
       );
+
+      // Recompute cost for ingredients whose links were removed (recordPurchasesBatch
+      // already recomputes the ones that received new purchase rows).
+      const oldIds = [...new Set(oldItems.map((o) => o.ingredientId).filter(Boolean) as string[])];
+      for (const ingId of oldIds) await recomputeLastCost(tx, ingId);
     });
 
     revalidateExpenses();
@@ -214,7 +219,20 @@ export async function deleteExpense(id: string) {
           })),
       );
 
+      // Drop the purchase rows tied to this expense, then re-derive cost from the
+      // latest remaining purchase for each affected ingredient.
+      const itemIds = await tx.expenseItem.findMany({
+        where: { expenseId: id },
+        select: { id: true },
+      });
+      await tx.ingredientPurchase.deleteMany({
+        where: { expenseItemId: { in: itemIds.map((i) => i.id) } },
+      });
+
       await tx.expense.delete({ where: { id } });
+
+      const affectedIds = [...new Set(items.map((i) => i.ingredientId).filter(Boolean) as string[])];
+      for (const ingId of affectedIds) await recomputeLastCost(tx, ingId);
     });
 
     revalidateExpenses();

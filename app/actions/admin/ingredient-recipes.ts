@@ -103,7 +103,7 @@ export async function addIngredientRecipeItemsBulk(
 
     const recipe = await prisma.ingredientRecipe.findUniqueOrThrow({
       where:  { id: recipeId },
-      select: { ingredientId: true, ingredient: { select: { unitClass: true, name: true } } },
+      select: { ingredientId: true, ingredient: { select: { name: true } } },
     });
 
     const ids = [...new Set(parsed.map((r) => r.ingredientId))];
@@ -113,22 +113,13 @@ export async function addIngredientRecipeItemsBulk(
 
     const comps = await prisma.ingredient.findMany({
       where:  { id: { in: ids } },
-      select: { id: true, name: true, unitClass: true },
+      select: { id: true },
     });
     if (comps.length !== ids.length) {
       throw new Error("Salah satu bahan komponen tidak ditemukan.");
     }
-    const compMap = new Map(comps.map((c) => [c.id, c]));
 
     const warnings: string[] = [];
-    for (const r of parsed) {
-      const c = compMap.get(r.ingredientId)!;
-      if (c.unitClass !== recipe.ingredient.unitClass) {
-        warnings.push(
-          `"${c.name}" (${c.unitClass}) berbeda kelas dari induk "${recipe.ingredient.name}" (${recipe.ingredient.unitClass}). Pastikan resep memang benar.`,
-        );
-      }
-    }
 
     await prisma.$transaction(
       parsed.map((r) =>
@@ -142,29 +133,9 @@ export async function addIngredientRecipeItemsBulk(
   });
 }
 
-/** Same cross-class warning, exposed for the single-add path. */
-export async function checkComponentClassWarning(
-  recipeId: string,
-  ingredientId: string,
-): Promise<string | null> {
-  await requireRole("OWNER", "MANAGER");
-  const recipe = await prisma.ingredientRecipe.findUnique({
-    where:  { id: recipeId },
-    select: { ingredient: { select: { unitClass: true, name: true } } },
-  });
-  if (!recipe) return null;
-  const comp = await prisma.ingredient.findUnique({
-    where: { id: ingredientId },
-    select: { name: true, unitClass: true },
-  });
-  if (!comp) return null;
-  if (comp.unitClass === recipe.ingredient.unitClass) return null;
-  return `"${comp.name}" (${comp.unitClass}) berbeda kelas dari induk "${recipe.ingredient.name}" (${recipe.ingredient.unitClass}).`;
-}
-
 /**
  * Production run: consumes the recipe's component stock and produces `batches`
- * worth of the parent material, recomputing its WMA cost.
+ * worth of the parent material, recomputing its unit cost from current components.
  */
 export async function assembleIngredient(
   ingredientId: string,
@@ -195,7 +166,7 @@ export async function assembleIngredient(
       const runId = crypto.randomUUID();
       let totalCost = 0;
 
-      // ── consume components ──
+      // ── consume components (cost from CURRENT component unit cost) ──
       for (const item of recipe.items) {
         const consumed = item.quantity * n;
         const comp     = item.ingredient;
@@ -217,16 +188,14 @@ export async function assembleIngredient(
       }
       totalCost = Math.round(totalCost);
 
-      // ── produce material (WMA on the parent) ──
+      // ── produce material: parent cost = cost of THIS production run (last-cost
+      //    model — recomputed from current component costs, not blended) ──
       const produced = await tx.ingredient.findUniqueOrThrow({
         where:  { id: ingredientId },
-        select: { currentStock: true, averageUnitCost: true },
+        select: { currentStock: true },
       });
       const newStock = produced.currentStock + producedQty;
-      const unitCost = producedQty > 0 ? Math.round(totalCost / producedQty) : 0;
-      const newAvg   = newStock > 0
-        ? Math.round((produced.averageUnitCost * produced.currentStock + totalCost) / newStock)
-        : unitCost;
+      const unitCost = producedQty > 0 ? totalCost / producedQty : 0;
 
       await tx.ingredientPurchase.create({
         data: {
@@ -237,7 +206,7 @@ export async function assembleIngredient(
           baseQty:          producedQty,
           totalCost,
           unitCost,
-          avgUnitCostAfter: newAvg,
+          avgUnitCostAfter: unitCost,
           stockAfter:       newStock,
           purchasedAt,
           recordedById:     staff.id,
@@ -258,7 +227,7 @@ export async function assembleIngredient(
         where: { id: ingredientId },
         data:  {
           currentStock:    newStock,
-          averageUnitCost: newAvg,
+          averageUnitCost: unitCost,
           lastUnitCost:    unitCost,
           lastPurchasedAt: purchasedAt,
         },
