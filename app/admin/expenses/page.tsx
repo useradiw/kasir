@@ -21,7 +21,6 @@ export default async function ExpensesPage({
       orderBy: [{ category: "asc" }, { name: "asc" }],
       select: {
         id: true, name: true, baseUnit: true, averageUnitCost: true, category: true,
-        packs: { select: { label: true, baseQty: true, isDefault: true }, orderBy: { label: "asc" } },
       },
     }),
   ]);

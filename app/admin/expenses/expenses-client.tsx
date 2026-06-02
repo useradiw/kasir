@@ -30,7 +30,6 @@ type Expense = {
 
 type IngredientOption = {
   id: string; name: string; baseUnit: string; averageUnitCost: number; category: string;
-  packs: { label: string; baseQty: number; isDefault: boolean }[];
 };
 
 export default function ExpensesClient({

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorBanner } from "@/components/admin/ui";
+import { PageHeader } from "@/components/shared/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { addExpenseForStaff } from "@/app/actions/expenses";
 import { ExpenseForm } from "@/components/expenses/expense-form";
@@ -28,7 +29,7 @@ export default function ExpenseInputClient({
         Kembali
       </Link>
 
-      <h1 className="text-2xl font-bold">Tambah Pengeluaran</h1>
+      <PageHeader title="Tambah Pengeluaran" />
 
       <ErrorBanner error={error} />
 

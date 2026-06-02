@@ -94,19 +94,13 @@ export function ExpenseForm({
   }
 
   function applyIngredient(rowId: string, ing: IngredientOption) {
-    // Quantity is entered directly in the ingredient's own unit; cost defaults to
-    // its current per-unit cost. No pack expansion anymore.
+    // Quantity is entered in the ingredient's own unit; the user types the TOTAL
+    // they paid (per-unit cost is derived). We don't prefill cost — the "HPP
+    // terakhir" chip on the row already shows the reference price.
     setItems((prev) =>
       prev.map((item) =>
         item.id === rowId
-          ? {
-              ...item,
-              description:  ing.name,
-              unit:         ing.baseUnit,
-              cost:         ing.averageUnitCost > 0 ? ing.averageUnitCost : item.cost,
-              ingredientId: ing.id,
-              templateId:   null,
-            }
+          ? { ...item, description: ing.name, unit: ing.baseUnit, ingredientId: ing.id, templateId: null }
           : item,
       ),
     );
@@ -179,27 +173,27 @@ export function ExpenseForm({
         </div>
       )}
 
-      <div className="space-y-1.5">
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            checked={deductFromCash}
-            onChange={(e) => { setDeductFromCash(e.target.checked); if (e.target.checked) setCountToKasPakHar(false); }}
-            disabled={isPending}
-            className="rounded"
-          />
-          Kurangi dari kas
-        </label>
-        <label className="flex items-center gap-2 text-sm cursor-pointer">
-          <input
-            type="checkbox"
-            checked={countToKasPakHar}
-            onChange={(e) => { setCountToKasPakHar(e.target.checked); if (e.target.checked) setDeductFromCash(false); }}
-            disabled={isPending}
-            className="rounded"
-          />
-          Kurangi dari kas pak har
-        </label>
+      <div className="grid gap-1.5">
+        <Label>Sumber dana</Label>
+        <div className="flex gap-1.5">
+          {([
+            { key: "kas",  label: "Kurangi Kas",  on: () => { setDeductFromCash(true);  setCountToKasPakHar(false); }, active: deductFromCash },
+            { key: "kph",  label: "Kas Pak Har",  on: () => { setDeductFromCash(false); setCountToKasPakHar(true);  }, active: countToKasPakHar },
+            { key: "none", label: "Tidak ada",    on: () => { setDeductFromCash(false); setCountToKasPakHar(false); }, active: !deductFromCash && !countToKasPakHar },
+          ] as const).map((opt) => (
+            <Button
+              key={opt.key}
+              type="button"
+              size="sm"
+              variant={opt.active ? "default" : "outline"}
+              onClick={opt.on}
+              disabled={isPending}
+              className="flex-1"
+            >
+              {opt.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-3">
