@@ -15,7 +15,6 @@ export async function getIngredientStockData() {
       name:              true,
       category:          true,
       unit:              true,
-      unitClass:         true,
       currentStock:      true,
       unitCost:          true,
       lastUnitCost:      true,
@@ -35,7 +34,6 @@ export async function getIngredientStockData() {
     name:              i.name,
     category:          i.category,
     unit:              i.unit,
-    unitClass:         i.unitClass,
     currentStock:      i.currentStock,
     unitCost:          i.unitCost,
     lastUnitCost:      i.lastUnitCost,
@@ -65,7 +63,6 @@ export async function getIngredientDetail(id: string) {
       name:              true,
       category:          true,
       unit:              true,
-      unitClass:         true,
       currentStock:      true,
       unitCost:          true,
       lastUnitCost:      true,
@@ -180,27 +177,25 @@ export async function getIngredientRecipe(ingredientId: string) {
     include: {
       items: {
         include: {
-          ingredient: { select: { id: true, name: true, unit: true, unitClass: true, unitCost: true } },
+          ingredient: { select: { id: true, name: true, unit: true, unitCost: true } },
         },
         orderBy: { ingredient: { name: "asc" } },
       },
-      ingredient: { select: { unitClass: true } },
+      ingredient: { select: { id: true } },
     },
   });
 
   if (!recipe) return null;
 
   return {
-    id:             recipe.id,
-    yieldQty:       recipe.yieldQty,
-    notes:          recipe.notes,
-    parentUnitClass: recipe.ingredient.unitClass,
+    id:       recipe.id,
+    yieldQty: recipe.yieldQty,
+    notes:    recipe.notes,
     items: recipe.items.map((it) => ({
       id:              it.id,
       ingredientId:    it.ingredientId,
       ingredientName:  it.ingredient.name,
       ingredientUnit:  it.ingredient.unit,
-      ingredientClass: it.ingredient.unitClass,
       averageUnitCost: it.ingredient.unitCost,
       quantity:        it.quantity,
     })),
@@ -221,7 +216,6 @@ export async function getActiveIngredientsLite() {
       id:       true,
       name:     true,
       unit:     true,
-      unitClass: true,
       unitCost: true,
     },
   });
@@ -240,7 +234,6 @@ export async function getAssembledIngredientsIndex() {
       id:           true,
       name:         true,
       unit:         true,
-      unitClass:    true,
       currentStock: true,
       unitCost:     true,
       producedRecipe:  {
@@ -256,7 +249,7 @@ export async function getAssembledIngredientsIndex() {
   const componentRows = await prisma.ingredientRecipeItem.findMany({
     select: {
       ingredient: {
-        select: { id: true, name: true, unit: true, unitClass: true },
+        select: { id: true, name: true, unit: true },
       },
       recipe: {
         select: { ingredient: { select: { id: true, name: true } } },
@@ -268,7 +261,6 @@ export async function getAssembledIngredientsIndex() {
     id: string;
     name: string;
     unit: string;
-    unitClass: "WEIGHT" | "VOLUME" | "COUNT";
     usedIn: { id: string; name: string }[];
   };
   const componentMap = new Map<string, CompAgg>();
@@ -277,11 +269,7 @@ export async function getAssembledIngredientsIndex() {
     const parent = row.recipe.ingredient;
     let agg = componentMap.get(c.id);
     if (!agg) {
-      agg = {
-        id: c.id, name: c.name, unit: c.unit,
-        unitClass: c.unitClass as CompAgg["unitClass"],
-        usedIn: [],
-      };
+      agg = { id: c.id, name: c.name, unit: c.unit, usedIn: [] };
       componentMap.set(c.id, agg);
     }
     if (!agg.usedIn.find((u) => u.id === parent.id)) agg.usedIn.push(parent);
@@ -292,7 +280,6 @@ export async function getAssembledIngredientsIndex() {
       id:              p.id,
       name:            p.name,
       unit:         p.unit,
-      unitClass:    p.unitClass,
       currentStock: p.currentStock,
       unitCost:     p.unitCost,
       yieldQty:        p.producedRecipe?.yieldQty ?? 0,

@@ -86,9 +86,7 @@ const bulkItemSchema = z.object({
 
 /**
  * Bulk-add many components to an IngredientRecipe (assembled material BOM).
- * All-or-nothing. Returns soft warnings for components whose unitClass differs
- * from the parent's — cost math is still correct (sums in Rp), but UI shows the
- * warning so the user can sanity-check the recipe.
+ * All-or-nothing. Returns the count of created items and any warnings.
  */
 export async function addIngredientRecipeItemsBulk(
   recipeId: string,

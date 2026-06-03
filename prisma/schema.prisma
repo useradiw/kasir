@@ -385,7 +385,6 @@ model Ingredient {
   name              String             @unique
   category          IngredientCategory @default(BAHAN)
   unit              String             @default("pcs") @map("baseUnit")
-  unitClass         UnitClass          @default(COUNT)
   currentStock      Float              @default(0)
   unitCost          Float              @default(0) @map("averageUnitCost")
   lastUnitCost      Float?
@@ -399,7 +398,6 @@ model Ingredient {
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
 
-  packs             IngredientPack[]
   purchases         IngredientPurchase[]
   recipeIngredients RecipeIngredient[]
   ingredientLogs    IngredientLog[]
@@ -409,18 +407,6 @@ model Ingredient {
   componentOf       IngredientRecipeItem[] @relation("RecipeComponent")
 
   @@map("ingredients")
-}
-
-model IngredientPack {
-  id           String     @id @default(uuid())
-  ingredientId String
-  ingredient   Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-  label        String
-  baseQty      Float
-  isDefault    Boolean    @default(false)
-
-  @@unique([ingredientId, label])
-  @@map("ingredient_packs")
 }
 
 model IngredientPurchase {
@@ -562,12 +548,6 @@ enum IngredientCategory {
   KEMASAN
   PERLENGKAPAN
   LAINNYA
-}
-
-enum UnitClass {
-  WEIGHT
-  VOLUME
-  COUNT
 }
 
 enum IngredientPurchaseSource {

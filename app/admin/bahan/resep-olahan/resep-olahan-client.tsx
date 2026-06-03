@@ -58,7 +58,7 @@ export default function ResepOlahanClient({ data, allActive }: Props) {
                 <option value="">— Pilih bahan —</option>
                 {candidates.map((i) => (
                   <option key={i.id} value={i.id}>
-                    {i.name} · {i.unit} ({i.unitClass})
+                    {i.name} · {i.unit}
                   </option>
                 ))}
               </AdminSelect>

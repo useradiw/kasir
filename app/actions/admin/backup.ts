@@ -13,7 +13,6 @@ const ALL_TABLES = [
   "staff",
   "suppliers",
   "ingredients",
-  "ingredientPacks",
   "expenses",
   "expenseItems",
   "expenseTemplates",
@@ -77,9 +76,6 @@ export async function exportDatabase(tables: string[]) {
         break;
       case "ingredients":
         result.ingredients = await prisma.ingredient.findMany();
-        break;
-      case "ingredientPacks":
-        result.ingredientPacks = await prisma.ingredientPack.findMany();
         break;
       case "expenses":
         result.expenses = await prisma.expense.findMany();

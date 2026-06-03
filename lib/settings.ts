@@ -16,10 +16,6 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   shopeefood_commission_flat: "0",
   grabfood_commission_pct: "0",
   grabfood_commission_flat: "0",
-  // Unit class base units (smallest practical unit per class)
-  unit_base_weight: "g",
-  unit_base_volume: "ml",
-  unit_base_count:  "pcs",
 };
 
 export type StoreInfo = {

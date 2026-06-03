@@ -2,7 +2,6 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
-import { inferUnitClass } from "@/lib/unit-class";
 
 export interface BackupData {
   version?: number;
@@ -17,7 +16,6 @@ const IMPORT_ORDER = [
   "categories",
   "suppliers",
   "ingredients",
-  "ingredientPacks",
   "expenseTemplates",
   "menuItems",
   "packages",
@@ -158,11 +156,9 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
     case "ingredients": {
       // Accept both old keys (baseUnit, averageUnitCost) and new keys (unit, unitCost)
       // so that backups created before the rename can still be restored.
+      // Old backups may also carry `unitClass` and `ingredientPacks` — those keys
+      // are simply ignored here; they don't crash because we never read them.
       const unit = ((row.unit ?? row.baseUnit) as string) ?? "pcs";
-      const unitClass =
-        (row.unitClass as "WEIGHT" | "VOLUME" | "COUNT" | undefined) ??
-        inferUnitClass(unit) ??
-        "COUNT";
       const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
       const restoredUnitCost = ((row.unitCost ?? row.averageUnitCost) as number) ?? 0;
       await prisma.ingredient.upsert({
@@ -172,7 +168,6 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           name:              row.name as string,
           category:          (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
           unit,
-          unitClass,
           currentStock:      row.currentStock as number ?? 0,
           unitCost:          restoredUnitCost,
           lastUnitCost:      row.lastUnitCost as number | null ?? undefined,
@@ -188,7 +183,6 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           name:              row.name as string,
           category:          (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
           unit,
-          unitClass,
           currentStock:      row.currentStock as number ?? 0,
           unitCost:          restoredUnitCost,
           lastUnitCost:      row.lastUnitCost as number | null ?? undefined,
@@ -202,20 +196,6 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
       });
       break;
     }
-
-    case "ingredientPacks":
-      await prisma.ingredientPack.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:           row.id as string,
-          ingredientId: row.ingredientId as string,
-          label:        row.label as string,
-          baseQty:      row.baseQty as number,
-          isDefault:    row.isDefault as boolean ?? false,
-        },
-        update: { label: row.label as string, baseQty: row.baseQty as number, isDefault: row.isDefault as boolean ?? false },
-      });
-      break;
 
     case "expenseTemplates":
       await prisma.expenseTemplate.upsert({

@@ -10,7 +10,7 @@ export async function getRecipeData() {
     prisma.ingredient.findMany({
       where:   { isActive: true },
       orderBy: { name: "asc" },
-      select:  { id: true, name: true, unit: true, unitClass: true, unitCost: true, lastUnitCost: true, category: true },
+      select:  { id: true, name: true, unit: true, unitCost: true, lastUnitCost: true, category: true },
     }),
     prisma.recipe.findMany({
       include: {
@@ -35,7 +35,6 @@ export async function getRecipeData() {
       id:              i.id,
       name:            i.name,
       baseUnit:        i.unit,
-      unitClass:       i.unitClass,
       averageUnitCost: i.unitCost,
       category:        i.category,
     })),

@@ -47,7 +47,6 @@ type Detail = {
   name: string;
   category: string;
   unit: string;
-  unitClass: "WEIGHT" | "VOLUME" | "COUNT";
   currentStock: number;
   unitCost: number;
   lastUnitCost: number | null;
@@ -856,7 +855,6 @@ function RecipeTab({
           {/* Bulk-add (textarea) */}
           <BulkAddComponentPanel
             recipeId={recipe.id}
-            parentClass={detail.unitClass}
             existingIngIds={existingIngIds}
             components={components}
             isPending={isPending}
@@ -880,8 +878,7 @@ function RecipeTab({
                   <option value="" disabled>Pilih bahan…</option>
                   {components.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.unit}) [{c.unitClass}]
-                      {c.unitClass !== detail.unitClass ? " ⚠ kelas beda" : ""}
+                      {c.name} ({c.unit})
                     </option>
                   ))}
                 </AdminSelect>
@@ -923,11 +920,6 @@ function RecipeTab({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-medium">{it.ingredientName}</span>
-                          {it.ingredientClass !== detail.unitClass && (
-                            <span className="text-[10px] bg-warning/10 text-warning-foreground px-1.5 py-0.5 rounded-full" title={`Komponen kelas ${it.ingredientClass}, induk kelas ${detail.unitClass}`}>
-                              kelas beda ({it.ingredientClass})
-                            </span>
-                          )}
                         </div>
                         <span className="text-xs text-muted-foreground tabular-nums">
                           {it.quantity} {it.ingredientUnit} × {formatRpPerUnit(it.averageUnitCost)} ={" "}
@@ -1006,14 +998,13 @@ function RecipeTab({
 // ─── Bulk-add components (for IngredientRecipe) ─────────────────────────────
 
 type BulkCompRow =
-  | { ok: true; ingredient: ActiveIngredientLite; quantity: number; raw: string; classWarn: boolean }
+  | { ok: true; ingredient: ActiveIngredientLite; quantity: number; raw: string }
   | { ok: false; raw: string; reason: string };
 
 function parseBulkComps(
   text: string,
   opts: ActiveIngredientLite[],
   existing: Set<string>,
-  parentClass: "WEIGHT" | "VOLUME" | "COUNT",
 ): BulkCompRow[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   return lines.map((raw): BulkCompRow => {
@@ -1025,26 +1016,18 @@ function parseBulkComps(
     const ing = findIngredientByName(name, opts);
     if (!ing) return { ok: false, raw, reason: `"${name}" tidak ditemukan` };
     if (existing.has(ing.id)) return { ok: false, raw, reason: `"${ing.name}" sudah ada` };
-    return {
-      ok: true,
-      ingredient: ing,
-      quantity: qty,
-      raw,
-      classWarn: ing.unitClass !== parentClass,
-    };
+    return { ok: true, ingredient: ing, quantity: qty, raw };
   });
 }
 
 function BulkAddComponentPanel({
   recipeId,
-  parentClass,
   existingIngIds,
   components,
   isPending,
   run,
 }: {
   recipeId:       string;
-  parentClass:    "WEIGHT" | "VOLUME" | "COUNT";
   existingIngIds: Set<string>;
   components:     ActiveIngredientLite[];
   isPending:      boolean;
@@ -1053,8 +1036,8 @@ function BulkAddComponentPanel({
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const parsed = useMemo(
-    () => (text.trim() ? parseBulkComps(text, components, existingIngIds, parentClass) : []),
-    [text, components, existingIngIds, parentClass],
+    () => (text.trim() ? parseBulkComps(text, components, existingIngIds) : []),
+    [text, components, existingIngIds],
   );
   const okRows = parsed.filter((r): r is Extract<BulkCompRow, { ok: true }> => r.ok);
   const badRows = parsed.filter((r): r is Extract<BulkCompRow, { ok: false }> => !r.ok);
