@@ -16,3 +16,5 @@ export { getIngredientStockData, getIngredientDetail, getIngredientLogs, getIngr
 export type { IngredientStockData, IngredientLog, IngredientPurchaseHistory, IngredientRecipeData, ActiveIngredientLite, UnlinkedExpenseItem } from "./ingredient-queries";
 export { getMenuPerformanceData } from "./menu-performance-queries";
 export type { MenuPerformanceData, MenuPerformanceRow } from "./menu-performance-queries";
+export { listJurnal, listPengeluaran, listCategories, listCatat, listCashAccounts, listMonths } from "./keuangan-queries";
+export type { DateRange, JurnalRow } from "./keuangan-queries";

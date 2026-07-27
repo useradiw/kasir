@@ -83,3 +83,8 @@ export function revalidateOpname() {
   revalidatePath("/admin/ingredients");
   revalidatePath("/admin");
 }
+
+/** Revalidate all pages under the Keuangan (Warung Books) section. */
+export function revalidateKeuangan() {
+  revalidatePath("/admin/keuangan", "layout");
+}
