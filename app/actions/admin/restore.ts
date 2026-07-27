@@ -9,7 +9,9 @@ export interface BackupData {
   tables: Record<string, unknown[]>;
 }
 
-// FK-safe import order
+// FK-safe import order.
+// Keep in sync with ALL_TABLES in ./backup.ts and TABLE_OPTIONS in
+// app/admin/backup/backup-client.tsx — all three lists move together.
 const IMPORT_ORDER = [
   "settings",
   "staff",
@@ -42,6 +44,19 @@ const IMPORT_ORDER = [
   "ingredientLogs",
   "stockOpnames",
   "stockOpnameLines",
+  // --- Warung Books ledger. Parents before children: ledgerAccounts (self-FK
+  // parentId is deferred to a second pass) -> journalEntries -> journalLines.
+  // ledgerPostings last; it holds plain ids, no FKs. ---
+  "ledgerAccounts",
+  "expenseCategories",
+  "sequences",
+  "accountingMonths",
+  "salesChannelAccounts",
+  "accountingSettings",
+  "balanceAssertions",
+  "journalEntries",
+  "journalLines",
+  "ledgerPostings",
 ] as const;
 
 export async function restoreDatabase(
@@ -77,6 +92,8 @@ export async function restoreDatabase(
     }
   }
 
+  await relinkWarungBooksSelfReferences(data, selectedTables, errors);
+
   return { imported, errors };
 }
 
@@ -90,6 +107,57 @@ function toDateRequired(val: unknown): Date {
   const d = toDate(val);
   if (!d) throw new Error(`Invalid date: ${val}`);
   return d;
+}
+
+/**
+ * Warung Books amounts are BigInt. The export serializes them as decimal strings
+ * (JSON has no BigInt), so accept both. Rejects anything lossy rather than
+ * silently rounding — these are money values.
+ */
+function toBigInt(val: unknown): bigint {
+  if (typeof val === "bigint") return val;
+  if (typeof val === "string" && /^-?\d+$/.test(val)) return BigInt(val);
+  if (typeof val === "number" && Number.isInteger(val)) return BigInt(val);
+  throw new Error(`Nilai tidak valid untuk BigInt: ${String(val)}`);
+}
+
+/**
+ * Second pass for the two self-referencing FKs in the Warung Books tables. They
+ * are skipped during the main upsert because a row may reference another row in
+ * the same table that has not been inserted yet.
+ */
+async function relinkWarungBooksSelfReferences(
+  data: BackupData,
+  selectedTables: string[],
+  errors: string[],
+): Promise<void> {
+  if (selectedTables.includes("ledgerAccounts")) {
+    for (const row of (data.tables.ledgerAccounts ?? []) as Record<string, unknown>[]) {
+      if (!row.id || !row.parentId) continue;
+      try {
+        await prisma.ledgerAccount.update({
+          where: { id: row.id as string },
+          data:  { parentId: row.parentId as string },
+        });
+      } catch (err) {
+        errors.push(`ledgerAccounts[${row.id}].parentId: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
+
+  if (selectedTables.includes("journalEntries")) {
+    for (const row of (data.tables.journalEntries ?? []) as Record<string, unknown>[]) {
+      if (!row.id || !row.reversedById) continue;
+      try {
+        await prisma.journalEntry.update({
+          where: { id: row.id as string },
+          data:  { reversedById: row.reversedById as string },
+        });
+      } catch (err) {
+        errors.push(`journalEntries[${row.id}].reversedById: ${err instanceof Error ? err.message : String(err)}`);
+      }
+    }
+  }
 }
 
 async function upsertRow(table: string, row: Record<string, unknown>): Promise<void> {
@@ -673,6 +741,157 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           noteReason:   row.noteReason as string | null ?? undefined,
         },
         update: {},
+      });
+      break;
+
+    // ─── Warung Books ledger ────────────────────────────────────────────────
+    // Self-referencing FKs (ledgerAccounts.parentId, journalEntries.reversedById)
+    // are NOT set here — a parent may not exist yet when its child is upserted.
+    // relinkWarungBooksSelfReferences() wires them up after every row is in.
+
+    case "ledgerAccounts":
+      await prisma.ledgerAccount.upsert({
+        where:  { id: row.id as string },
+        create: {
+          id:     row.id as string,
+          code:   row.code as string,
+          name:   row.name as string,
+          label:  row.label as string | null ?? undefined,
+          type:   row.type as "ASSET" | "LIABILITY" | "EQUITY" | "INCOME" | "EXPENSE",
+          active: row.active as boolean ?? true,
+        },
+        update: {
+          code:   row.code as string,
+          name:   row.name as string,
+          label:  row.label as string | null ?? undefined,
+          type:   row.type as "ASSET" | "LIABILITY" | "EQUITY" | "INCOME" | "EXPENSE",
+          active: row.active as boolean ?? true,
+        },
+      });
+      break;
+
+    case "expenseCategories":
+      await prisma.expenseCategory.upsert({
+        where:  { id: row.id as string },
+        create: {
+          id:        row.id as string,
+          code:      row.code as string,
+          name:      row.name as string,
+          bucket:    row.bucket as "HPP" | "OPEX",
+          active:    row.active as boolean ?? true,
+          createdAt: toDate(row.createdAt) ?? undefined,
+        },
+        update: {
+          name:   row.name as string,
+          bucket: row.bucket as "HPP" | "OPEX",
+          active: row.active as boolean ?? true,
+        },
+      });
+      break;
+
+    case "sequences":
+      await prisma.sequence.upsert({
+        where:  { id: row.id as string },
+        create: { id: row.id as string, key: row.key as string, value: row.value as number ?? 0 },
+        update: { value: row.value as number ?? 0 },
+      });
+      break;
+
+    case "accountingMonths":
+      await prisma.accountingMonth.upsert({
+        where:  { id: row.id as string },
+        create: {
+          id:        row.id as string,
+          month:     row.month as string,
+          lockedAt:  toDate(row.lockedAt) ?? undefined,
+          createdAt: toDate(row.createdAt) ?? undefined,
+        },
+        update: { lockedAt: toDate(row.lockedAt) },
+      });
+      break;
+
+    case "salesChannelAccounts":
+      await prisma.salesChannelAccount.upsert({
+        where:  { id: row.id as string },
+        create: { id: row.id as string, channel: row.channel as string, account: row.account as string },
+        update: { account: row.account as string },
+      });
+      break;
+
+    case "accountingSettings":
+      await prisma.accountingSetting.upsert({
+        where:  { id: row.id as string },
+        create: { id: row.id as string, key: row.key as string, value: row.value as string },
+        update: { value: row.value as string },
+      });
+      break;
+
+    case "balanceAssertions":
+      await prisma.balanceAssertion.upsert({
+        where:  { id: row.id as string },
+        create: {
+          id:        row.id as string,
+          account:   row.account as string,
+          date:      row.date as string,
+          expected:  toBigInt(row.expected),
+          note:      row.note as string | null ?? undefined,
+          createdBy: row.createdBy as string,
+          createdAt: toDate(row.createdAt) ?? undefined,
+        },
+        update: {
+          expected: toBigInt(row.expected),
+          note:     row.note as string | null ?? undefined,
+        },
+      });
+      break;
+
+    case "journalEntries":
+      await prisma.journalEntry.upsert({
+        where:  { id: row.id as string },
+        create: {
+          id:         row.id as string,
+          number:     row.number as number | null ?? undefined,
+          state:      row.state as "DRAFT" | "POSTED" | "VOID",
+          date:       row.date as string,
+          narration:  row.narration as string,
+          postedAt:   toDate(row.postedAt) ?? undefined,
+          createdAt:  toDate(row.createdAt) ?? undefined,
+          sourceType: row.sourceType as string | null ?? undefined,
+          sourceMeta: (row.sourceMeta ?? undefined) as never,
+        },
+        update: {
+          number:    row.number as number | null ?? undefined,
+          state:     row.state as "DRAFT" | "POSTED" | "VOID",
+          narration: row.narration as string,
+          postedAt:  toDate(row.postedAt) ?? undefined,
+        },
+      });
+      break;
+
+    case "journalLines":
+      await prisma.journalLine.upsert({
+        where:  { id: row.id as string },
+        create: {
+          id:      row.id as string,
+          entryId: row.entryId as string,
+          account: row.account as string,
+          amount:  toBigInt(row.amount),
+        },
+        update: { account: row.account as string, amount: toBigInt(row.amount) },
+      });
+      break;
+
+    case "ledgerPostings":
+      await prisma.ledgerPosting.upsert({
+        where:  { id: row.id as string },
+        create: {
+          id:             row.id as string,
+          sourceType:     row.sourceType as string,
+          sourceId:       row.sourceId as string,
+          journalEntryId: row.journalEntryId as string,
+          createdAt:      toDate(row.createdAt) ?? undefined,
+        },
+        update: { journalEntryId: row.journalEntryId as string },
       });
       break;
   }

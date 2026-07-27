@@ -19,7 +19,6 @@ const TABLE_OPTIONS = [
   { key: "staff", label: "Staff" },
   { key: "suppliers", label: "Supplier" },
   { key: "ingredients", label: "Bahan" },
-  { key: "ingredientPacks", label: "Kemasan Bahan" },
   { key: "expenses", label: "Pengeluaran" },
   { key: "expenseItems", label: "Item Pengeluaran" },
   { key: "expenseTemplates", label: "Template Pengeluaran" },
@@ -42,6 +41,18 @@ const TABLE_OPTIONS = [
   { key: "ingredientRecipeItems", label: "Komponen Resep Bahan" },
   { key: "stockOpnames", label: "Stock Opname" },
   { key: "stockOpnameLines", label: "Detail Stock Opname" },
+  // --- Warung Books ledger. Keep in sync with ALL_TABLES in
+  // app/actions/admin/backup.ts AND IMPORT_ORDER in app/actions/admin/restore.ts. ---
+  { key: "ledgerAccounts", label: "Akun Buku Besar" },
+  { key: "expenseCategories", label: "Kategori Pengeluaran" },
+  { key: "sequences", label: "Nomor Urut Jurnal" },
+  { key: "accountingMonths", label: "Bulan Akuntansi" },
+  { key: "salesChannelAccounts", label: "Akun Kas Penjualan" },
+  { key: "accountingSettings", label: "Pengaturan Akuntansi" },
+  { key: "balanceAssertions", label: "Cek Saldo" },
+  { key: "journalEntries", label: "Jurnal" },
+  { key: "journalLines", label: "Baris Jurnal" },
+  { key: "ledgerPostings", label: "Tautan Jurnal" },
 ] as const;
 
 const LAST_BACKUP_KEY = "lastBackupDate";
@@ -62,8 +73,16 @@ function getLastBackupServerSnapshot(): string | null {
   return null;
 }
 
+// Warung Books amounts are BigInt (JournalLine.amount, BalanceAssertion.expected)
+// and JSON.stringify THROWS on BigInt — without this replacer the whole export
+// fails, not just the ledger. Serialized as decimal strings; restore.ts parses
+// them back with BigInt().
+function bigintReplacer(_key: string, value: unknown) {
+  return typeof value === "bigint" ? value.toString() : value;
+}
+
 function downloadJson(data: unknown, filename: string) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const blob = new Blob([JSON.stringify(data, bigintReplacer, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

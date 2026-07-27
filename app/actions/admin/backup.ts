@@ -3,6 +3,11 @@
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
 
+// NOTE: this list and IMPORT_ORDER in ./restore.ts must ALWAYS be updated
+// together — a table exported but not restorable makes the backup a dead end.
+// The Warung Books ledger tables are included (added 2026-07-27); their BigInt
+// amounts are serialized as strings by the download path's replacer in
+// app/admin/backup/backup-client.tsx, and parsed back in ./restore.ts.
 const ALL_TABLES = [
   "categories",
   "menuItems",
@@ -35,6 +40,17 @@ const ALL_TABLES = [
   "ingredientRecipeItems",
   "stockOpnames",
   "stockOpnameLines",
+  // --- Warung Books ledger ---
+  "ledgerAccounts",
+  "expenseCategories",
+  "sequences",
+  "accountingMonths",
+  "salesChannelAccounts",
+  "accountingSettings",
+  "balanceAssertions",
+  "journalEntries",
+  "journalLines",
+  "ledgerPostings",
 ] as const;
 
 export type BackupTableKey = (typeof ALL_TABLES)[number];
@@ -142,6 +158,38 @@ export async function exportDatabase(tables: string[]) {
         break;
       case "stockOpnameLines":
         result.stockOpnameLines = await prisma.stockOpnameLine.findMany();
+        break;
+
+      // --- Warung Books ledger ---
+      case "ledgerAccounts":
+        result.ledgerAccounts = await prisma.ledgerAccount.findMany();
+        break;
+      case "expenseCategories":
+        result.expenseCategories = await prisma.expenseCategory.findMany();
+        break;
+      case "sequences":
+        result.sequences = await prisma.sequence.findMany();
+        break;
+      case "accountingMonths":
+        result.accountingMonths = await prisma.accountingMonth.findMany();
+        break;
+      case "salesChannelAccounts":
+        result.salesChannelAccounts = await prisma.salesChannelAccount.findMany();
+        break;
+      case "accountingSettings":
+        result.accountingSettings = await prisma.accountingSetting.findMany();
+        break;
+      case "balanceAssertions":
+        result.balanceAssertions = await prisma.balanceAssertion.findMany();
+        break;
+      case "journalEntries":
+        result.journalEntries = await prisma.journalEntry.findMany({ orderBy: { createdAt: "asc" } });
+        break;
+      case "journalLines":
+        result.journalLines = await prisma.journalLine.findMany();
+        break;
+      case "ledgerPostings":
+        result.ledgerPostings = await prisma.ledgerPosting.findMany();
         break;
     }
   }
