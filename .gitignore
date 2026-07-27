@@ -45,3 +45,10 @@ next-env.d.ts
 .vscode
 
 /scripts/cleanup-db.ts
+
+# database backups — REAL PRODUCTION BUSINESS DATA (transactions, staff, salaries).
+# Never commit these; they are exported from /admin/backup for local safekeeping.
+backup-*.json
+/backups/
+*.dump
+*.sql.gz

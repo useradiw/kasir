@@ -1,6 +1,29 @@
+// kasir has NO dev database. `.env.claude.local` used to be one but that Supabase
+// project belongs to ANOTHER PROJECT (confirmed 2026-07-27) — its schema was never
+// kasir's, which is why this suite failed there. See HANDOFF.md.
+//
+// This harness is SAFE against production: every test body runs inside
+// `prisma.$transaction` and unconditionally throws a ROLLBACK sentinel, so nothing
+// is ever committed. It still writes-then-rolls-back, so it uses DIRECT_URL
+// (port 5432) — interactive transactions over the pgbouncer pooler (6543, which is
+// transaction-pooling mode) are not reliable, and an unreliable rollback here would
+// mean test rows landing in live data.
 import dotenv from "dotenv";
-dotenv.config({ path: ".env.claude.local" });
-console.error("DB host:", (process.env.DATABASE_URL || "").match(/@([^/]*)/)?.[1]);
+dotenv.config({ path: ".env" });
+
+const FOREIGN_PROJECT_REF = "ytuyawfpcdamtelwtrdw";
+const CONNECTION_STRING = process.env.DIRECT_URL || process.env.DATABASE_URL || "";
+
+if (CONNECTION_STRING.includes(FOREIGN_PROJECT_REF)) {
+  console.error(
+    `REFUSING TO RUN: connection points at Supabase project ${FOREIGN_PROJECT_REF},\n` +
+      `which belongs to a DIFFERENT PROJECT.`,
+  );
+  process.exit(1);
+}
+
+console.error("DB host:", CONNECTION_STRING.match(/@([^/]*)/)?.[1]);
+console.error("NOTE: writes are rolled back; nothing is committed.");
 
 const { PrismaClient } = await import("../../generated/prisma/index.js");
 const { PrismaPg } = await import("@prisma/adapter-pg");
@@ -11,7 +34,7 @@ const {
 } = await import("../../lib/cogs-utils.ts");
 
 const prisma = new PrismaClient({
-  adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
+  adapter: new PrismaPg({ connectionString: CONNECTION_STRING }),
 });
 
 // ─── Assertion helper ─────────────────────────────────────────────────────────

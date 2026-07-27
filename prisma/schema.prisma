@@ -616,3 +616,181 @@ enum StockMovementType {
   WASTE
   ASSEMBLY
 }
+
+// ===== Warung Books (double-entry ledger) =====
+// The financial brain layered on top of operations. Amounts are BigInt signed
+// Rupiah (positive = debit, negative = credit); existing Int money columns are
+// left untouched and cast at the seam. Nothing here references or alters an
+// existing table — linkage to operational rows goes through LedgerPosting only.
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+enum EntryState {
+  DRAFT
+  POSTED
+  VOID
+}
+
+enum ExpenseBucket {
+  HPP
+  OPEX
+}
+
+/// Chart-of-accounts registry (Beancount-style names, e.g. "Assets:Cash:Utama").
+/// Deliberately NOT FK'd from JournalLine — lines carry the account name string;
+/// this table backs UI dropdowns / validation. Named LedgerAccount to avoid the
+/// existing Better Auth `Account` model / `accounts` table.
+model LedgerAccount {
+  id       String          @id @default(cuid())
+  code     String          @unique
+  name     String          @unique
+  // Friendly display label for dropdowns, e.g. "Kas Laci Toko" / "Bank BCA".
+  // Falls back to the account name's last segment when null.
+  label    String?
+  type     AccountType
+  parentId String?
+  parent   LedgerAccount?  @relation("LedgerAccountParent", fields: [parentId], references: [id])
+  children LedgerAccount[] @relation("LedgerAccountParent")
+  active   Boolean         @default(true)
+
+  @@map("ledger_accounts")
+}
+
+model JournalEntry {
+  id        String     @id @default(cuid())
+  // Gapless human number, null while DRAFT; assigned atomically at POST.
+  number    Int?
+  state     EntryState @default(DRAFT)
+  date      String // ISO date string, e.g. "2024-01-15"
+  narration String
+  postedAt  DateTime?
+  createdAt DateTime   @default(now())
+
+  // Self-relation for VOID reversal links.
+  reversedById String?       @unique
+  reversedBy   JournalEntry? @relation("Reversal", fields: [reversedById], references: [id])
+  reverses     JournalEntry? @relation("Reversal")
+
+  lines JournalLine[]
+
+  // Guided-screen tagging (additive, nullable). sourceType is a free-form string
+  // ("pengeluaran" | "transfer" | "modal" | "prive" | "saldo-awal"); sourceMeta
+  // stashes the form fields list views render without a parallel event table.
+  sourceType String?
+  sourceMeta Json?
+
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id      String       @id @default(cuid())
+  entryId String
+  entry   JournalEntry @relation(fields: [entryId], references: [id])
+  // Beancount-style account name; matches the core JournalLine.account string.
+  account String
+  // Signed Rupiah: positive = debit, negative = credit.
+  amount  BigInt
+
+  @@map("journal_lines")
+}
+
+/// Cek Saldo: an asserted real-world cash balance for a kas account on a date.
+/// The comparison against the derived ledger balance is computed at render,
+/// NEVER stored.
+model BalanceAssertion {
+  id        String   @id @default(cuid())
+  account   String // Beancount-style kas account, e.g. "Assets:Cash:Utama"
+  date      String // ISO "YYYY-MM-DD"
+  expected  BigInt // Saldo diharapkan — integer Rupiah
+  note      String?
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([account, date])
+  @@map("balance_assertions")
+}
+
+/// Pengeluaran categories. code is uppercase and immutable after create
+/// (enforced at the repository level).
+model ExpenseCategory {
+  id        String        @id @default(cuid())
+  code      String        @unique
+  name      String
+  bucket    ExpenseBucket
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@map("expense_categories")
+}
+
+/// Gapless sequence counter (one row per scope, e.g. key="journal").
+model Sequence {
+  id    String @id @default(cuid())
+  key   String @unique
+  value Int    @default(0)
+
+  @@map("sequences")
+}
+
+/// Accounting months (Bulan). The user creates the periods they operate in and
+/// picks the active one across the Keuangan screens (Warung Books hardcoded these).
+/// `lockedAt` backs Slice 5 tutup buku (month lock) — nullable, unused until then.
+model AccountingMonth {
+  id        String    @id @default(cuid())
+  month     String    @unique // "YYYY-MM"
+  lockedAt  DateTime?
+  createdAt DateTime  @default(now())
+
+  @@map("accounting_months")
+}
+
+/// Sales channel → kas account mapping. Each sale's cash leg is debited to the
+/// account mapped for its channel. Channels: "tunai" (cash), "elektronik"
+/// (QRIS/debit/kredit/transfer), "online" (webstore orders — n/a for kasir today).
+/// `account` is a Beancount cash-account name from the LedgerAccount registry.
+model SalesChannelAccount {
+  id        String   @id @default(cuid())
+  channel   String   @unique // "tunai" | "elektronik" | "online"
+  account   String // Beancount cash account, e.g. "Assets:Cash:KasLaci"
+  updatedAt DateTime @updatedAt
+
+  @@map("sales_channel_accounts")
+}
+
+/// Generic key/value settings for Warung Books config. Today holds a single
+/// key, "purchase-cash-account" — the Beancount kas account name that bahan
+/// baku purchases (pengeluaran) are paid from (Expenses:HPP:Bahan leg's
+/// counterpart).
+model AccountingSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("accounting_settings")
+}
+
+/// The correlation table — the linkage pattern. Ties a WB JournalEntry back to
+/// the operational row (KasirTransaction / Pengeluaran / shift close) that
+/// caused it WITHOUT touching that row. The unique constraint gives idempotency
+/// (one live posting per source doc); reversal state is tracked here, not on
+/// the source table.
+model LedgerPosting {
+  id             String   @id @default(cuid())
+  sourceType     String // "kasir" | "pengeluaran" | "shift-close"
+  sourceId       String // the existing KasirTransaction/Pengeluaran/session id
+  journalEntryId String // the WB JournalEntry id
+  createdAt      DateTime @default(now())
+
+  @@unique([sourceType, sourceId])
+  @@index([journalEntryId])
+  @@map("ledger_postings")
+}
