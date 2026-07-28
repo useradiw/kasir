@@ -308,6 +308,89 @@ export class AccountingRepository {
   }
 
   /**
+   * Void a POSTED entry inside an existing transaction. Extracted from
+   * voidEntry (Slice 3a) so posting repositories that must void-then-repost
+   * atomically (salesPostingRepository.repostDayClose) can compose it inside
+   * their own outer `$transaction`, exactly as postEntryTx/postEntry relate.
+   *
+   * 1. Asserting state == POSTED (throws on illegal transition).
+   * 2. Creating a reversing entry (negated lines, its own gapless number).
+   * 3. Marking the original as VOID and linking the two.
+   *
+   * Lines may NOT be edited in place; this is the only correction path.
+   * The caller must pass an active Prisma interactive-transaction client.
+   */
+  async voidEntryTx(tx: Prisma.TransactionClient, id: string): Promise<PostedEntry> {
+    const original = await tx.journalEntry.findUnique({
+      where: { id },
+      include: { lines: true },
+    });
+
+    if (!original) throw new EntryNotFoundError(id);
+    // F-7: voiding writes a reversal into the original's month — blocked
+    // when that month is locked (Edit/Hapus blocked in locked months).
+    await this.assertNotLocked(original.date);
+    if (original.state !== "POSTED") {
+      throw new IllegalStateTransitionError(original.state, "VOID");
+    }
+
+    // Build reversed lines
+    const reversedLines: CoreJournalLine[] = original.lines.map((l) => ({
+      account: l.account,
+      amount: -l.amount,
+    }));
+
+    // Validate zero-sum on the reversal (should always hold but be safe)
+    const reversalEntry = new CoreJournalEntry(
+      original.date,
+      `[Reversal] ${original.narration}`,
+      reversedLines,
+    );
+
+    // Atomically get next sequence number
+    const number = await nextSequenceTx(tx, "journal");
+
+    const now = new Date();
+
+    // Create the reversing entry
+    const reversal = await tx.journalEntry.create({
+      data: {
+        number,
+        state: "POSTED",
+        date: reversalEntry.date,
+        narration: reversalEntry.narration,
+        postedAt: now,
+        reversedById: id,
+        lines: {
+          create: reversalEntry.postings.map((p) => ({
+            account: p.account,
+            amount: p.amount,
+          })),
+        },
+      },
+      include: { lines: true },
+    });
+
+    // Mark original as VOID
+    await tx.journalEntry.update({
+      where: { id },
+      data: { state: "VOID" },
+    });
+
+    return {
+      id: reversal.id,
+      number,
+      date: reversal.date,
+      narration: reversal.narration,
+      state: "POSTED",
+      lines: reversal.lines.map((l) => ({
+        account: l.account,
+        amount: l.amount,
+      })),
+    };
+  }
+
+  /**
    * Void a POSTED entry by:
    * 1. Asserting state == POSTED (throws on illegal transition).
    * 2. Creating a reversing entry (negated lines, its own gapless number).
@@ -318,73 +401,7 @@ export class AccountingRepository {
   async voidEntry(id: string): Promise<PostedEntry> {
     await this.warmLock();
     return this.prisma.$transaction(async (tx) => {
-      const original = await tx.journalEntry.findUnique({
-        where: { id },
-        include: { lines: true },
-      });
-
-      if (!original) throw new EntryNotFoundError(id);
-      // F-7: voiding writes a reversal into the original's month — blocked
-      // when that month is locked (Edit/Hapus blocked in locked months).
-      await this.assertNotLocked(original.date);
-      if (original.state !== "POSTED") {
-        throw new IllegalStateTransitionError(original.state, "VOID");
-      }
-
-      // Build reversed lines
-      const reversedLines: CoreJournalLine[] = original.lines.map((l) => ({
-        account: l.account,
-        amount: -l.amount,
-      }));
-
-      // Validate zero-sum on the reversal (should always hold but be safe)
-      const reversalEntry = new CoreJournalEntry(
-        original.date,
-        `[Reversal] ${original.narration}`,
-        reversedLines,
-      );
-
-      // Atomically get next sequence number
-      const number = await nextSequenceTx(tx, "journal");
-
-      const now = new Date();
-
-      // Create the reversing entry
-      const reversal = await tx.journalEntry.create({
-        data: {
-          number,
-          state: "POSTED",
-          date: reversalEntry.date,
-          narration: reversalEntry.narration,
-          postedAt: now,
-          reversedById: id,
-          lines: {
-            create: reversalEntry.postings.map((p) => ({
-              account: p.account,
-              amount: p.amount,
-            })),
-          },
-        },
-        include: { lines: true },
-      });
-
-      // Mark original as VOID
-      await tx.journalEntry.update({
-        where: { id },
-        data: { state: "VOID" },
-      });
-
-      return {
-        id: reversal.id,
-        number,
-        date: reversal.date,
-        narration: reversal.narration,
-        state: "POSTED",
-        lines: reversal.lines.map((l) => ({
-          account: l.account,
-          amount: l.amount,
-        })),
-      };
+      return this.voidEntryTx(tx, id);
     });
   }
 

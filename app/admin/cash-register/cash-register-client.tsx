@@ -13,6 +13,7 @@ import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { openRegister, closeRegister, editRegister, deleteRegister } from "@/app/actions/admin/cash-register";
+import { postDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
 import type { RoleEnum } from "@/generated/prisma";
 import { Pencil } from "lucide-react";
 
@@ -22,6 +23,7 @@ type TodayRegister = {
   openingCash: number;
   closingCash: number | null;
   isOpen: boolean;
+  hasPosting: boolean | null;
 } | null;
 
 type RegisterRow = {
@@ -33,7 +35,39 @@ type RegisterRow = {
   totalExpenses: number;
   expectedClosing: number;
   difference: number | null;
+  hasPosting: boolean | null;
 };
+
+function UnpostedBadge({ hasPosting, isOwner, id }: { hasPosting: boolean | null; isOwner: boolean; id: string }) {
+  const router = useRouter();
+  const { isPending, run, error } = useAdminAction();
+  if (hasPosting !== false) return null;
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center gap-2">
+        <span className="rounded-full bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning-foreground">
+          Belum tercatat ke buku besar
+        </span>
+        {isOwner && (
+          <Button
+            size="xs"
+            variant="outline"
+            disabled={isPending}
+            onClick={() => run(async () => {
+              const result = await postDayCloseForRegister(id);
+              if (!result.posted) throw new Error(result.reason ?? "Gagal mencatat ke buku besar.");
+              router.refresh();
+            }, { successMessage: "Tercatat ke buku besar" })}
+          >
+            Catat ke buku besar
+          </Button>
+        )}
+      </div>
+      <ErrorBanner error={error} />
+    </div>
+  );
+}
 
 function EditRegisterDialog({
   register,
@@ -224,6 +258,7 @@ export default function CashRegisterClient({
                   </EditRegisterDialog>
                 )}
               </div>
+              <UnpostedBadge hasPosting={todayRegister.hasPosting} isOwner={isOwner} id={todayRegister.id} />
             </div>
           )}
         </CardContent>
@@ -273,6 +308,9 @@ export default function CashRegisterClient({
                             Selisih: {r.difference >= 0 ? "+" : ""}{formatRupiah(r.difference)}
                           </span>
                         )}
+                      </div>
+                      <div className="mt-1">
+                        <UnpostedBadge hasPosting={r.hasPosting} isOwner={isOwner} id={r.id} />
                       </div>
                     </div>
                     {isOwner && (

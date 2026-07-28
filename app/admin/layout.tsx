@@ -31,6 +31,7 @@ const navItemsBase = [
     { href: "/admin/keuangan/saldo-awal", label: "Saldo Awal", ownerOnly: true },
     { href: "/admin/keuangan/kategori", label: "Kategori Pengeluaran", ownerOnly: true },
     { href: "/admin/keuangan/akun", label: "Akun Kas", ownerOnly: true },
+    { href: "/admin/keuangan/akun-penjualan", label: "Akun Penjualan", ownerOnly: true },
   ]},
   { trigger: "Laporan", content: [
     { href: "/admin/reports", label: "Laporan" },

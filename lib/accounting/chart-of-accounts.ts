@@ -62,6 +62,9 @@ export const KASIR_CHART_OF_ACCOUNTS: readonly ChartAccountSeed[] = [
   // Pengeluaran (never a per-sale cost)
   { code: "hpp-bahan", name: "Expenses:HPP:Bahan" },
 
+  // OpEx — fed by online-settlement commission + deductions (Slice 3a)
+  { code: "opex-komisi-online", name: "Expenses:OpEx:KomisiOnline" },
+
   // Ekuitas — Modal / Saldo Awal / Prive screens (Slice 1 & 5)
   { code: "equity-modal", name: "Equity:Modal" },
   { code: "equity-opening", name: "Equity:Opening" },

@@ -9,6 +9,7 @@ import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
 import { CatatRepository, type CatatSourceType } from "@/lib/accounting/catatRepository";
 import { CashAccountRepository } from "@/lib/accounting/cashAccountRepository";
 import { MonthRepository } from "@/lib/accounting/monthRepository";
+import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
 import { seedChartOfAccounts } from "@/lib/accounting/chart-of-accounts";
 import { SELECTED_MONTH_COOKIE } from "@/lib/keuangan-month";
 import {
@@ -22,6 +23,7 @@ import {
   cashAccountSchema,
   renameCashAccountSchema,
   setCashAccountActiveSchema,
+  salesChannelAccountSchema,
   monthSchema,
   type CategoryData,
   type PengeluaranData,
@@ -35,6 +37,7 @@ const expenses = () => new ExpenseRepository(prisma);
 const catat = () => new CatatRepository(prisma);
 const cash = () => new CashAccountRepository(prisma);
 const months = () => new MonthRepository(prisma);
+const salesChannels = () => new SalesChannelRepository(prisma);
 
 async function setSelectedMonthCookie(month: string) {
   const store = await cookies();
@@ -212,6 +215,19 @@ export async function setCashAccountActive(input: { id: string; active: boolean 
     await requireOwner();
     const parsed = setCashAccountActiveSchema.parse(input);
     await cash().setActive(parsed.id, parsed.active);
+    revalidateKeuangan();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Akun penjualan (sales-channel -> kas account mapping)
+// ---------------------------------------------------------------------------
+
+export async function setSalesChannelAccount(input: { channel: string; account: string }) {
+  return runAction(async () => {
+    await requireOwner();
+    const parsed = salesChannelAccountSchema.parse(input);
+    await salesChannels().set(parsed.channel, parsed.account);
     revalidateKeuangan();
   });
 }

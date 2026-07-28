@@ -13,6 +13,7 @@ const TABS = [
   { href: "/admin/keuangan/saldo-awal", label: "Saldo Awal" },
   { href: "/admin/keuangan/kategori", label: "Kategori" },
   { href: "/admin/keuangan/akun", label: "Akun Kas" },
+  { href: "/admin/keuangan/akun-penjualan", label: "Akun Penjualan" },
 ];
 
 export function KeuanganTabs() {

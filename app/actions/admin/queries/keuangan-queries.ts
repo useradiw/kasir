@@ -6,6 +6,7 @@ import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
 import { CatatRepository, type CatatSourceType } from "@/lib/accounting/catatRepository";
 import { CashAccountRepository } from "@/lib/accounting/cashAccountRepository";
 import { MonthRepository } from "@/lib/accounting/monthRepository";
+import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
 
 /** Amounts fit safely in Number (Rupiah < 2^53); convert at the read boundary
  *  so BigInt never crosses the server/client serialization seam. */
@@ -84,4 +85,11 @@ export async function listCashAccounts(includeInactive = false) {
 export async function listMonths() {
   await requireOwner();
   return new MonthRepository(prisma).list();
+}
+
+/** Every sales channel ("tunai"/"elektronik"/"online") -> mapped kas account,
+ *  or null when unmapped. Backs the Akun Penjualan screen. */
+export async function listSalesChannelAccounts() {
+  await requireOwner();
+  return new SalesChannelRepository(prisma).list();
 }

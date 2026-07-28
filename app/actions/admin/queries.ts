@@ -20,6 +20,8 @@ export {
   listCatat,
   listCashAccounts,
   listMonths,
+  listSalesChannelAccounts,
+  getNonSalesCashMovementByDate,
 } from "./queries/index";
 
 export type {

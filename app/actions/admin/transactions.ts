@@ -7,6 +7,8 @@ import { requireOwner } from "@/lib/admin-auth";
 import { ActionError, runAction } from "@/lib/action-error";
 import { createVoidNotification } from "@/lib/notifications";
 import { formatRupiah } from "@/lib/format";
+import { postDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
+import { SalesPostingRepository } from "@/lib/accounting/salesPostingRepository";
 
 export async function voidTransaction(transactionId: string, reason: string) {
   return runAction(async () => {
@@ -41,6 +43,18 @@ export async function voidTransaction(transactionId: string, reason: string) {
     });
 
     revalidateTransactions();
+
+    // A voided sale changes its day's totals — repost only if that day was
+    // already closed AND already has a day-close posting. A day that was
+    // never closed has nothing posted yet, so there is nothing to repost.
+    const dayMidnight = new Date(tx.paidAt.getFullYear(), tx.paidAt.getMonth(), tx.paidAt.getDate());
+    const register = await prisma.cashRegister.findUnique({ where: { date: dayMidnight } });
+    if (register && register.closingCash !== null) {
+      const existingPosting = await new SalesPostingRepository(prisma).getPostingFor(register.id);
+      if (existingPosting) {
+        await postDayCloseForRegister(register.id, { repost: true });
+      }
+    }
   });
 }
 

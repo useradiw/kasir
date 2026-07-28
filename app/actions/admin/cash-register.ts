@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireOwner, requireOwnerStrict } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
+import { postDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
+import { SalesPostingRepository } from "@/lib/accounting/salesPostingRepository";
 
 const openSchema = z.object({
   openingCash: z.coerce.number().int().min(0, "Kas awal tidak boleh negatif"),
@@ -49,6 +51,10 @@ export async function closeRegister(formData: FormData) {
       data: { closingCash, closedById: staff.id },
     });
     revalidateCashRegister();
+
+    // Post to the buku besar AFTER the register is closed — never blocks the
+    // close itself (failure is swallowed inside, owners get notified).
+    await postDayCloseForRegister(register.id);
   });
 }
 
@@ -66,7 +72,7 @@ export async function editRegister(id: string, formData: FormData) {
 
     const parsed = editSchema.parse(raw);
     const closingCash = parsed.closingCash;
-    await prisma.cashRegister.update({
+    const updated = await prisma.cashRegister.update({
       where: { id },
       data: {
         openingCash: parsed.openingCash,
@@ -76,12 +82,31 @@ export async function editRegister(id: string, formData: FormData) {
       },
     });
     revalidateCashRegister();
+
+    // openingCash/closingCash changed -> the expected/counted numbers changed.
+    // Repost only when the register is closed AND already has a posting;
+    // never blocks the edit itself.
+    if (updated.closingCash !== null) {
+      const existingPosting = await new SalesPostingRepository(prisma).getPostingFor(updated.id);
+      if (existingPosting) {
+        await postDayCloseForRegister(updated.id, { repost: true });
+      }
+    }
   });
 }
 
 export async function deleteRegister(id: string) {
   return runAction(async () => {
     await requireOwnerStrict();
+
+    const sales = new SalesPostingRepository(prisma);
+    const existingPosting = await sales.getPostingFor(id);
+    if (existingPosting) {
+      // Void the ledger entry BEFORE deleting the register row — the
+      // reversal stays in the ledger; only the correlation row goes.
+      await sales.voidDayClose(id);
+    }
+
     await prisma.cashRegister.delete({ where: { id } });
     revalidateCashRegister();
   });

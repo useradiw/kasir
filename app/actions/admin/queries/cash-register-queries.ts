@@ -34,15 +34,37 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
     allDates.push(startOfToday);
   }
 
-  const { cashByDate, expenseByDate } = await reconcileCashDates(allDates);
+  const { cashByDate, qrisByDate, nonSalesByDate } = await reconcileCashDates(allDates);
 
+  // Which closed registers already have a day-close (shift-close) posting —
+  // backs the "unposted day" recovery badge/button on the admin screen.
+  const registerIds = registers.map((r) => r.id);
+  if (todayRegister) registerIds.push(todayRegister.id);
+  const postings = registerIds.length
+    ? await prisma.ledgerPosting.findMany({
+        where: { sourceType: "shift-close", sourceId: { in: registerIds } },
+        select: { sourceId: true },
+      })
+    : [];
+  const postedIds = new Set(postings.map((p) => p.sourceId));
+
+  // expectedClosing = openingCash + cashSales + nonSalesCashMovement (signed:
+  // negative for pengeluaran, positive for a transfer/modal INTO the drawer).
+  // totalExpenses keeps its old field name/shape for existing clients — it's
+  // now just "money out" read off the ledger: -min(0, nonSalesCashMovement).
   function reconcile(r: { openingCash: number; closingCash: number | null; date: Date }) {
     const key = localDateKey(r.date);
     const cashIncome = cashByDate[key] ?? 0;
-    const totalExpenses = expenseByDate[key] ?? 0;
-    const expectedClosing = r.openingCash + cashIncome - totalExpenses;
+    const qrisIncome = qrisByDate[key] ?? 0;
+    const nonSalesCashMovement = nonSalesByDate[key] ?? 0;
+    const totalExpenses = Math.max(0, -nonSalesCashMovement);
+    const expectedClosing = r.openingCash + cashIncome + nonSalesCashMovement;
     const difference = r.closingCash !== null ? r.closingCash - expectedClosing : null;
-    return { cashIncome, totalExpenses, expectedClosing, difference };
+    // A day with no sales AND an exact cash count is not a ledger event —
+    // postDayClose deliberately returns null and writes nothing. Such a day must
+    // NOT be flagged "belum tercatat" forever, so treat it as nothing-to-post.
+    const nothingToPost = cashIncome === 0 && qrisIncome === 0 && (difference ?? 0) === 0;
+    return { cashIncome, totalExpenses, expectedClosing, difference, nothingToPost };
   }
 
   const todayRecon = todayRegister ? reconcile(todayRegister) : null;
@@ -55,6 +77,10 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
           openingCash: todayRegister.openingCash,
           closingCash: todayRegister.closingCash,
           isOpen: todayRegister.closingCash === null,
+          hasPosting:
+            todayRegister.closingCash !== null
+              ? postedIds.has(todayRegister.id) || (todayRecon?.nothingToPost ?? false)
+              : null,
         }
       : null,
     todayCashIncome: todayRecon?.cashIncome ?? 0,
@@ -71,6 +97,9 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
         totalExpenses: recon.totalExpenses,
         expectedClosing: recon.expectedClosing,
         difference: recon.difference,
+        // null while open — a day-close posting only makes sense once closed.
+        hasPosting:
+          r.closingCash !== null ? postedIds.has(r.id) || recon.nothingToPost : null,
       };
     }),
   };

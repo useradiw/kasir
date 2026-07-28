@@ -9,6 +9,8 @@ import type { Staff } from "@/generated/prisma";
 import { getSetting } from "@/lib/settings";
 import { localDateKey } from "@/lib/format";
 import { runAction } from "@/lib/action-error";
+import { reconcileCashDates } from "@/app/actions/admin/queries/_shared";
+import { postDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
 
 const DEFAULT_LOCK_HOURS = 4;
 
@@ -88,6 +90,11 @@ export async function closeRegisterForStaff(formData: FormData) {
       data: { closingCash, closedById: staff.id },
     });
     revalidateCashRegister();
+
+    // Post to the buku besar AFTER the register is closed — a cashier must
+    // never be blocked by unfinished accounting setup. Failure is swallowed
+    // by postDayCloseForRegister itself (owners get notified instead).
+    await postDayCloseForRegister(register.id);
   });
 }
 
@@ -136,48 +143,19 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
     allDates.push(startOfToday);
   }
 
-  const cashByDate: Record<string, number> = {};
-  const expenseByDate: Record<string, number> = {};
-
-  if (allDates.length > 0) {
-    const minDate = new Date(Math.min(...allDates.map((d) => d.getTime())));
-    const maxDate = new Date(Math.max(...allDates.map((d) => d.getTime())) + 24 * 60 * 60 * 1000);
-
-    const [transactions, expenses] = await Promise.all([
-      prisma.transaction.findMany({
-        where: {
-          status: "PAID",
-          OR: [
-            { paymentMethod: "CASH" },
-            { paymentMethod: "SPLIT", cashAmount: { gt: 0 } },
-          ],
-          paidAt: { gte: minDate, lt: maxDate },
-        },
-        select: { totalAmount: true, cashAmount: true, paymentMethod: true, paidAt: true },
-      }),
-      prisma.expense.findMany({
-        where: { recordedAt: { gte: minDate, lt: maxDate }, deductFromCash: true },
-        include: { items: { select: { amount: true, cost: true } } },
-      }),
-    ]);
-
-    for (const t of transactions) {
-      const key = localDateKey(t.paidAt);
-      const cashIn = t.paymentMethod === "SPLIT" ? t.cashAmount : t.totalAmount;
-      cashByDate[key] = (cashByDate[key] ?? 0) + cashIn;
-    }
-    for (const e of expenses) {
-      const key = localDateKey(e.recordedAt);
-      const total = e.items.reduce((s, i) => s + i.amount * i.cost, 0);
-      expenseByDate[key] = (expenseByDate[key] ?? 0) + total;
-    }
-  }
+  // Ledger-based reconciliation — same helper admin/cash-register-queries.ts
+  // uses, so tutup kas (staff view) and the admin view never disagree.
+  // expectedClosing = openingCash + cashSales + nonSalesCashMovement.
+  // totalExpenses keeps its old field name/shape for existing clients — it's
+  // now "money out" read off the ledger: -min(0, nonSalesCashMovement).
+  const { cashByDate, nonSalesByDate } = await reconcileCashDates(allDates);
 
   function reconcile(r: { openingCash: number; closingCash: number | null; date: Date }) {
     const key = localDateKey(r.date);
     const cashIncome = cashByDate[key] ?? 0;
-    const totalExpenses = expenseByDate[key] ?? 0;
-    const expectedClosing = r.openingCash + cashIncome - totalExpenses;
+    const nonSalesCashMovement = nonSalesByDate[key] ?? 0;
+    const totalExpenses = Math.max(0, -nonSalesCashMovement);
+    const expectedClosing = r.openingCash + cashIncome + nonSalesCashMovement;
     const difference = r.closingCash !== null ? r.closingCash - expectedClosing : null;
     return { cashIncome, totalExpenses, expectedClosing, difference };
   }

@@ -5,6 +5,12 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import { runAction, ActionError } from "@/lib/action-error";
 import { revalidateSettlement } from "@/lib/revalidate";
+import { localDateKey } from "@/lib/format";
+import {
+  SettlementPostingRepository,
+  SettlementImbalanceError,
+} from "@/lib/accounting/settlementPostingRepository";
+import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
 
 const ONLINE_SERVICES = ["GoFood", "ShopeeFood", "GrabFood"];
 
@@ -50,8 +56,23 @@ export async function createSettlement(input: z.infer<typeof createSettlementSch
     }
 
     const totalGross = transactions.reduce((s, t) => s + t.totalAmount, 0);
+    const deductions = data.deductions.filter((d) => d.amount > 0);
+    const deductionsTotal = deductions.reduce((s, d) => s + d.amount, 0);
 
-    await prisma.onlineSettlement.create({
+    // Validate BEFORE writing anything. Reuses the engine's own error/message
+    // (SettlementImbalanceError) so the "seimbang" check the UI shows and the
+    // one the ledger enforces are the exact same rule, worded once.
+    const receivedSide = data.finalAmount + data.commissionAmount + deductionsTotal;
+    if (receivedSide !== totalGross) {
+      throw new SettlementImbalanceError(
+        BigInt(totalGross),
+        BigInt(data.finalAmount),
+        BigInt(data.commissionAmount),
+        BigInt(deductionsTotal),
+      );
+    }
+
+    const settlement = await prisma.onlineSettlement.create({
       data: {
         service: data.service,
         totalGross,
@@ -65,15 +86,36 @@ export async function createSettlement(input: z.infer<typeof createSettlementSch
           })),
         },
         deductions: {
-          create: data.deductions
-            .filter((d) => d.amount > 0)
-            .map((d) => ({
-              label: d.label,
-              amount: d.amount,
-            })),
+          create: deductions.map((d) => ({
+            label: d.label,
+            amount: d.amount,
+          })),
         },
       },
     });
+
+    // A settlement is an owner/manager back-office action — unlike tutup kas,
+    // it's fine to fail the whole thing when accounts aren't mapped. But a
+    // settlement row must never exist without its posting: either both
+    // happen or neither, so a failed post deletes the row we just created
+    // (cascades to its items/deductions) and re-throws — the underlying
+    // error (e.g. ChannelAccountNotSetError) already says what to configure.
+    try {
+      const accounts = await new SalesChannelRepository(prisma).require(["online"]);
+      await new SettlementPostingRepository(prisma).postSettlement({
+        date: localDateKey(settlement.settlementDate),
+        settlementId: settlement.id,
+        service: data.service,
+        totalGross: BigInt(totalGross),
+        commissionAmount: BigInt(data.commissionAmount),
+        deductionsTotal: BigInt(deductionsTotal),
+        finalAmount: BigInt(data.finalAmount),
+        cashAccount: accounts.online,
+      });
+    } catch (e) {
+      await prisma.onlineSettlement.delete({ where: { id: settlement.id } });
+      throw e;
+    }
 
     revalidateSettlement();
   });
@@ -87,6 +129,14 @@ export async function deleteSettlement(settlementId: string) {
       where: { id: settlementId },
     });
     if (!settlement) throw new ActionError("Data pencairan tidak ditemukan.");
+
+    const postings = new SettlementPostingRepository(prisma);
+    const existingPosting = await postings.getPostingFor(settlementId);
+    if (existingPosting) {
+      // Void the ledger entry FIRST — the reversal stays; only the
+      // correlation row is removed so the pencairan can be re-entered.
+      await postings.voidSettlement(settlementId);
+    }
 
     await prisma.onlineSettlement.delete({ where: { id: settlementId } });
 

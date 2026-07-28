@@ -12,5 +12,6 @@ export { getSettlementData } from "./settlement-queries";
 export type { SettlementData } from "./settlement-queries";
 export { getMenuPerformanceData } from "./menu-performance-queries";
 export type { MenuPerformanceData, MenuPerformanceRow } from "./menu-performance-queries";
-export { listJurnal, listPengeluaran, listCategories, listCatat, listCashAccounts, listMonths } from "./keuangan-queries";
+export { listJurnal, listPengeluaran, listCategories, listCatat, listCashAccounts, listMonths, listSalesChannelAccounts } from "./keuangan-queries";
 export type { DateRange, JurnalRow } from "./keuangan-queries";
+export { getNonSalesCashMovementByDate } from "./ledger-cash-queries";

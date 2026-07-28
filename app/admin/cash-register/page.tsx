@@ -26,6 +26,7 @@ export default async function CashRegisterPage({
         registers={data.registers}
         filters={{ from, to }}
       />
+
     </Container>
   );
 }

@@ -62,6 +62,12 @@ export const cashAccountSchema = z.object({ label: z.string().min(1, "Nama akun 
 export const renameCashAccountSchema = z.object({ id: z.string().min(1), label: z.string().min(1) });
 export const setCashAccountActiveSchema = z.object({ id: z.string().min(1), active: z.boolean() });
 
+// ---- Akun Penjualan (sales-channel -> kas account mapping) ----
+export const salesChannelAccountSchema = z.object({
+  channel: z.enum(["tunai", "elektronik", "online"]),
+  account: kasAccount,
+});
+
 // ---- Bulan (accounting month picker) ----
 export const monthSchema = z.object({ month: monthString });
 

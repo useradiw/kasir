@@ -23,7 +23,7 @@ engine** (`D:\Website\adi\tokokencana\src\lib\accounting\`), not raw Padu.
 >   replay or reconcile could drop things. Additive DDL goes via `prisma db execute`.
 
 ## ⚠ USER TESTING — do not skip at the end of the build
-The plan has **6 slices (0-5)** plus a Cutover. Done: 0, 2, 1. Remaining: 3, 4, 5.
+The plan has **6 slices (0-5)** plus a Cutover. Done: 0, 2, 1, 3a. Remaining: 3b, 4, 5.
 
 **No guarded server action has EVER run for real.** Every `/admin/keuangan/*` page
 and action is `requireOwner()`-gated; Claude cannot log in, so the entire authed
@@ -37,7 +37,104 @@ backup round-trip, which could not be verified while the ledger had no rows.
 0 → **2 (Keuangan/Pengeluaran+HPP)** → **1 (COGS strip)** → 3 → 4 → 5.
 Swapped so bahan cost always has somewhere to land; stripping first left a gap.
 
-## Slice 1 — DONE, uncommitted (code-only strip, tables dormant)
+## Slice 3a — DONE, uncommitted (operational money flows post to the ledger)
+Slice 3 was split into **3a (posting seams)** and **3b (retire the old expense
+screens)** — the approved scope was two slices' worth, and 3b depends on 3a.
+
+**Design decisions settled with Adi 2026-07-28 (all four, recorded so 3b/4 don't
+re-litigate them):**
+1. Tunai + QRIS sales post **ONE journal entry per closed day** at tutup kas, not
+   per sale. The plan asked for both, which would have double-booked every sale.
+   ~1 entry/day keeps Jurnal readable; kasir is offline-first so per-sale posting
+   at sync would make ledger order nondeterministic on retry.
+   ⚠ Known consequence: **a day that is never closed never reaches the ledger.**
+2. **Online sales post ONLY at settlement**, net of commission — cash-basis. So
+   `sumDaySales` MUST exclude online-service transactions or they double-book
+   against `Income:Sales:Online`. This is the single most important money rule
+   added in this slice.
+3. Tutup kas expected-cash now reads the **LEDGER**, not the `Expense` table.
+4. Deleting a pencairan **voids** its entry then deletes the row.
+
+**Posting shapes (verified against the code, not just the spec):**
+- Day close `sourceType:"shift-close"`, `sourceId: cashRegister.id`:
+  `Dr <tunai akun> cashSales / Cr Income:Sales:Tunai`,
+  `Dr <elektronik akun> qrisSales / Cr Income:Sales:QRIS`, plus a selisih pair —
+  short → `Dr Expenses:SelisihKas / Cr <tunai akun>`, over → `Dr <tunai akun> /
+  Cr Income:SelisihKas`. Worked example (cash 500k, qris 200k, expected 450k,
+  counted 440k) nets the drawer to **+490.000** — correct.
+  **All three zero → posts NOTHING and returns null** (not a ledger event).
+- Settlement `sourceType:"settlement"`, `sourceId: settlement.id`:
+  `Dr <online akun> finalAmount`, `Dr Expenses:OpEx:KomisiOnline (komisi +
+  potongan)`, `Cr Income:Sales:Online totalGross`.
+
+**New expected-cash formula** (in `reconcileCashDates`, shared by the admin and
+cashier screens): `openingCash + cashSales + nonSalesCashMovement`, where the last
+term is the SIGNED net ledger movement on the tunai kas account excluding
+`sourceType='shift-close'` (POSTED+VOID both included — a void and its reversal
+net to zero, per `loadBook`'s reasoning). Strictly better than the old
+`− totalExpenses`: it also picks up transfer/modal INTO the drawer, which the old
+formula ignored entirely. `totalExpenses` keeps its field name for existing
+clients but is now `max(0, −nonSalesCashMovement)`.
+- ☠ This also fixed a **pre-existing bug**: `cashregister.ts:171` totalled
+  expenses as `amount * cost` (ignoring `ExpenseItem.lineTotal`) while
+  `report-queries.ts` used `computeExpenseTotal` (which prefers `lineTotal`), so
+  with decimal qty the two screens reported different expense totals for the same
+  day. No reconciliation path multiplies `amount * cost` any more.
+
+**Failure policy — deliberate and important:** a cashier closing the register is
+NEVER blocked by an accounting-config problem. `closingCash` is written first;
+the posting is attempted after. `ChannelAccountNotSetError` / `PeriodLockedError`
+→ register stays closed, `{posted:false}`, day is flagged. Anything else
+propagates (real bugs must not be swallowed). Recovery is the
+**"Belum tercatat ke buku besar"** badge + owner-only **"Catat ke buku besar"**
+button on `/admin/cash-register`, driven by `LedgerPosting` existence.
+- No `Notification` row is created: `NotificationType` has no value that fits a
+  ledger-posting failure, and reusing `"TEST"` (which the agent first did) would
+  show the owner a TEST badge for a real problem. Adding e.g. `LEDGER_POST_FAILED`
+  needs an additive `ALTER TYPE … ADD VALUE`; deferred, `console.warn` for now.
+
+New: `lib/accounting/{salesChannelRepository,salesPostingRepository,
+settlementPostingRepository}.ts`, `lib/day-close.ts` (pure `sumDaySales`),
+`app/actions/admin/day-close-posting.ts`, `app/actions/admin/queries/
+ledger-cash-queries.ts`, `app/admin/keuangan/akun-penjualan/` (+ nav entry),
+tests `sales-posting`/`settlement-posting`/`sales-channel`/`day-close`.
+Modified: `accountingRepository.ts` (+`voidEntryTx`, extracted from `voidEntry`
+so voids can compose inside one outer tx — `voidEntry`'s external behaviour
+unchanged), `chart-of-accounts.ts` (+`Expenses:OpEx:KomisiOnline`),
+`cashregister.ts`, `admin/cash-register.ts` (close/edit/delete all wired),
+`admin/transactions.ts` (voiding a sale reposts its day), `settlement.ts`,
+`queries/_shared.ts` (+`qrisByDate`), `cash-register-queries.ts`, both query
+barrels, `admin/layout.tsx`.
+
+- Gates: `tsc` clean, `lint` clean, **`npm test` 86 passed + 1 skipped** (was 52;
+  +25 engine, +9 day-close), `build` clean with `/admin/keuangan/akun-penjualan`
+  in the route list and nothing lost.
+- **LIVE PASS DONE** via a TEMPORARY `app/auth/dev-slice3/` route, since DELETED
+  (`grep -rn dev-slice app/`). Verified: Akun Penjualan renders all three
+  channels, "Belum lengkap:" narrows correctly as channels are set, saved values
+  bind; cash-register shows the unposted badge + recovery button ONLY for a
+  closed day with sales and no posting, no badge for a posted day, no badge for a
+  zero-sales day, negative selisih renders `-Rp 15.000`. Zero console errors,
+  zero hydration warnings.
+- Fixed during my review, after the agents: dropped the `"TEST"` notification
+  (above); and `hasPosting` now also counts "nothing to post" as posted, else a
+  genuinely-zero day showed "Belum tercatat" forever with a button that could
+  never change anything.
+- **NOT verified and cannot be:** no guarded action has run for real. No journal
+  entry has ever been written by a real tutup kas or pencairan. See the UAT memo.
+- NOT committed. Next: Slice 3b.
+
+## ☠ 3b MUST NOT BE SKIPPED — laporan is now inconsistent on purpose
+`report-queries.ts` still reads the `Expense` table while tutup kas reads the
+ledger. That was a deliberate scope line, but it means **laporan and kas harian
+now disagree about expenses** until 3b switches laporan to the ledger. 3b scope:
+cashier-accessible WB pengeluaran route (`/expenses` is `requireAuth()`,
+`/admin/keuangan/pengeluaran` is `requireOwner()` — cashiers need a route),
+delete `/expenses` + `/admin/expenses` + `/admin/expense-templates`, move
+`Expense`/`ExpenseItem`/`ExpenseTemplate` into the DORMANT block, and repoint
+`report-queries.ts` at the ledger.
+
+## Slice 1 — DONE (committed e9e8ce4; code-only strip, tables dormant)
 COGS/bahan baku code removed; **all 9 Ingredient/Recipe/Opname models + 3 enums
 are intact in the DB and in schema.prisma**, physically moved into a marked
 `DORMANT — retained for data, not used` block (models AND enums) — zero
