@@ -9,13 +9,8 @@ import { useAdminAction } from "@/hooks/use-admin-action";
 import { addExpenseForStaff } from "@/app/actions/expenses";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { useState } from "react";
-import type { IngredientOption } from "@/components/expenses/expense-item-row";
 
-export default function ExpenseInputClient({
-  ingredients,
-}: {
-  ingredients: IngredientOption[];
-}) {
+export default function ExpenseInputClient() {
   const { isPending, run, error } = useAdminAction();
   const [formKey, setFormKey] = useState(0);
 
@@ -42,7 +37,6 @@ export default function ExpenseInputClient({
             key={formKey}
             mode="add"
             isPending={isPending}
-            ingredients={ingredients}
             onSubmit={(data) =>
               run(() => addExpenseForStaff(data), {
                 successMessage: "Pengeluaran berhasil ditambahkan",

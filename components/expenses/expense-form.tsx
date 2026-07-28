@@ -11,14 +11,13 @@ import { formatRupiah } from "@/lib/format";
 import { computeExpenseTotal } from "@/lib/expense-utils";
 import { getDistinctExpenseItemNames } from "@/app/actions/admin/expense-templates";
 import { getSuppliers } from "@/app/actions/admin/suppliers";
-import { ItemRow, type ExpenseItemRow, type IngredientOption } from "./expense-item-row";
+import { ItemRow, type ExpenseItemRow } from "./expense-item-row";
 
 type Supplier = { id: string; name: string; phone: string | null };
 
 type Props = {
   mode: "add" | "edit";
   isPending: boolean;
-  ingredients: IngredientOption[];  // passed in from parent (server-fetched or client-loaded)
   onSubmit: (data: {
     description?: string;
     supplierId?: string | null;
@@ -70,7 +69,7 @@ function createRow(defaults?: {
 }
 
 export function ExpenseForm({
-  mode, isPending, ingredients, onSubmit, defaultValues, onCancel,
+  mode, isPending, onSubmit, defaultValues, onCancel,
 }: Props) {
   const [description,      setDescription]      = useState(defaultValues?.description ?? "");
   const [supplierId,       setSupplierId]        = useState<string>(defaultValues?.supplierId ?? "");
@@ -96,19 +95,6 @@ export function ExpenseForm({
     );
   }
 
-  function applyIngredient(rowId: string, ing: IngredientOption) {
-    // Quantity is entered in the ingredient's own unit; the user types the TOTAL
-    // they paid (per-unit cost is derived). We don't prefill cost — the "HPP
-    // terakhir" chip on the row already shows the reference price.
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === rowId
-          ? { ...item, description: ing.name, unit: ing.unit, ingredientId: ing.id, templateId: null }
-          : item,
-      ),
-    );
-  }
-
   function applyPastName(rowId: string, name: string) {
     setItems((prev) =>
       prev.map((item) =>
@@ -128,10 +114,7 @@ export function ExpenseForm({
   }
 
   const grandTotal = computeExpenseTotal(items);
-
-  // Past names not already in ingredient list
-  const ingNames      = new Set(ingredients.map((i) => i.name));
-  const uniquePastNames = pastNames.filter((n) => !ingNames.has(n));
+  const uniquePastNames = pastNames;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -206,11 +189,9 @@ export function ExpenseForm({
           <ItemRow
             key={item.id}
             item={item}
-            ingredients={ingredients}
             uniquePastNames={uniquePastNames}
             isPending={isPending}
             onUpdate={updateItem}
-            onApplyIngredient={applyIngredient}
             onApplyPastName={applyPastName}
             onRemove={removeRow}
             canRemove={items.length > 1}

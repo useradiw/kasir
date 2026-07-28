@@ -23,7 +23,7 @@ engine** (`D:\Website\adi\tokokencana\src\lib\accounting\`), not raw Padu.
 >   replay or reconcile could drop things. Additive DDL goes via `prisma db execute`.
 
 ## ⚠ USER TESTING — do not skip at the end of the build
-The plan has **6 slices (0-5)** plus a Cutover. Done: 0 and 2. Remaining: 1, 3, 4, 5.
+The plan has **6 slices (0-5)** plus a Cutover. Done: 0, 2, 1. Remaining: 3, 4, 5.
 
 **No guarded server action has EVER run for real.** Every `/admin/keuangan/*` page
 and action is `requireOwner()`-gated; Claude cannot log in, so the entire authed
@@ -37,7 +37,74 @@ backup round-trip, which could not be verified while the ledger had no rows.
 0 → **2 (Keuangan/Pengeluaran+HPP)** → **1 (COGS strip)** → 3 → 4 → 5.
 Swapped so bahan cost always has somewhere to land; stripping first left a gap.
 
-## Slice 0 — DONE, uncommitted
+## Slice 1 — DONE, uncommitted (code-only strip, tables dormant)
+COGS/bahan baku code removed; **all 9 Ingredient/Recipe/Opname models + 3 enums
+are intact in the DB and in schema.prisma**, physically moved into a marked
+`DORMANT — retained for data, not used` block (models AND enums) — zero
+migrations generated, schema sorted-diff vs HEAD is empty.
+- Deleted: `/admin/ingredients` (+`[id]`), `/admin/bahan/*`, `/admin/stock-opname`,
+  `/petunjuk/cogs`, `lib/cogs-utils.ts`, `lib/ingredient-search.ts`,
+  `app/actions/admin/{ingredients,ingredient-recipes,ingredient-purchases,recipes,opname}.ts`,
+  `app/actions/admin/queries/{ingredient,recipe}-queries.ts`, `scripts/cogs-test/`
+  + its `test:cogs` npm script (CLAUDE.md updated to match).
+- De-wired: `push-transaction.ts` (cogs always null, no stock movements),
+  `admin/transactions.ts` (void no longer reverses stock),
+  `admin/expenses.ts` + `actions/expenses.ts` (no purchase recording,
+  `ExpenseItem.ingredientId` always written null — column kept),
+  `expense-item-row.tsx`/`expense-form.tsx` (ingredient autocomplete removed,
+  free-text unit only), `menu-performance-queries.ts` +client (dropped
+  cogsPerPortion/totalCogs/grossProfit/marginPct/hasRecipe — no recipe data
+  left to derive them from; kept qtySold/revenue), `inventory-client.tsx`
+  (dropped the dead "Resep" tab stub), `admin/layout.tsx` (Bahan Baku nav
+  group gone, Supplier moved under Keuangan), `revalidate.ts` (dropped
+  `revalidateIngredients`/`revalidateOpname`), `queries/index.ts` + the
+  `queries.ts` compat shim (both — landmine from Slice 2 notes), `petunjuk/page.tsx`
+  (removed Bahan Baku/Satuan/Resep Menu/Resep Olahan/Opname sections + TOC +
+  permission-matrix rows), `admin/page.tsx` (dashboard opname-reminder banner
+  called the now-deleted `getCurrentMonthOpnameStatus` — removed, this wasn't
+  in the original file list, caught by the dangling-import grep).
+- Untouched per scope: `backup.ts`/`restore.ts`/`backup-client.tsx` (still
+  list all ingredient/recipe/opname tables — dormant data still backed up),
+  `app/admin/suppliers/*`, all `lib/accounting/` + `app/admin/keuangan/*`.
+- Verified: `tsc --noEmit` clean, `lint` clean, `npm test` 52/52 + 1 skipped
+  (unchanged), `npm run build` clean — route list confirms deleted routes gone
+  and kept routes (`/admin/inventory`, `/admin/suppliers`, `/admin/menu-performance`,
+  `/admin/expenses`, `/expenses`, all 8 `/admin/keuangan*`) present.
+- **LIVE PASS DONE (2026-07-28)** via a TEMPORARY `app/auth/dev-slice1/` route
+  (only `/` and `/auth/*` escape proxy.ts) rendering the real components with
+  fabricated data. **Route DELETED** — confirm with `grep -rn dev-slice1 app/`.
+  Verified in-browser: ItemRow has no ingredient dropdown/"HPP terakhir" chip;
+  Indonesian comma survives (`0,5` + Rp 5.000 -> `amount 0.5, cost 10000,
+  ingredientId null`); the "Riwayat" past-names autocomplete still works;
+  menu-performance renders 3 columns (Menu/Terjual/Pendapatan) with correct
+  totals and no HPP remnants; /admin/expenses list + item breakdown fine;
+  inventory tab bar down to 5 tabs; petunjuk clean. **Zero console errors,
+  zero hydration warnings.** ExpenseForm itself could NOT be rendered
+  unauthenticated — its `useEffect` calls `getSuppliers()`, whose
+  `requireRole()` redirect navigates the whole page away despite the
+  `.catch()`. Its diff is prop-removal only and is compile-verified.
+- Two fixes made during the live pass, after the agent's run:
+  `app/admin/inventory/page.tsx` now validates `?tab=` against `VALID_TABS`
+  (a bookmarked `?tab=recipes` rendered a blank body); petunjuk "Diperbarui"
+  bumped to 28 Juli 2026.
+- **DEFERRED to Slice 3 by decision (2026-07-28):** Adi first chose to delete
+  the old expense screens in this slice, then agreed to defer after this was
+  found — `cashregister.ts:180` computes `expectedClosing = openingCash +
+  cashIncome - totalExpenses` and `report-queries.ts` computes `netProfit` the
+  same way, both from the `Expense` table. Deleting those screens before
+  Slice 3 wires shift-close and laporan to the ledger would make every shift
+  close show a FALSE cash shortfall and overstate net profit, and would leave
+  cashiers with no pengeluaran entry at all (`/expenses` is `requireAuth()`,
+  `/admin/keuangan/pengeluaran` is `requireOwner()`). So `/expenses`,
+  `/admin/expenses` and `/admin/expense-templates` all still work and still
+  feed tutup kas + laporan; only the ingredient picker came out.
+- Also decided: `/admin/inventory` is menu CRUD, NOT bahan — kept.
+  `/admin/suppliers` kept (no ingredient references), moved under Keuangan
+  because pembelian in kasir *is* Pengeluaran; there is no separate pembelian
+  or penjualan module planned.
+- NOT committed — Adi commits manually. Next: Slice 3.
+
+## Slice 0 — DONE (committed 90ecff3; backup coverage 42c7aed)
 Engine + WB tables + pglite harness. **52 tests green** (+1 skipped: a live-DB
 concurrency test, correctly gated behind `RUN_LIVE_DB_TESTS`); tsc + lint + build
 clean. Nothing user-facing, nothing wired.
@@ -118,7 +185,7 @@ Verified the existing app still works against prod WITH the 10 new tables:
      backup→restore roundtrip once Slice 2 has posted entries.
    - Still uncovered by design: Supabase Auth users (restore gives staff rows,
      no logins).
-3. **Slice 2 — DONE + LIVE-VERIFIED, uncommitted.**
+3. **Slice 2 — DONE + LIVE-VERIFIED (committed d8a0115).**
    Live pass (2026-07-28): the `/admin/keuangan/*` pages are `requireOwner()`-gated
    and Claude cannot log in, so verification used a TEMPORARY route under
    `app/auth/dev-keuangan/` (only `/` and `/auth/*` escape proxy.ts's redirect)

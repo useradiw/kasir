@@ -15,12 +15,11 @@ kasir.tokokencana.com (Vercel). Real business data — the DB is PRODUCTION Supa
 - Dev: `npm run dev` (or `npm run dev:claude` for the Claude-friendly dev script)
 - Build: `npm run build` (runs prisma generate first)
 - Lint: `npm run lint`
-- COGS tests: `npm run test:cogs`
 - Done = lint + build + hydration check pass, AND visual verify in dev server.
-  Run `test:cogs` whenever touching COGS, ingredients, units, or pengeluaran.
-- Automated coverage exists only for COGS (June 2026 audit finding). When touching
-  other money paths (checkout totals, laporan aggregation), offer to extend the
-  suite with a smoke test in the same session.
+- Automated coverage is thin (June 2026 audit finding); the COGS suite was
+  retired in Slice 1 (Warung Books merge) along with the COGS screens. When
+  touching money paths (checkout totals, laporan aggregation, keuangan), offer
+  to extend the suite with a smoke test in the same session.
 
 ## ☠ DATABASE LANDMINES — read before any DB command
 

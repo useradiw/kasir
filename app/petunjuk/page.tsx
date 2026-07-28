@@ -65,7 +65,7 @@ export default async function PetunjukPage() {
       <h1 className="text-2xl font-bold mb-1">Petunjuk Penggunaan</h1>
       <p className="text-muted-foreground text-sm mb-6">
         Panduan cara menggunakan fitur-fitur aplikasi Kasir POS.
-        <span className="block mt-1 text-xs">Diperbarui: 26 Mei 2026</span>
+        <span className="block mt-1 text-xs">Diperbarui: 28 Juli 2026</span>
       </p>
 
       {/* TOC at top */}
@@ -86,22 +86,7 @@ export default async function PetunjukPage() {
             <a href="#admin-inventori" className="text-foreground hover:text-primary transition-colors py-0.5">Inventori Menu</a>
           )}
           {isAdmin && (
-            <a href="#admin-bahan-baku" className="text-foreground hover:text-primary transition-colors py-0.5">Bahan Baku & HPP</a>
-          )}
-          {isAdmin && (
-            <a href="#admin-satuan" className="text-foreground hover:text-primary transition-colors py-0.5">Satuan Bahan</a>
-          )}
-          {isAdmin && (
-            <a href="#admin-resep-menu" className="text-foreground hover:text-primary transition-colors py-0.5">Resep Menu</a>
-          )}
-          {isAdmin && (
-            <a href="#admin-resep-olahan" className="text-foreground hover:text-primary transition-colors py-0.5">Resep Bahan Olahan</a>
-          )}
-          {isAdmin && (
             <a href="#admin-supplier" className="text-foreground hover:text-primary transition-colors py-0.5">Supplier</a>
-          )}
-          {isAdmin && (
-            <a href="#admin-opname" className="text-foreground hover:text-primary transition-colors py-0.5">Opname Stok</a>
           )}
           {isAdmin && (
             <a href="#admin-transaksi" className="text-foreground hover:text-primary transition-colors py-0.5">Transaksi</a>
@@ -166,15 +151,10 @@ export default async function PetunjukPage() {
           <li>Buka <Link href="/expenses" className="text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
           <li>Ketuk <strong>Tambah Pengeluaran</strong>.</li>
           <li>Pilih <strong>Supplier</strong> dari dropdown jika sudah dibuat (opsional).</li>
-          <li>Mulai ketik nama bahan — pilih dari daftar Bahan Baku.</li>
-          <li>Isi <strong>Jumlah dalam satuan bahan</strong> (mis. gram/butir), bukan jumlah dus. Untuk beli per dus/karton, konversi dulu: 2 dus = 60 butir. Lalu isi <strong>Harga/satuan</strong>.</li>
+          <li>Isi nama item, <strong>Jumlah</strong> beserta satuannya (mis. gram/butir/dus — bebas), lalu <strong>Total bayar</strong>.</li>
           <li>Centang <strong>Potongan Kas</strong> bila mengurangi saldo kas harian, atau <strong>Catat ke Kas Pak Har</strong> untuk jurnal pemilik.</li>
           <li>Ketuk <strong>Simpan</strong>.</li>
         </Steps>
-        <Tips>
-          <li>Saat item terhubung ke Bahan Baku, stok <strong>otomatis bertambah</strong> dan <strong>HPP</strong> di-set ke harga pembelian ini (harga terakhir).</li>
-          <li>Jumlah selalu dalam satuan bahan — konversi dari dus/karton Anda lakukan sendiri sekali saat mencatat.</li>
-        </Tips>
       </section>
 
       {hasCashAccess && (
@@ -246,7 +226,6 @@ export default async function PetunjukPage() {
             <SubHeading id="admin-inventori">Inventori Menu</SubHeading>
             <p className="text-sm text-muted-foreground mb-2">
               Kelola kategori, menu, varian, paket, dan harga (regular &amp; online).
-              <strong> Resep menu</strong> sekarang dipindah ke menu <em>Bahan Baku → Resep Menu</em>.
             </p>
 
             <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Menambah item menu baru</p>
@@ -265,135 +244,6 @@ export default async function PetunjukPage() {
               <li>Simpan.</li>
             </Steps>
 
-            {/* Bahan Baku */}
-            <SubHeading id="admin-bahan-baku">Bahan Baku &amp; HPP</SubHeading>
-            <p className="text-sm text-muted-foreground mb-3">
-              Daftar pusat semua bahan, kemasan, dan perlengkapan. Setiap pembelian
-              memperbarui stok dan menyetel <strong>HPP = harga pembelian terakhir</strong>,
-              jadi laporan HPP selalu memakai harga terkini. Menu Bahan Baku ada di nav
-              group sendiri: <em>Bahan Baku</em> (Daftar Bahan, Resep Menu, Resep Bahan
-              Olahan, Supplier, Opname Stok).
-            </p>
-
-            <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Tambah bahan baru</p>
-            <Steps>
-              <li>Buka <Link href="/admin/ingredients" className="text-primary hover:underline">Daftar Bahan</Link>.</li>
-              <li>Ketuk <strong>+ Tambah</strong> dan isi: nama, kategori (Bahan/Kemasan/Perlengkapan/Lainnya), <strong>Satuan</strong> (ketik bebas: <code>gram</code>, <code>ml</code>, <code>butir</code>, <code>pcs</code>…), batas stok minimum (opsional), supplier default (opsional), dan tag (opsional, pisah koma).</li>
-              <li>Satuan ini dipakai untuk stok, resep, dan HPP — sama di seluruh sistem. Pilih satuan terkecil yang praktis.</li>
-              <li>Klik baris bahan untuk masuk ke halaman detail.</li>
-            </Steps>
-
-            <Tips>
-              <li>Untuk mengganti satuan bahan yang sudah punya riwayat, pakai <strong>Ubah Satuan (konversi)</strong> di tab Pengaturan — stok, HPP, dan semua resep ikut dikonversi otomatis.</li>
-              <li>Filter tag (chip kecil di atas daftar) memudahkan mencari bahan: misal <code>#frozen</code>, <code>#kering</code>.</li>
-            </Tips>
-
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Pembelian per dus / karton</p>
-            <p className="text-sm text-muted-foreground">
-              Tidak ada pack/konversi otomatis. Saat mencatat pembelian, isi <strong>jumlah dalam satuan bahan</strong>. Untuk beli per dus, konversi dulu: mis. 2 dus telur = <code>60</code> butir. Anda hitung sekali, saat memang tahu angkanya.
-            </p>
-
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Halaman detail bahan</p>
-            <Tips>
-              <li><strong>Tab Pembelian</strong> — daftar semua pembelian dengan supplier, sumber, dan tombol <strong>Edit</strong> (Owner) untuk memperbaiki jumlah/total bayar.</li>
-              <li><strong>Tab Pemakaian</strong> — semua log stok (PURCHASE, SALE, ADJUSTMENT, WASTE) dari mana pun.</li>
-              <li><strong>Tab Pengaturan</strong> — edit info, Ubah Satuan, Set HPP Manual, sesuaikan stok, catat pemborosan, nonaktifkan bahan.</li>
-            </Tips>
-
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Koreksi stok manual</p>
-            <Steps>
-              <li>Buka halaman detail bahan → tab <strong>Pengaturan</strong>.</li>
-              <li>Untuk koreksi umum: ketuk <strong>Sesuaikan Stok</strong>, isi nilai (positif = tambah, negatif = kurangi).</li>
-              <li>Untuk pemborosan/kerusakan: ketuk <strong>+ Catat Pemborosan</strong>, isi jumlah dan alasan.</li>
-            </Steps>
-
-            <Tips>
-              <li>HPP = <strong>harga pembelian terakhir</strong> (berdasarkan tanggal), bukan rata-rata.</li>
-              <li>Edit/hapus pengeluaran mengembalikan stok dan menghitung ulang HPP dari pembelian yang tersisa.</li>
-            </Tips>
-
-            <Link
-              href="/petunjuk/cogs"
-              className="inline-flex items-center gap-1.5 mt-4 text-sm text-primary hover:underline font-medium"
-            >
-              Baca panduan lengkap Bahan, Supplier &amp; Opname →
-            </Link>
-
-            {/* Satuan */}
-            <SubHeading id="admin-satuan">Satuan Bahan</SubHeading>
-            <p className="text-sm text-muted-foreground mb-2">
-              Setiap bahan punya <strong>satu satuan bebas</strong> yang Anda tentukan
-              (<code>gram</code>, <code>ml</code>, <code>butir</code>, <code>pcs</code>, …).
-              Satuan itu dipakai untuk stok, resep, dan HPP sekaligus — konsisten di seluruh sistem.
-            </p>
-            <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Aturan</p>
-            <Tips>
-              <li>Resep memakai satuan bahan yang sama. Mis. kopi dalam <code>gram</code>: tulis 18 untuk 18 g.</li>
-              <li>Konversi dari satuan pasar (dus/karton/kg) Anda lakukan sendiri saat mencatat pembelian — tidak ada pack otomatis.</li>
-              <li>Mencampur bahan beda satuan dalam satu resep <strong>aman</strong> — sistem menjumlah rupiah, bukan satuan fisik.</li>
-            </Tips>
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Mengganti satuan (Ubah Satuan)</p>
-            <Steps>
-              <li>Buka detail bahan → tab <strong>Pengaturan</strong> → tautan <strong>Ubah Satuan (konversi)</strong>.</li>
-              <li>Isi satuan baru dan <strong>faktor</strong> (berapa satuan lama dalam 1 satuan baru, mis. 1 kg = 1000 gram).</li>
-              <li>Sistem mengonversi stok, HPP, dan semua resep yang memakai bahan ini sekaligus. Total rupiah tidak berubah.</li>
-            </Steps>
-
-            {/* Resep Menu */}
-            <SubHeading id="admin-resep-menu">Resep Menu</SubHeading>
-            <p className="text-sm text-muted-foreground mb-2">
-              Komposisi bahan per menu/varian. Ini sumber perhitungan HPP &amp; pengurang stok saat penjualan.
-              Halaman pindah dari Inventori → Bahan Baku.
-            </p>
-            <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Membuat resep baru</p>
-            <Steps>
-              <li>Buka <Link href="/admin/bahan/resep-menu" className="text-primary hover:underline">Resep Menu</Link>.</li>
-              <li>Ketuk <strong>+ Buat Resep</strong>, pilih menu item (dan varian bila ada), lalu <strong>Buat Resep</strong>.</li>
-              <li>Klik resep tersebut di daftar untuk expand → tambah bahan.</li>
-            </Steps>
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Tambah banyak bahan sekaligus (bulk)</p>
-            <Steps>
-              <li>Di dalam resep, buka panel <strong>&quot;▶ Tambah banyak bahan sekaligus&quot;</strong>.</li>
-              <li>Tempel daftar bahan, satu per baris, format <code>nama bahan, jumlah</code>. Contoh:
-                <pre className="text-xs bg-muted/40 rounded p-2 mt-1 leading-relaxed">{`Susu UHT, 180\nKopi Arabika, 18000\nCup Plastik 16oz, 1`}</pre>
-              </li>
-              <li>Sistem mencari bahan secara fuzzy. Baris yang cocok ditandai hijau dengan satuannya; yang tidak cocok ditandai merah dengan alasan.</li>
-              <li>Perbaiki baris merah (atau hapus), lalu ketuk <strong>Simpan (N)</strong> — semua baris masuk dalam satu transaksi.</li>
-            </Steps>
-            <Tips>
-              <li>Tombol &quot;+ Tambah satu bahan (manual)&quot; tetap tersedia untuk kasus khusus (bahan lepas tanpa link).</li>
-              <li>Jumlah selalu dalam satuan bahan tersebut (lihat info di dropdown).</li>
-            </Tips>
-
-            {/* Resep Bahan Olahan */}
-            <SubHeading id="admin-resep-olahan">Resep Bahan Olahan</SubHeading>
-            <p className="text-sm text-muted-foreground mb-2">
-              Bahan olahan = bahan yang dirakit dari bahan-bahan lain (sambal, kaldu, bumbu jadi).
-              Setiap produksi (assembly) memotong stok komponen dan menambah stok induk;
-              HPP induk dihitung ulang dari biaya komponen saat produksi.
-            </p>
-            <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Membuat resep olahan baru</p>
-            <Steps>
-              <li>Buka <Link href="/admin/bahan/resep-olahan" className="text-primary hover:underline">Resep Bahan Olahan</Link>.</li>
-              <li>Ketuk <strong>+ Buat Resep Olahan Baru</strong>, pilih bahan yang akan menjadi <em>induk/hasil</em> (mis. &quot;Sambal Pecel&quot;), klik <strong>Buka Editor</strong>.</li>
-              <li>Di tab Resep bahan tersebut, isi <strong>Hasil/Batch</strong> (jumlah yang dihasilkan tiap kali produksi), lalu tambah komponen.</li>
-            </Steps>
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Tambah banyak komponen sekaligus</p>
-            <Steps>
-              <li>Buka panel <strong>&quot;▶ Tambah banyak komponen sekaligus&quot;</strong> di tab Resep bahan.</li>
-              <li>Tempel baris <code>nama bahan, jumlah</code> seperti pada Resep Menu.</li>
-              <li>Komponen boleh beda satuan dari induk — biaya selalu dijumlah dalam rupiah.</li>
-            </Steps>
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Mencatat produksi (assembly)</p>
-            <Steps>
-              <li>Setelah komponen lengkap, isi <strong>Jumlah Batch</strong> di kartu Produksi, lalu <strong>Catat Produksi</strong>.</li>
-              <li>Stok komponen otomatis berkurang; stok bahan induk bertambah <code>yieldQty × batch</code>; HPP induk dihitung ulang dari biaya komponen.</li>
-            </Steps>
-            <Tips>
-              <li>Halaman daftar Bahan menampilkan chip biru <em>&quot;olahan&quot;</em> pada bahan yang punya resep olahan.</li>
-              <li>Bagian &quot;Komponen Aktif&quot; di halaman Resep Bahan Olahan menunjukkan bahan-bahan yang dipakai sebagai komponen — klik untuk lihat detailnya.</li>
-            </Tips>
-
             {/* Supplier */}
             <SubHeading id="admin-supplier">Supplier</SubHeading>
             <p className="text-sm text-muted-foreground mb-2">
@@ -404,22 +254,6 @@ export default async function PetunjukPage() {
               <li>Ketuk <strong>+ Tambah</strong>, isi nama (wajib), nomor HP dan catatan (opsional).</li>
               <li>Untuk mengubah atau menonaktifkan: ketuk <strong>Edit</strong> atau <strong>Hapus</strong> di baris supplier.</li>
             </Steps>
-
-            {/* Opname */}
-            <SubHeading id="admin-opname">Opname Stok</SubHeading>
-            <p className="text-sm text-muted-foreground mb-2">
-              Hitung fisik stok bahan dan bandingkan dengan catatan sistem. Lakukan minimal sebulan sekali — dashboard akan memunculkan peringatan jika belum opname bulan ini.
-            </p>
-            <Steps>
-              <li>Buka <Link href="/admin/stock-opname" className="text-primary hover:underline">Opname Stok</Link>.</li>
-              <li>Ketuk <strong>+ Mulai Opname</strong>.</li>
-              <li>Untuk setiap bahan, isi <strong>jumlah fisik</strong> hasil hitung. Selisih vs sistem ditampilkan di samping.</li>
-              <li>Tambah catatan opname (opsional), lalu ketuk <strong>Simpan Opname</strong>.</li>
-              <li>Stok sistem disetel ke jumlah fisik; selisih masuk ke log sebagai ADJUSTMENT (kurang) atau OPNAME_GAIN (lebih).</li>
-            </Steps>
-            <Tips>
-              <li>Riwayat opname tersimpan dan bisa di-expand kapan saja untuk lihat detail penyesuaian per bahan.</li>
-            </Tips>
 
             {/* Transaksi */}
             <SubHeading id="admin-transaksi">Transaksi</SubHeading>
@@ -452,9 +286,8 @@ export default async function PetunjukPage() {
                 <Steps>
                   <li>Buka <Link href="/admin/menu-performance" className="text-primary hover:underline">Performa Menu</Link>.</li>
                   <li>Pilih periode (harian / mingguan / bulanan / tahunan) dan navigasi tanggal dengan tombol panah atau date picker.</li>
-                  <li>Tabel menampilkan setiap item menu beserta: jumlah terjual, pendapatan, HPP/porsi, total HPP, laba kotor, dan margin %.</li>
+                  <li>Tabel menampilkan setiap item menu beserta jumlah terjual dan pendapatan.</li>
                   <li>Ketuk judul kolom untuk mengurutkan. Gunakan kolom pencarian untuk memfilter nama menu.</li>
-                  <li>Item tanpa resep tetap muncul, namun kolom HPP dan Margin kosong.</li>
                 </Steps>
 
                 <SubHeading id="admin-kas-pak-har">Kas Pak Har</SubHeading>
@@ -533,10 +366,8 @@ export default async function PetunjukPage() {
                   ["Pencairan Online", true, true, true, false],
                   ["Profil Pengguna", true, true, true, true],
                   ["Panel Admin (Dashboard)", true, true, true, false],
-                  ["Inventori & Resep", true, true, false, false],
-                  ["Bahan Baku & HPP", true, true, false, false],
+                  ["Inventori Menu", true, true, false, false],
                   ["Supplier", true, true, false, false],
-                  ["Opname Stok", true, true, false, false],
                   ["Transaksi & Void", true, true, false, false],
                   ["Pengeluaran (admin)", true, true, false, false],
                   ["Pencairan Online (admin)", true, true, false, false],

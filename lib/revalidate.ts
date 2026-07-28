@@ -64,24 +64,9 @@ export function revalidateSettlement() {
   revalidatePath("/admin/reports");
 }
 
-/** Revalidate ingredient stock page and related inventory. */
-export function revalidateIngredients() {
-  revalidatePath("/admin/ingredients");
-  revalidatePath("/admin/inventory");
-  revalidatePath("/admin/expense-templates");
-  revalidatePath("/admin");
-}
-
 /** Revalidate supplier pages. */
 export function revalidateSuppliers() {
   revalidatePath("/admin/suppliers");
-}
-
-/** Revalidate stock opname page and dashboard. */
-export function revalidateOpname() {
-  revalidatePath("/admin/stock-opname");
-  revalidatePath("/admin/ingredients");
-  revalidatePath("/admin");
 }
 
 /** Revalidate all pages under the Keuangan (Warung Books) section. */

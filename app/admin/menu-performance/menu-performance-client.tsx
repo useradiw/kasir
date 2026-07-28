@@ -17,14 +17,7 @@ const PERIOD_LABELS: Record<Period, string> = {
   yearly: "Tahunan",
 };
 
-function marginColor(pct: number | null): string {
-  if (pct === null) return "text-muted-foreground";
-  if (pct >= 60) return "text-green-600 dark:text-green-400";
-  if (pct >= 30) return "text-yellow-600 dark:text-yellow-400";
-  return "text-red-600 dark:text-red-400";
-}
-
-type SortKey = "revenue" | "qtySold" | "totalCogs" | "grossProfit" | "marginPct" | "cogsPerPortion";
+type SortKey = "revenue" | "qtySold";
 
 // Declared outside component to avoid react-hooks/static-components warning
 function SortBtn({
@@ -108,15 +101,13 @@ export function MenuPerformanceClient({
   }, [data.rows, sortKey, sortAsc, search]);
 
   const { totals } = data;
-  const cogsRows = data.rows.filter((r) => r.hasRecipe);
-  const noRecipeRevenue = data.rows.filter((r) => !r.hasRecipe).reduce((s, r) => s + r.revenue, 0);
 
   const sortBtnProps = { sortKey, sortAsc, onSort: handleSort };
 
   return (
     <div className="space-y-6">
       <AdminPageHeader title="Performa Menu">
-        <span className="text-sm text-muted-foreground">Pendapatan, HPP, dan margin per menu item</span>
+        <span className="text-sm text-muted-foreground">Jumlah terjual dan pendapatan per menu item</span>
       </AdminPageHeader>
 
       {/* Period controls */}
@@ -150,7 +141,7 @@ export function MenuPerformanceClient({
       </Card>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <Card>
           <CardContent className="pt-4">
             <p className="text-xs text-muted-foreground">Total Penjualan</p>
@@ -160,28 +151,8 @@ export function MenuPerformanceClient({
         </Card>
         <Card>
           <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Total HPP</p>
-            <p className="text-lg font-semibold tabular-nums">{formatRupiah(totals.totalCogs)}</p>
-            {noRecipeRevenue > 0 && (
-              <p className="text-xs text-muted-foreground tabular-nums">{formatRupiah(noRecipeRevenue)} tanpa resep</p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Laba Kotor</p>
-            <p className={`text-lg font-semibold tabular-nums ${totals.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-              {formatRupiah(totals.grossProfit)}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Margin Kotor</p>
-            <p className={`text-lg font-semibold ${marginColor(totals.marginPct)}`}>
-              {totals.marginPct !== null ? `${totals.marginPct}%` : "—"}
-            </p>
-            <p className="text-xs text-muted-foreground">{cogsRows.length} item dengan resep</p>
+            <p className="text-xs text-muted-foreground">Jumlah Menu Terjual</p>
+            <p className="text-lg font-semibold tabular-nums">{data.rows.length}</p>
           </CardContent>
         </Card>
       </div>
@@ -205,27 +176,15 @@ export function MenuPerformanceClient({
       ) : (
         <Card>
           <CardContent className="pt-4 overflow-x-auto">
-            <table className="w-full text-sm min-w-175">
+            <table className="w-full text-sm min-w-100">
               <thead>
                 <tr className="border-b text-left text-muted-foreground">
                   <th className="pb-2 pr-3">Menu</th>
                   <th className="pb-2 pr-3 text-right">
                     <SortBtn col="qtySold" label="Terjual" {...sortBtnProps} />
                   </th>
-                  <th className="pb-2 pr-3 text-right">
-                    <SortBtn col="revenue" label="Pendapatan" {...sortBtnProps} />
-                  </th>
-                  <th className="pb-2 pr-3 text-right">
-                    <SortBtn col="cogsPerPortion" label="HPP/Porsi" {...sortBtnProps} />
-                  </th>
-                  <th className="pb-2 pr-3 text-right">
-                    <SortBtn col="totalCogs" label="Total HPP" {...sortBtnProps} />
-                  </th>
-                  <th className="pb-2 pr-3 text-right">
-                    <SortBtn col="grossProfit" label="Laba Kotor" {...sortBtnProps} />
-                  </th>
                   <th className="pb-2 text-right">
-                    <SortBtn col="marginPct" label="Margin" {...sortBtnProps} />
+                    <SortBtn col="revenue" label="Pendapatan" {...sortBtnProps} />
                   </th>
                 </tr>
               </thead>
@@ -238,15 +197,7 @@ export function MenuPerformanceClient({
                 <tr>
                   <td className="pt-2 pr-3">Total</td>
                   <td className="pt-2 pr-3 text-right tabular-nums">{totals.qtySold}</td>
-                  <td className="pt-2 pr-3 text-right tabular-nums">{formatRupiah(totals.revenue)}</td>
-                  <td className="pt-2 pr-3 text-right">—</td>
-                  <td className="pt-2 pr-3 text-right tabular-nums">{formatRupiah(totals.totalCogs)}</td>
-                  <td className={`pt-2 pr-3 text-right tabular-nums ${totals.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
-                    {formatRupiah(totals.grossProfit)}
-                  </td>
-                  <td className={`pt-2 text-right tabular-nums ${marginColor(totals.marginPct)}`}>
-                    {totals.marginPct !== null ? `${totals.marginPct}%` : "—"}
-                  </td>
+                  <td className="pt-2 text-right tabular-nums">{formatRupiah(totals.revenue)}</td>
                 </tr>
               </tfoot>
             </table>
@@ -265,24 +216,9 @@ function PerformanceRow({ row }: { row: MenuPerformanceRow }) {
         {row.variantLabel && (
           <span className="ml-1 text-xs text-muted-foreground">({row.variantLabel})</span>
         )}
-        {!row.hasRecipe && (
-          <span className="ml-1 text-xs text-muted-foreground italic">no resep</span>
-        )}
       </td>
       <td className="py-2 pr-3 text-right tabular-nums">{row.qtySold}</td>
-      <td className="py-2 pr-3 text-right tabular-nums">{formatRupiah(row.revenue)}</td>
-      <td className="py-2 pr-3 text-right tabular-nums">
-        {row.hasRecipe ? formatRupiah(row.cogsPerPortion) : <span className="text-muted-foreground">—</span>}
-      </td>
-      <td className="py-2 pr-3 text-right tabular-nums">
-        {row.hasRecipe ? formatRupiah(row.totalCogs) : <span className="text-muted-foreground">—</span>}
-      </td>
-      <td className={`py-2 pr-3 text-right tabular-nums ${row.hasRecipe ? (row.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400") : "text-muted-foreground"}`}>
-        {row.hasRecipe ? formatRupiah(row.grossProfit) : "—"}
-      </td>
-      <td className={`py-2 text-right tabular-nums font-medium ${marginColor(row.marginPct)}`}>
-        {row.marginPct !== null ? `${row.marginPct}%` : "—"}
-      </td>
+      <td className="py-2 text-right tabular-nums">{formatRupiah(row.revenue)}</td>
     </tr>
   );
 }

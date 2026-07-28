@@ -9,8 +9,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run",
-    "test:cogs": "node --loader ./scripts/cogs-test/resolve-hooks.mjs ./scripts/cogs-test/run.mjs"
+    "test": "vitest run"
   },
   "dependencies": {
     "@base-ui/react": "^1.3.0",

@@ -18,7 +18,6 @@ import {
   addPackageItem, deletePackageItem,
   setOnlinePrice, deleteOnlinePrice,
 } from "@/app/actions/admin/inventory";
-import Link from "next/link";
 
 type Category = { id: string; name: string; sortOrder: number; createdAt: string; updatedAt: string };
 type MenuItem = { id: string; name: string; categoryId: string; categoryName: string; price: number; isHidden: boolean; createdAt: string; updatedAt: string };
@@ -44,7 +43,6 @@ const TABS = [
   { key: "variants", label: "Varian" },
   { key: "packages", label: "Paket" },
   { key: "online", label: "Harga Online" },
-  { key: "recipes", label: "Resep" },
 ];
 
 const SERVICES = ["GoFood", "ShopeeFood", "GrabFood"] as const;
@@ -472,19 +470,6 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
         </Card>
       )}
 
-      {/* ─── RECIPES (moved) ─── */}
-      {tab === "recipes" && (
-        <Card>
-          <CardContent className="py-8 text-center space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Tab Resep sudah dipindah ke <strong>Bahan Baku → Resep Menu</strong>.
-            </p>
-            <Button size="sm" render={<Link href="/admin/bahan/resep-menu" />}>
-              Buka Resep Menu →
-            </Button>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

@@ -8,14 +8,6 @@ import { DecimalInput } from "@/components/ui/decimal-input";
 import { Label } from "@/components/ui/label";
 import { formatRpPerUnit } from "@/lib/format";
 
-export type IngredientOption = {
-  id:              string;
-  name:            string;
-  unit:     string;
-  unitCost: number;
-  category:        string;
-};
-
 // Legacy shape kept for backward compat during transition
 export type Template = { id: string; name: string; defaultUnit: string | null; defaultCost: number | null };
 
@@ -27,26 +19,22 @@ export type ExpenseItemRow = {
   total:        number | null; // exact line total paid; source of truth (new rows); null = legacy fallback
   unit:         string;
   templateId:   string | null; // legacy
-  ingredientId: string | null; // new
+  ingredientId: string | null; // dormant — never written; kept so the field can round-trip
 };
 
 export function ItemRow({
   item,
-  ingredients,
   uniquePastNames,
   isPending,
   onUpdate,
-  onApplyIngredient,
   onApplyPastName,
   onRemove,
   canRemove,
 }: {
   item:             ExpenseItemRow;
-  ingredients:      IngredientOption[];
   uniquePastNames:  string[];
   isPending:        boolean;
   onUpdate:         (id: string, field: keyof Omit<ExpenseItemRow, "id">, value: string | number | null) => void;
-  onApplyIngredient:(rowId: string, ing: IngredientOption) => void;
   onApplyPastName:  (rowId: string, name: string) => void;
   onRemove:         (id: string) => void;
   canRemove:        boolean;
@@ -60,10 +48,7 @@ export function ItemRow({
   const [qty, setQty] = useState<number | null>(item.amount > 0 ? item.amount : null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const selectedIngredient = item.ingredientId
-    ? ingredients.find((i) => i.id === item.ingredientId)
-    : null;
-  const unitLabel = selectedIngredient ? selectedIngredient.unit : (item.unit || "satuan");
+  const unitLabel = item.unit || "satuan";
   const perUnit = total != null && qty != null && qty > 0 ? total / qty : 0;
 
   // Push derived per-unit cost + qty + exact total up to the parent whenever total/qty change.
@@ -88,32 +73,21 @@ export function ItemRow({
   }, []);
 
   const q              = query.toLowerCase();
-  const filteredIngs   = ingredients.filter((i) => i.name.toLowerCase().includes(q));
   const filteredPast   = uniquePastNames.filter((n) => n.toLowerCase().includes(q));
-  const hasSuggestions = filteredIngs.length > 0 || filteredPast.length > 0;
+  const hasSuggestions = filteredPast.length > 0;
 
   function handleDescriptionChange(val: string) {
     setQuery(val);
     onUpdate(item.id, "description", val);
-    onUpdate(item.id, "ingredientId", null);
     onUpdate(item.id, "templateId", null);
     setShowDropdown(true);
   }
 
-  function selectIngredient(ing: IngredientOption) {
-    setQuery(ing.name);
-    onApplyIngredient(item.id, ing);
-    setShowDropdown(false);
-  }
   function selectPast(name: string) {
     setQuery(name);
     onApplyPastName(item.id, name);
     setShowDropdown(false);
   }
-
-  const categoryLabel: Record<string, string> = {
-    BAHAN: "Bahan", KEMASAN: "Kemasan", PERLENGKAPAN: "Perlengkapan", LAINNYA: "Lainnya",
-  };
 
   return (
     <div className="space-y-2.5 rounded-2xl border bg-card p-3">
@@ -127,55 +101,24 @@ export function ItemRow({
           required
           disabled={isPending}
         />
-        {item.ingredientId && (
-          <div className="mt-1 flex items-center gap-1.5 text-xs text-primary">
-            <span className="inline-block rounded-full bg-primary/10 px-2 py-0.5">
-              {categoryLabel[selectedIngredient?.category ?? ""] ?? ""}
-            </span>
-            <span className="tabular-nums">HPP terakhir {formatRpPerUnit(selectedIngredient?.unitCost ?? 0)}/{selectedIngredient?.unit ?? ""}</span>
-          </div>
-        )}
         {showDropdown && hasSuggestions && (
           <div className="absolute z-50 top-full mt-1 left-0 right-0 bg-popover border border-border rounded-xl shadow-md max-h-52 overflow-y-auto">
-            {filteredIngs.length > 0 && (
-              <>
-                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Bahan / Kemasan</p>
-                {filteredIngs.map((ing) => (
-                  <button
-                    key={ing.id}
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); selectIngredient(ing); }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent flex items-center justify-between gap-2"
-                  >
-                    <span className="truncate">{ing.name}</span>
-                    <span className="text-xs text-muted-foreground shrink-0 tabular-nums">
-                      {ing.unit}
-                      {ing.unitCost > 0 ? ` · ${formatRpPerUnit(ing.unitCost)}/${ing.unit}` : ""}
-                    </span>
-                  </button>
-                ))}
-              </>
-            )}
-            {filteredPast.length > 0 && (
-              <>
-                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Riwayat</p>
-                {filteredPast.map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onMouseDown={(e) => { e.preventDefault(); selectPast(name); }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
-                  >
-                    {name}
-                  </button>
-                ))}
-              </>
-            )}
+            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Riwayat</p>
+            {filteredPast.map((name) => (
+              <button
+                key={name}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); selectPast(name); }}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-accent"
+              >
+                {name}
+              </button>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Qty (in the ingredient's unit) + Total paid */}
+      {/* Qty (in the item's unit) + Total paid */}
       <div className="flex items-end gap-2">
         <div className="grid gap-1 flex-1">
           <Label className="text-xs text-muted-foreground">Jumlah ({unitLabel})</Label>
@@ -188,15 +131,13 @@ export function ItemRow({
               disabled={isPending}
               className="w-full"
             />
-            {!selectedIngredient && (
-              <Input
-                value={item.unit}
-                onChange={(e) => onUpdate(item.id, "unit", e.target.value)}
-                placeholder="satuan"
-                disabled={isPending}
-                className="w-24"
-              />
-            )}
+            <Input
+              value={item.unit}
+              onChange={(e) => onUpdate(item.id, "unit", e.target.value)}
+              placeholder="satuan"
+              disabled={isPending}
+              className="w-24"
+            />
           </div>
         </div>
         <div className="grid gap-1 flex-1">
@@ -227,9 +168,6 @@ export function ItemRow({
       {perUnit > 0 && (
         <p className="text-xs text-muted-foreground tabular-nums">
           ≈ {formatRpPerUnit(perUnit)}/{unitLabel}
-          {selectedIngredient && (
-            <span className="text-muted-foreground/60"> · jumlah dalam {selectedIngredient.unit} (mis. 2 dus = 60 {selectedIngredient.unit})</span>
-          )}
         </p>
       )}
     </div>

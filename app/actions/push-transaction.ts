@@ -3,7 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import type { TableSession, OrderItem, Transaction } from "@/lib/db";
 import { createVoidNotification } from "@/lib/notifications";
-import { computeOrderCogs, applyStockMovements } from "@/lib/cogs-utils";
 
 export interface TransactionPayload {
   session: TableSession;
@@ -83,24 +82,8 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
       });
     }
 
-    // ── COGS + stock deduction (only on first sync — guard against retries) ─
-    const existingTx = await tx.transaction.findUnique({
-      where: { id: transaction.id },
-      select: { id: true },
-    });
-
-    let cogs: number | null = null;
-
-    if (!existingTx) {
-      const { totalCogs, movements } = await computeOrderCogs(tx, orderItems);
-      cogs = totalCogs > 0 ? totalCogs : null;
-
-      if (movements.length > 0) {
-        await applyStockMovements(tx, movements, "SALE", transaction.id);
-      }
-    }
-
     // ── Upsert transaction ─────────────────────────────────────────────────
+    const cogs: number | null = null;
     await tx.transaction.upsert({
       where: { id: transaction.id },
       create: {

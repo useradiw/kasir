@@ -28,22 +28,16 @@ type Expense = {
   items: ExpenseItem[];
 };
 
-type IngredientOption = {
-  id: string; name: string; unit: string; unitCost: number; category: string;
-};
-
 export default function ExpensesClient({
   expenses,
   totalAmount,
   filters,
   isOwner,
-  ingredients,
 }: {
   expenses: Expense[];
   totalAmount: number;
   filters: { from: string; to: string };
   isOwner: boolean;
-  ingredients: IngredientOption[];
 }) {
   const router = useRouter();
   const { isPending, run, error } = useAdminAction();
@@ -119,7 +113,6 @@ export default function ExpensesClient({
               key={addFormKey}
               mode="add"
               isPending={isPending}
-              ingredients={ingredients}
               onSubmit={(data) =>
                 run(() => addExpense(data), {
                   successMessage: "Pengeluaran berhasil ditambahkan",
@@ -171,7 +164,6 @@ export default function ExpensesClient({
                       <ExpenseForm
                         mode="edit"
                         isPending={isPending}
-                        ingredients={ingredients}
                         defaultValues={{
                           description: e.description ?? undefined,
                           deductFromCash: e.deductFromCash,

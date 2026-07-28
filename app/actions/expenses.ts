@@ -1,12 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { revalidateExpenses, revalidateCashRegister, revalidateIngredients } from "@/lib/revalidate";
+import { revalidateExpenses, revalidateCashRegister } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import { runAction } from "@/lib/action-error";
 import { expenseSchema } from "@/lib/expense-schema";
-import { recordPurchasesBatch } from "@/lib/cogs-utils";
 
 export async function addExpenseForStaff(data: {
   description?: string;
@@ -51,7 +50,7 @@ export async function addExpenseForStaff(data: {
               lineTotal:    i.total ?? Math.round(i.amount * i.cost),
               unit:         i.unit || null,
               templateId:   null,
-              ingredientId: i.ingredientId ?? null,
+              ingredientId: null,
             })),
           },
         },
@@ -70,29 +69,10 @@ export async function addExpenseForStaff(data: {
           },
         });
       }
-
-      // Stock IN for items linked to an ingredient
-      await recordPurchasesBatch(
-        tx,
-        expense.items
-          .filter((item) => item.ingredientId && item.amount > 0)
-          .map((item) => ({
-            ingredientId:  item.ingredientId!,
-            supplierId:    parsed.supplierId ?? null,
-            expenseItemId: item.id,
-            source:        "EXPENSE" as const,
-            packLabel:     item.unit,
-            packQty:       item.amount,
-            totalCost:     item.lineTotal ?? Math.round(item.amount * item.cost),
-            purchasedAt:   expense.recordedAt,
-            recordedById:  staff.id,
-          })),
-      );
     });
 
     revalidatePath("/expenses");
     revalidateExpenses();
     revalidateCashRegister();
-    revalidateIngredients();
   });
 }

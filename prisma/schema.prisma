@@ -378,6 +378,15 @@ model Supplier {
   @@map("suppliers")
 }
 
+// ─────────────────────────────────────────────────────────────
+// DORMANT — retained for data, not used
+// COGS / bahan baku subsystem, stripped from the code in Slice 1
+// (Warung Books merge, 2026-07-28). The tables and their rows are
+// intact in production and are still covered by backup/restore.
+// Do NOT delete these models: removing them would generate a DROP
+// migration against production data.
+// ─────────────────────────────────────────────────────────────
+
 // --- INGREDIENTS (replaces ExpenseTemplate as the authoritative item master) ---
 
 model Ingredient {
@@ -543,6 +552,12 @@ model IngredientLog {
 
 // --- ENUMS ---
 
+// ─────────────────────────────────────────────────────────────
+// DORMANT — retained for data, not used
+// COGS / bahan baku subsystem, stripped from the code in Slice 1
+// (Warung Books merge, 2026-07-28). See the model block above.
+// ─────────────────────────────────────────────────────────────
+
 enum IngredientCategory {
   BAHAN
   KEMASAN
@@ -554,6 +569,14 @@ enum IngredientPurchaseSource {
   EXPENSE
   ADJUSTMENT
   OPNAME_GAIN
+  ASSEMBLY
+}
+
+enum StockMovementType {
+  PURCHASE
+  SALE
+  ADJUSTMENT
+  WASTE
   ASSEMBLY
 }
 
@@ -607,14 +630,6 @@ enum KasPakHarType {
   DEPOSIT
   WITHDRAWAL
   EXPENSE_DEDUCTION
-}
-
-enum StockMovementType {
-  PURCHASE
-  SALE
-  ADJUSTMENT
-  WASTE
-  ASSEMBLY
 }
 
 // ===== Warung Books (double-entry ledger) =====
