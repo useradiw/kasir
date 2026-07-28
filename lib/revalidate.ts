@@ -5,12 +5,6 @@ export function revalidateInventory() {
   revalidatePath("/admin/inventory");
 }
 
-/** Revalidate all pages that display expense data. */
-export function revalidateExpenses() {
-  revalidatePath("/admin/expenses");
-  revalidatePath("/admin/kas-pak-har");
-}
-
 /** Revalidate all pages that display cash register data. */
 export function revalidateCashRegister() {
   revalidatePath("/cashregister");
@@ -37,11 +31,6 @@ export function revalidateNotifications() {
 /** Revalidate all pages that display attendance data. */
 export function revalidateAttendance() {
   revalidatePath("/admin/attendance");
-}
-
-/** Revalidate all pages that display expense template data. */
-export function revalidateExpenseTemplates() {
-  revalidatePath("/admin/expense-templates");
 }
 
 /** Revalidate all pages that display settings. */

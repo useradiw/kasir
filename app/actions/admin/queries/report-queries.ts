@@ -3,8 +3,8 @@
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import { localDateKey } from "@/lib/format";
-import { computeExpenseTotal } from "@/lib/expense-utils";
-import { getDateRange } from "./_shared";
+import { getDateRange, reconcileCashDates } from "./_shared";
+import { getLedgerExpenseTotals, getLedgerPengeluaranForPeriod } from "./ledger-cash-queries";
 
 // ─── Report Data ─────────────────────────────────────────────────────────────
 
@@ -18,13 +18,22 @@ export async function getReportData(opts: {
   const { start, end } = getDateRange(opts.period, opts.date);
 
   // Load commission settings for online vendors
+  const isOwner = opts.isOwner ?? false;
+
+  // Ledger date range is a "YYYY-MM-DD" string pair, both ends inclusive —
+  // matches JournalEntry.date's string comparison (getDateRange's `end` is
+  // exclusive, so back it off by 1ms before taking the date key).
+  const dateFrom = localDateKey(start);
+  const dateTo = localDateKey(new Date(end.getTime() - 1));
+
   const [
     transactions,
-    expenses,
     cashRegisters,
     attendanceRecords,
     settings,
     staffList,
+    ledgerExpenseTotals,
+    ledgerPengeluaran,
   ] = await Promise.all([
     prisma.transaction.findMany({
       where: { paidAt: { gte: start, lt: end } },
@@ -42,11 +51,6 @@ export async function getReportData(opts: {
       },
       orderBy: { paidAt: "desc" },
       // cogs is included automatically via Prisma include
-    }),
-    prisma.expense.findMany({
-      where: { recordedAt: { gte: start, lt: end } },
-      orderBy: { recordedAt: "desc" },
-      include: { items: true },
     }),
     prisma.cashRegister.findMany({
       where: { date: { gte: start, lt: end } },
@@ -71,6 +75,8 @@ export async function getReportData(opts: {
       where: { salary: { gt: 0 } },
       select: { id: true, name: true, salary: true },
     }),
+    getLedgerExpenseTotals(dateFrom, dateTo),
+    isOwner ? getLedgerPengeluaranForPeriod(dateFrom, dateTo) : Promise.resolve([]),
   ]);
 
   // Parse commission settings
@@ -196,29 +202,25 @@ export async function getReportData(opts: {
     .filter((s) => s.presentDays > 0);
   const totalSalary = staffSalaryBreakdown.reduce((s, x) => s + x.total, 0);
 
-  // --- Expense summary ---
-  const totalExpenses = expenses.reduce((s, e) => s + computeExpenseTotal(e.items), 0);
+  // --- Expense summary (ledger-based, Slice 3b) ---
+  // opex = every Expenses:* account except Expenses:HPP:* — see
+  // getLedgerExpenseTotals for why this deliberately includes
+  // Expenses:OpEx:KomisiOnline and Expenses:SelisihKas (real costs).
+  const totalExpenses = ledgerExpenseTotals.opex;
 
-  // --- Cash register summary (offline only) ---
-  const cashByDate: Record<string, number> = {};
-  const expenseByDate: Record<string, number> = {};
-  for (const t of offlineTx) {
-    if (t.paymentMethod !== "CASH") continue;
-    const key = localDateKey(t.paidAt);
-    cashByDate[key] = (cashByDate[key] ?? 0) + t.totalAmount;
-  }
-  for (const e of expenses) {
-    if (!e.deductFromCash) continue;
-    const key = localDateKey(e.recordedAt);
-    expenseByDate[key] = (expenseByDate[key] ?? 0) + computeExpenseTotal(e.items);
-  }
+  // --- Cash register summary — rebuilt from the buku besar (Slice 3a's
+  // formula, shared via reconcileCashDates) so laporan, tutup kas, and
+  // /admin/cash-register all agree by construction instead of laporan
+  // carrying its own private Expense-table reconciliation.
+  const { cashByDate, nonSalesByDate } = await reconcileCashDates(cashRegisters.map((r) => r.date));
   const cashRegisterSummary = cashRegisters.map((r) => {
     const key = localDateKey(r.date);
     const cashIncome = cashByDate[key] ?? 0;
-    const dayExpenses = expenseByDate[key] ?? 0;
-    const expectedClosing = r.openingCash + cashIncome - dayExpenses;
+    const nonSalesCashMovement = nonSalesByDate[key] ?? 0;
+    const dayExpenses = Math.max(0, -nonSalesCashMovement);
+    const expectedClosing = r.openingCash + cashIncome + nonSalesCashMovement;
     return {
-      date: localDateKey(r.date),
+      date: key,
       openingCash: r.openingCash,
       closingCash: r.closingCash,
       cashIncome,
@@ -298,10 +300,13 @@ export async function getReportData(opts: {
     byService: Object.entries(onlineByService).map(([service, v]) => ({ service, ...v })),
   };
 
-  const isOwner = opts.isOwner ?? false;
-
-  // --- COGS summary (paid offline + online transactions with COGS recorded) ---
-  const totalCogs = paidTx.reduce((s, t) => s + (t.cogs ?? 0), 0);
+  // --- HPP summary (ledger-based, Slice 3b) ---
+  // HPP is not a per-sale cost under Warung Books — it's the Expenses:HPP:*
+  // bucket fed by pengeluaran (bahan baku purchases). Transaction.cogs has
+  // been null since Slice 1 stopped writing it; the field names below
+  // (cogs/grossProfit/grossMarginPct) are kept unchanged so existing
+  // clients (PnLCard, export.ts) keep working.
+  const totalCogs = ledgerExpenseTotals.hpp;
   const totalRevenueCombined = totalRevenue + disbursedRevenue;
   const grossProfit = totalRevenueCombined - totalCogs;
   const grossMarginPct = totalRevenueCombined > 0
@@ -321,9 +326,15 @@ export async function getReportData(opts: {
         : 0,
     },
     totalExpenses: isOwner ? totalExpenses : 0,
+    // totalSalary/staffSalary remain an ESTIMATE (daily rate x present days)
+    // for display only — they no longer feed netProfit. Under Warung Books,
+    // gaji recorded as a pengeluaran already lands in totalExpenses via the
+    // ledger; subtracting totalSalary here too would double-count it. If
+    // gaji is never recorded as a pengeluaran, this estimate is shown but
+    // not reflected in laba bersih until it is.
     totalSalary: isOwner ? totalSalary : 0,
     staffSalary: isOwner ? staffSalaryBreakdown : [],
-    netProfit: isOwner ? grossProfit - totalSalary - totalExpenses : 0,
+    netProfit: isOwner ? totalRevenueCombined - totalCogs - totalExpenses : 0,
     cogs: isOwner ? totalCogs : 0,
     grossProfit: isOwner ? grossProfit : 0,
     grossMarginPct: isOwner ? grossMarginPct : null,
@@ -334,17 +345,7 @@ export async function getReportData(opts: {
     topItems,
     cashRegisterSummary: isOwner ? cashRegisterSummary : [],
     attendanceSummary,
-    expenses: isOwner ? expenses.map((e) => ({
-      id: e.id,
-      total: computeExpenseTotal(e.items),
-      description: e.description,
-      recordedAt: e.recordedAt.toISOString(),
-      items: e.items.map((i) => ({
-        description: i.description,
-        amount: i.amount,
-        cost: i.cost,
-      })),
-    })) : [],
+    expenses: isOwner ? ledgerPengeluaran : [],
     transactions: paidTx.map((t) => ({
       id: t.id,
       sessionName: t.tableSession.name,
@@ -356,6 +357,8 @@ export async function getReportData(opts: {
       status: t.status as string,
       paidAt: t.paidAt.toISOString(),
       processedBy: t.processedBy?.name ?? null,
+      // Historical only — Transaction.cogs stopped being written in Slice 1
+      // (dormant column); old rows may still hold real per-sale values.
       cogs: t.cogs ?? null,
     })),
     voidedCount: transactions.filter((t) => t.status === "VOIDED").length,

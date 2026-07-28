@@ -20,10 +20,9 @@ const navItemsBase = [
   ]},
   { trigger: "Keuangan", content: [
     { href: "/admin/cash-register", label: "Kas Harian" },
-    { href: "/admin/kas-pak-har", label: "Kas Pak Har", ownerOnly: true },
     { href: "/admin/settlement", label: "Pencairan Online" },
     { href: "/admin/keuangan", label: "Jurnal", ownerOnly: true },
-    { href: "/admin/keuangan/pengeluaran", label: "Pengeluaran (Buku Besar)", ownerOnly: true },
+    { href: "/admin/keuangan/pengeluaran", label: "Pengeluaran", ownerOnly: true },
     { href: "/admin/suppliers", label: "Supplier" },
     { href: "/admin/keuangan/transfer", label: "Transfer Kas", ownerOnly: true },
     { href: "/admin/keuangan/modal", label: "Modal", ownerOnly: true },
@@ -36,7 +35,6 @@ const navItemsBase = [
   { trigger: "Laporan", content: [
     { href: "/admin/reports", label: "Laporan" },
     { href: "/admin/transactions", label: "Transaksi" },
-    { href: "/admin/expenses", label: "Pengeluaran" },
   ]},
   { trigger: "Sistem", content: [
     { href: "/admin/notifications", label: "Notifikasi", ownerOnly: true },

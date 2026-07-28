@@ -1,6 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/shared/badge";
 import { formatRupiah } from "@/lib/format";
 import { shortDate } from "../../_utils/period-date";
 import type { ReportData } from "@/app/actions/admin/queries";
@@ -106,15 +107,30 @@ function ExpensesCard({
     <Card>
       <CardHeader>
         <CardTitle className="text-sm">Pengeluaran Operasional</CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Dari buku besar (pengeluaran). HPP (bahan baku) ditampilkan terpisah di kartu Profitabilitas.
+        </p>
       </CardHeader>
       <CardContent>
         <div className="divide-y divide-foreground/5">
           {expenses.map((e) => (
-            <div key={e.id} className="flex items-center justify-between py-2 text-sm">
-              <span className="truncate pr-2">{e.description ?? "-"}</span>
-              <span className="text-destructive shrink-0 tabular-nums">
-                {formatRupiah(e.total)}
-              </span>
+            <div key={e.id} className="py-2 space-y-0.5">
+              <div className="flex items-center justify-between text-sm gap-2">
+                <span className="truncate pr-2 flex items-center gap-1.5">
+                  {e.item}
+                  {e.state === "VOID" && (
+                    <Badge className="bg-destructive/10 text-destructive shrink-0">VOID</Badge>
+                  )}
+                </span>
+                <span
+                  className={`shrink-0 tabular-nums ${e.state === "VOID" ? "text-muted-foreground line-through" : "text-destructive"}`}
+                >
+                  {formatRupiah(e.jumlah)}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {shortDate(e.date)} · {e.kategoriNama} · {e.akunLabel}
+              </p>
             </div>
           ))}
           <div className="flex items-center justify-between py-2 text-sm font-medium">

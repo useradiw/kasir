@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireAuth, requireOwner } from "@/lib/admin-auth";
 import { runAction } from "@/lib/action-error";
 import { revalidateKeuangan } from "@/lib/revalidate";
 import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
@@ -90,6 +90,30 @@ export async function deleteCategory(id: string) {
 export async function recordPengeluaran(data: PengeluaranData) {
   return runAction(async () => {
     const staff = await requireOwner();
+    const parsed = pengeluaranSchema.parse(data);
+    const row = await expenses().recordPengeluaran({
+      date: parsed.date,
+      akun: parsed.akun,
+      item: parsed.item,
+      qty: parsed.qty,
+      hargaSatuan: BigInt(parsed.hargaSatuan),
+      jumlah: BigInt(parsed.jumlah),
+      kategoriCode: parsed.kategoriCode,
+      createdBy: staff.id,
+    });
+    revalidateKeuangan();
+    return { id: row.id };
+  });
+}
+
+// Cashier-facing Catat Pengeluaran (used by /expenses). Deliberately gated
+// with requireAuth(), NOT requireOwner(): the owner approved letting any
+// authenticated staff (including CASHIER) write a pengeluaran ledger entry
+// through this action, mirroring what the old flat /expenses form allowed.
+// Do NOT "fix" this back to requireOwner().
+export async function recordPengeluaranAsStaff(data: PengeluaranData) {
+  return runAction(async () => {
+    const staff = await requireAuth();
     const parsed = pengeluaranSchema.parse(data);
     const row = await expenses().recordPengeluaran({
       date: parsed.date,

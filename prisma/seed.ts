@@ -397,29 +397,10 @@ async function main() {
   ]);
   console.log(`✅ Created ${transactions.length} transactions`);
 
-  // ============ EXPENSES (3) ============
-  console.log("📝 Creating expenses...");
-  const expenses = await Promise.all([
-    prisma.expense.create({
-      data: {
-        description: "Pembelian stock bahan minuman",
-        items: { create: [{ description: "Sirup", amount: 5, cost: 15000 }, { description: "Gula", amount: 3, cost: 25000 }] },
-      },
-    }),
-    prisma.expense.create({
-      data: {
-        description: "Perbaikan kompor dapur",
-        items: { create: [{ description: "Jasa perbaikan kompor", amount: 1, cost: 200000 }] },
-      },
-    }),
-    prisma.expense.create({
-      data: {
-        description: "Pembelian tissue dan pembersih",
-        items: { create: [{ description: "Tissue", amount: 5, cost: 10000 }, { description: "Pembersih lantai", amount: 1, cost: 25000 }] },
-      },
-    }),
-  ]);
-  console.log(`✅ Created ${expenses.length} expenses`);
+  // ============ EXPENSES ============
+  // Expense/ExpenseItem are dormant as of Slice 3b (Warung Books merge,
+  // 2026-07-28) — pengeluaran now goes through the ledger. Stopped seeding
+  // into this table; the model and its rows are untouched in production.
 
   // ============ ATTENDANCE RECORDS (3 per staff) ============
   console.log("📝 Creating attendance records...");
@@ -510,7 +491,6 @@ async function main() {
   console.log(`  • Table Sessions: ${sessions.length}`);
   console.log(`  • Order Items: ${orderItems.length}`);
   console.log(`  • Transactions: ${transactions.length}`);
-  console.log(`  • Expenses: ${expenses.length}`);
   console.log(`  • Attendance Records: ${attendance.length}`);
   console.log("\n✨ Seed completed successfully!");
 }

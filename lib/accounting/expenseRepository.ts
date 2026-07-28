@@ -131,6 +131,10 @@ export interface PengeluaranRow {
 export interface ListPengeluaranOptions {
   dateFrom?: string;
   dateTo?: string;
+  /** Include VOID entries (with their state) — laporan needs these so a
+   *  voided pengeluaran plus its reversal nets to zero rather than vanishing
+   *  from the ledger view. Defaults to false (existing Keuangan behaviour). */
+  includeVoid?: boolean;
 }
 
 export interface EditPengeluaranInput {
@@ -367,9 +371,12 @@ export class ExpenseRepository {
   async listPengeluaran(options: ListPengeluaranOptions = {}): Promise<PengeluaranRow[]> {
     const where: {
       sourceType: string;
-      state: { not: "VOID" };
+      state: { not: "VOID" } | { in: ("POSTED" | "VOID")[] };
       date?: { gte?: string; lte?: string };
-    } = { sourceType: "pengeluaran", state: { not: "VOID" } };
+    } = {
+      sourceType: "pengeluaran",
+      state: options.includeVoid ? { in: ["POSTED", "VOID"] } : { not: "VOID" },
+    };
 
     if (options.dateFrom || options.dateTo) {
       where.date = {};

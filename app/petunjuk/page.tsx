@@ -91,9 +91,6 @@ export default async function PetunjukPage() {
           {isAdmin && (
             <a href="#admin-transaksi" className="text-foreground hover:text-primary transition-colors py-0.5">Transaksi</a>
           )}
-          {isAdmin && (
-            <a href="#admin-pengeluaran" className="text-foreground hover:text-primary transition-colors py-0.5">Pengeluaran Admin</a>
-          )}
           <a href="#akses-peran" className="text-foreground hover:text-primary transition-colors py-0.5">Akses Peran</a>
         </div>
       </nav>
@@ -145,15 +142,15 @@ export default async function PetunjukPage() {
       <section id="pengeluaran">
         <SectionHeading id="pengeluaran">Pengeluaran</SectionHeading>
         <p className="text-sm text-muted-foreground mb-4">
-          Catat pengeluaran operasional harian. Tersedia untuk semua peran.
+          Catat pengeluaran operasional harian. Tersedia untuk semua peran —
+          catatan langsung masuk ke buku besar (ledger).
         </p>
         <Steps>
           <li>Buka <Link href="/expenses" className="text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
-          <li>Ketuk <strong>Tambah Pengeluaran</strong>.</li>
-          <li>Pilih <strong>Supplier</strong> dari dropdown jika sudah dibuat (opsional).</li>
-          <li>Isi nama item, <strong>Jumlah</strong> beserta satuannya (mis. gram/butir/dus — bebas), lalu <strong>Total bayar</strong>.</li>
-          <li>Centang <strong>Potongan Kas</strong> bila mengurangi saldo kas harian, atau <strong>Catat ke Kas Pak Har</strong> untuk jurnal pemilik.</li>
-          <li>Ketuk <strong>Simpan</strong>.</li>
+          <li>Pilih <strong>Akun kas</strong> — dari mana uangnya keluar (mis. Kas Laci, Kas Pak Har).</li>
+          <li>Pilih <strong>Kategori</strong> pengeluaran.</li>
+          <li>Isi nama item, <strong>Qty</strong>, dan <strong>Harga satuan</strong> — jumlah total terisi otomatis (boleh disunting).</li>
+          <li>Ketuk <strong>Simpan</strong>. Catatan langsung masuk ke buku besar.</li>
         </Steps>
       </section>
 
@@ -264,14 +261,6 @@ export default async function PetunjukPage() {
               <li>Untuk membatalkan transaksi, ketuk <strong>Void</strong> di halaman detail, isi alasan pembatalan, lalu konfirmasi. Notifikasi akan dikirim ke Owner.</li>
             </Steps>
 
-            {/* Pengeluaran Admin */}
-            <SubHeading id="admin-pengeluaran">Pengeluaran (Admin)</SubHeading>
-            <Steps>
-              <li>Buka <Link href="/admin/expenses" className="text-primary hover:underline">Pengeluaran</Link> di panel admin.</li>
-              <li>Atur filter rentang tanggal untuk melihat pengeluaran pada periode tertentu.</li>
-              <li>Lihat ringkasan total per kategori template di bagian atas halaman.</li>
-            </Steps>
-
             {/* Sesi & Absensi — brief */}
             <SubHeading id="admin-sesi">Sesi Login &amp; Absensi</SubHeading>
             <Tips>
@@ -291,19 +280,22 @@ export default async function PetunjukPage() {
                 </Steps>
 
                 <SubHeading id="admin-kas-pak-har">Kas Pak Har</SubHeading>
-                <Steps>
-                  <li>Buka <Link href="/admin/kas-pak-har" className="text-primary hover:underline">Kas Pak Har</Link>.</li>
-                  <li>Untuk setoran: ketuk <strong>Setor</strong>, isi jumlah dan keterangan.</li>
-                  <li>Untuk penarikan: ketuk <strong>Tarik</strong>, isi jumlah.</li>
-                  <li>Potongan dari pengeluaran yang ditandai &quot;Kas Pak Har&quot; masuk otomatis.</li>
-                  <li>Saldo berjalan ditampilkan di bagian atas halaman.</li>
-                </Steps>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Halaman Kas Pak Har yang terpisah sudah tidak ada lagi. Uang
+                  Pak Har sekarang dicatat sebagai pengeluaran biasa di{" "}
+                  <Link href="/expenses" className="text-primary hover:underline">Pengeluaran</Link>{" "}
+                  dengan memilih akun kas &quot;Kas Pak Har&quot; — saldonya
+                  bisa dilihat dari buku besar di{" "}
+                  <Link href="/admin/keuangan" className="text-primary hover:underline">Jurnal</Link>.
+                </p>
 
                 <SubHeading id="admin-laporan">Laporan</SubHeading>
                 <Steps>
                   <li>Buka <Link href="/admin/reports" className="text-primary hover:underline">Laporan</Link>.</li>
                   <li>Pilih rentang tanggal menggunakan date picker.</li>
                   <li>Grafik menampilkan pendapatan harian, breakdown per metode pembayaran, dan tipe layanan.</li>
+                  <li>HPP dihitung dari pengeluaran bahan baku di buku besar, bukan dari harga per item.</li>
+                  <li>Gaji karyawan yang ditampilkan adalah perkiraan (gaji harian x hari hadir) — tidak dikurangkan dari laba bersih. Catat gaji sebagai pengeluaran agar ikut masuk buku besar dan laba bersih.</li>
                   <li>Ketuk <strong>Export PDF</strong> atau <strong>Export CSV</strong> untuk mengunduh laporan.</li>
                 </Steps>
 
@@ -369,13 +361,12 @@ export default async function PetunjukPage() {
                   ["Inventori Menu", true, true, false, false],
                   ["Supplier", true, true, false, false],
                   ["Transaksi & Void", true, true, false, false],
-                  ["Pengeluaran (admin)", true, true, false, false],
                   ["Pencairan Online (admin)", true, true, false, false],
                   ["Hapus Pencairan", true, false, false, false],
                   ["Sesi Login", true, true, false, false],
                   ["Absensi", true, true, false, false],
                   ["Performa Menu", true, false, false, false],
-                  ["Kas Pak Har", true, true, false, false],
+                  ["Jurnal / Buku Besar (Keuangan)", true, false, false, false],
                   ["Laporan", true, true, false, false],
                   ["Kelola Staff", true, false, false, false],
                   ["Notifikasi sistem", true, false, false, false],

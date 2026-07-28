@@ -12,7 +12,6 @@ async function main() {
     prisma.tableSession.count(),
     prisma.orderItem.count(),
     prisma.transaction.count(),
-    prisma.expense.count(),
     prisma.attendanceRecord.count(),
   ]);
 
@@ -25,8 +24,7 @@ async function main() {
   console.log(`  • Table Sessions: ${counts[5]}`);
   console.log(`  • Order Items: ${counts[6]}`);
   console.log(`  • Transactions: ${counts[7]}`);
-  console.log(`  • Expenses: ${counts[8]}`);
-  console.log(`  • Attendance Records: ${counts[9]}`);
+  console.log(`  • Attendance Records: ${counts[8]}`);
 
   // Get sample data
   console.log("\n📋 Sample Data:");

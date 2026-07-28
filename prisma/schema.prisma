@@ -153,41 +153,6 @@ model Transaction {
   @@map("transactions")
 }
 
-model Expense {
-  id               String        @id @default(uuid())
-  description      String?
-  recordedAt       DateTime      @default(now())
-  createdAt        DateTime      @default(now())
-  staffId          String?
-  supplierId       String?
-  deductFromCash   Boolean       @default(true)
-  countToKasPakHar Boolean       @default(false)
-  staff            Staff?        @relation(fields: [staffId], references: [id])
-  supplier         Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  items            ExpenseItem[]
-  kasPakHarEntries KasPakHar[]
-
-  @@map("expenses")
-}
-
-model ExpenseItem {
-  id           String           @id @default(uuid())
-  expenseId    String
-  expense      Expense          @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  description  String
-  amount       Float
-  cost         Int
-  lineTotal    Int?             // exact total paid; old rows (null) fall back to amount * cost
-  unit         String?
-  templateId   String?          // legacy FK → ExpenseTemplate (kept until migration 2)
-  template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  ingredientId String?          // new FK → Ingredient
-  ingredient   Ingredient?      @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
-  purchase     IngredientPurchase?
-
-  @@map("expense_items")
-}
-
 model CashRegister {
   id          String   @id @default(uuid())
   date        DateTime @unique
@@ -271,23 +236,6 @@ model AttendanceRecord {
   @@map("attendance_records")
 }
 
-// --- KAS PAK HAR ---
-
-model KasPakHar {
-  id          String        @id @default(uuid())
-  date        DateTime      @default(now())
-  type        KasPakHarType
-  amount      Int
-  description String?
-  expenseId   String?
-  expense     Expense?      @relation(fields: [expenseId], references: [id], onDelete: SetNull)
-  createdById String?
-  createdBy   Staff?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime      @default(now())
-
-  @@map("kas_pak_har")
-}
-
 // --- ONLINE PRICING ---
 
 model MenuItemOnlinePrice {
@@ -341,24 +289,6 @@ model SettlementDeduction {
   settlement   OnlineSettlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
 
   @@map("settlement_deductions")
-}
-
-// --- EXPENSE TEMPLATES (legacy — kept until migration 2) ---
-
-model ExpenseTemplate {
-  id                String             @id @default(uuid())
-  name              String             @unique
-  defaultUnit       String?
-  defaultCost       Int?
-  isActive          Boolean            @default(true)
-  currentStock      Float              @default(0)
-  lowStockAlert     Float?
-  createdAt         DateTime           @default(now())
-  expenseItems      ExpenseItem[]
-  recipeIngredients RecipeIngredient[]
-  ingredientLogs    IngredientLog[]
-
-  @@map("expense_templates")
 }
 
 // --- SUPPLIERS ---
@@ -550,6 +480,83 @@ model IngredientLog {
   @@map("ingredient_logs")
 }
 
+// ─────────────────────────────────────────────────────────────
+// DORMANT — retained for data, not used
+// Flat-money expense/Kas Pak Har subsystem, stripped from the code in
+// Slice 3b (Warung Books merge, 2026-07-28). Pengeluaran and Kas Pak Har
+// are now recorded through the double-entry ledger (LedgerAccount /
+// JournalEntry / JournalLine below). The tables and their rows are
+// intact in production and are still covered by backup/restore.
+// Do NOT delete these models: removing them would generate a DROP
+// migration against production data.
+// ─────────────────────────────────────────────────────────────
+
+model Expense {
+  id               String        @id @default(uuid())
+  description      String?
+  recordedAt       DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  staffId          String?
+  supplierId       String?
+  deductFromCash   Boolean       @default(true)
+  countToKasPakHar Boolean       @default(false)
+  staff            Staff?        @relation(fields: [staffId], references: [id])
+  supplier         Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
+  items            ExpenseItem[]
+  kasPakHarEntries KasPakHar[]
+
+  @@map("expenses")
+}
+
+model ExpenseItem {
+  id           String           @id @default(uuid())
+  expenseId    String
+  expense      Expense          @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  description  String
+  amount       Float
+  cost         Int
+  lineTotal    Int?             // exact total paid; old rows (null) fall back to amount * cost
+  unit         String?
+  templateId   String?          // legacy FK → ExpenseTemplate (kept until migration 2)
+  template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  ingredientId String?          // new FK → Ingredient
+  ingredient   Ingredient?      @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+  purchase     IngredientPurchase?
+
+  @@map("expense_items")
+}
+
+model ExpenseTemplate {
+  id                String             @id @default(uuid())
+  name              String             @unique
+  defaultUnit       String?
+  defaultCost       Int?
+  isActive          Boolean            @default(true)
+  currentStock      Float              @default(0)
+  lowStockAlert     Float?
+  createdAt         DateTime           @default(now())
+  expenseItems      ExpenseItem[]
+  recipeIngredients RecipeIngredient[]
+  ingredientLogs    IngredientLog[]
+
+  @@map("expense_templates")
+}
+
+model KasPakHar {
+  id          String        @id @default(uuid())
+  date        DateTime      @default(now())
+  type        KasPakHarType
+  amount      Int
+  description String?
+  expenseId   String?
+  expense     Expense?      @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   Staff?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime      @default(now())
+
+  @@map("kas_pak_har")
+}
+
 // --- ENUMS ---
 
 // ─────────────────────────────────────────────────────────────
@@ -578,6 +585,12 @@ enum StockMovementType {
   ADJUSTMENT
   WASTE
   ASSEMBLY
+}
+
+enum KasPakHarType {
+  DEPOSIT
+  WITHDRAWAL
+  EXPENSE_DEDUCTION
 }
 
 enum ServiceEnum {
@@ -624,12 +637,6 @@ enum NotificationType {
   TRANSACTION_VOIDED
   SESSION_VOIDED
   TEST
-}
-
-enum KasPakHarType {
-  DEPOSIT
-  WITHDRAWAL
-  EXPENSE_DEDUCTION
 }
 
 // ===== Warung Books (double-entry ledger) =====

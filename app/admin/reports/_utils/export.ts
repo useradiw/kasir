@@ -68,12 +68,14 @@ export function downloadCSV(data: ReportData, period: Period, date: string, date
     },
     {
       title: "Pengeluaran - Operasional",
-      headers: ["Tanggal", "Total", "Keterangan", "Item"],
+      headers: ["Tanggal", "Item", "Kategori", "Akun", "Jumlah", "Status"],
       rows: data.expenses.map((e) => [
-        new Date(e.recordedAt).toLocaleString("id-ID"),
-        e.total,
-        e.description ?? "-",
-        e.items.map((i) => `${i.description} (${i.amount}x${i.cost})`).join("; "),
+        e.date,
+        e.item,
+        e.kategoriNama,
+        e.akunLabel,
+        e.jumlah,
+        e.state,
       ]),
     },
   ];

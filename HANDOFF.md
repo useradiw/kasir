@@ -23,7 +23,7 @@ engine** (`D:\Website\adi\tokokencana\src\lib\accounting\`), not raw Padu.
 >   replay or reconcile could drop things. Additive DDL goes via `prisma db execute`.
 
 ## ⚠ USER TESTING — do not skip at the end of the build
-The plan has **6 slices (0-5)** plus a Cutover. Done: 0, 2, 1, 3a. Remaining: 3b, 4, 5.
+The plan has **6 slices (0-5)** plus a Cutover. Done: 0, 2, 1, 3a, 3b. Remaining: 4, 5.
 
 **No guarded server action has EVER run for real.** Every `/admin/keuangan/*` page
 and action is `requireOwner()`-gated; Claude cannot log in, so the entire authed
@@ -124,7 +124,95 @@ barrels, `admin/layout.tsx`.
   entry has ever been written by a real tutup kas or pencairan. See the UAT memo.
 - NOT committed. Next: Slice 3b.
 
-## ☠ 3b MUST NOT BE SKIPPED — laporan is now inconsistent on purpose
+## ☠ A TEST HIT PRODUCTION ON 2026-07-28 — read before writing any test
+While building Slice 3b a subagent wrote a test that imported
+`app/actions/admin/queries/ledger-cash-queries.ts` directly. Those modules close
+over the module-level singleton in `lib/prisma.ts`, which builds a `pg` Pool from
+`DATABASE_URL` **= PRODUCTION**, and vitest's config resolution auto-populates
+`process.env` from `.env` regardless of the `NEXT_PUBLIC_` rule. Result: real
+read-only `SELECT`s ran against the production database. **No writes occurred**,
+and it was caught because the query returned zeros instead of throwing — which is
+exactly what a passing test against an empty pglite DB looks like. It stayed
+harmless by luck, not by design.
+
+Guard added: **`test/env-guard.ts`**, wired as `setupFiles` in `vitest.config.ts`.
+It rewrites `DATABASE_URL`/`DIRECT_URL`/`POSTGRES_*` to a closed local port before
+any test module is imported, so anything reaching for a real server now fails
+loudly. **Do not remove it to make a test pass.** When testing a query-layer
+function, inject the pglite client — the ledger query helpers take an optional
+`db: PrismaClient` third parameter for exactly this. Before that incident no test
+had ever imported anything under `app/`, so there was no safe pattern to copy.
+
+## Slice 3b — DONE, uncommitted (laporan on the ledger; flat money screens retired)
+Sequenced as two passes because the deletions break the file the first pass edits.
+
+**Design decisions settled with Adi 2026-07-28:**
+1. Cashiers keep the **`/expenses` URL and its main-menu entry**, now rendering the
+   WB pengeluaran Catat form. New `recordPengeluaranAsStaff` action is gated
+   `requireAuth()` — the SAME audience `/expenses` always had. **This is an
+   owner-approved permission change: any authenticated staff (incl. CASHIER) can
+   now write a pengeluaran journal entry.** Catat only — no void, no edit, no
+   kategori management. The action carries a "do NOT fix this back to
+   requireOwner" comment.
+2. Laporan's HPP comes from the ledger's `Expenses:HPP:*`.
+3. **Gaji is no longer subtracted from laba bersih.** `netProfit = pendapatan −
+   HPP − pengeluaran`, all from the ledger. `Staff.salary x hari hadir` stays
+   visible as an ESTIMATE. Recording gaji as a pengeluaran is what makes it hit
+   laba bersih — otherwise it would have been double-counted.
+4. Kas Pak Har retired too (Adi chose this over deferring): the screen is gone and
+   Pak Har money is a normal pengeluaran against the **Kas Pak Har** kas account.
+
+**☠ REGRESSION FIXED HERE, introduced by Slice 1:** `report-queries.ts:304` summed
+`Transaction.cogs` for `totalCogs`, but Slice 1 stopped writing that field (always
+null). So `totalCogs` decayed to 0, `grossProfit` became equal to revenue, and
+laporan showed a **100% gross margin** for everything after Slice 1 deployed. If
+Slice 1 was live in production, laporan's margin was wrong for that window.
+
+New: `getLedgerExpenseTotals` + `getLedgerPengeluaranForPeriod` in
+`queries/ledger-cash-queries.ts` (HPP vs OpEx split; POSTED+VOID so voids net to
+zero; hpp+opex == grand total of all `Expenses:*`, asserted in a test),
+`app/admin/keuangan/_components/pengeluaran-form.tsx` (extracted so the owner page
+and `/expenses` share ONE implementation — `DecimalInput` + `formKey` reset carried
+across intact), `test/ledger-expense-totals.test.ts`, `test/env-guard.ts`.
+Deleted: `/admin/expenses`, `/admin/expense-templates`, `/admin/kas-pak-har`,
+`app/actions/{admin/expenses,expenses,admin/expense-templates,admin/kas-pak-har}.ts`,
+`queries/expense-queries.ts`, `components/expenses/`, `lib/expense-schema.ts`,
+`lib/expense-utils.ts`.
+Dormant (byte-identical move, sorted-diff EMPTY, `prisma validate` passes):
+`Expense`, `ExpenseItem`, `ExpenseTemplate`, `KasPakHar`, enum `KasPakHarType`.
+Backup/restore still list all four tables — dormant data stays backed up.
+Also: laporan's private third copy of the cash reconciliation is gone, replaced by
+the shared `reconcileCashDates`, so all three screens finally agree.
+
+- Gates: `tsc` clean, `lint` clean, **`npm test` 95 passed + 1 skipped**, `build`
+  clean. `/expenses` present; `/admin/expenses`, `/admin/expense-templates`,
+  `/admin/kas-pak-har` gone.
+- **LIVE PASS DONE** via a TEMPORARY `app/auth/dev-slice3b/` route, since DELETED
+  (`grep -rn dev-slice app/`). Verified: the Catat form shows Kas Pak Har as a kas
+  account (the migration path), `0,5 x 150.000` auto-fills 75.000 and submits
+  `qty: 0.5` dot-normalized, the post-save reset returns qty to `1`; laporan's
+  Profitabilitas column now adds up top-to-bottom (12M − 4,5M − 2,6M = 4,9M);
+  pengeluaran list reads from the buku besar with a VOID badge; petunjuk renders
+  and explains where the Kas Pak Har screen went. Zero console errors, zero
+  hydration warnings (confirmed in a FRESH tab — a retained error boundary replays
+  old errors forever, which cost time to diagnose; use a new tab to judge console
+  cleanliness).
+- Fixed during my review, after the agents: **laporan's Gaji row showed
+  `−Rp 4.200.000` inside the deduction chain while not actually being deducted**,
+  so the column visibly failed to add up. Moved below Laba Bersih, no minus sign,
+  labelled "Gaji (estimasi, di luar hitungan)". Also: the pengeluaran list showed
+  raw `Assets:Cash:PakHar` and kategori CODES — now resolves `LedgerAccount.label`
+  and `kategoriNama` (falling back to the code when a kategori was deleted).
+- **NOT verified and cannot be:** no guarded action has run for real. Run the UAT.
+
+## ⚠ CUTOVER CONSEQUENCE, now live
+Laporan reads the LEDGER only. Pre-cutover pengeluaran that live in the old
+`Expense` table **no longer appear in laporan** — the rows are intact and still in
+backups, but they are invisible to the report. Re-enter what matters via
+Saldo Awal / pengeluaran, or accept the gap. This is inherent to switching sources
+and is why the plan wanted a cutover date.
+
+## Slice 3a notes (committed 24ffb62) — laporan was left inconsistent ON PURPOSE, now resolved by 3b
 `report-queries.ts` still reads the `Expense` table while tutup kas reads the
 ledger. That was a deliberate scope line, but it means **laporan and kas harian
 now disagree about expenses** until 3b switches laporan to the ledger. 3b scope:

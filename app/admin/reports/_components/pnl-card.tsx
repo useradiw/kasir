@@ -13,7 +13,7 @@ export function PnLCard({ data }: { data: ReportData }) {
       </CardHeader>
       <CardContent className="space-y-0">
         <PnLRow label="Pendapatan" value={data.revenue.total} />
-        {showCogs && <PnLRow label="HPP" value={-data.cogs} negative />}
+        {showCogs && <PnLRow label="HPP (dari pengeluaran bahan baku)" value={-data.cogs} negative />}
         {showCogs && (
           <PnLRow
             label="Laba Kotor"
@@ -22,9 +22,6 @@ export function PnLCard({ data }: { data: ReportData }) {
             divider
             emphasis
           />
-        )}
-        {data.totalSalary > 0 && (
-          <PnLRow label="Gaji Karyawan" value={-data.totalSalary} negative />
         )}
         {data.totalExpenses > 0 && (
           <PnLRow label="Pengeluaran" value={-data.totalExpenses} negative />
@@ -36,6 +33,20 @@ export function PnLCard({ data }: { data: ReportData }) {
           emphasis
           large
         />
+        {/* Gaji sits BELOW Laba Bersih, without a minus sign, deliberately: it is
+            NOT part of the arithmetic above. Showing it as "−Rp x" inside the
+            deduction chain made the column fail to add up (Laba Kotor − Gaji −
+            Pengeluaran did not equal Laba Bersih), which reads as a bug. It is an
+            estimate from Staff.salary x hari hadir; real gaji reaches laba bersih
+            only when recorded as a pengeluaran, via the ledger. */}
+        {data.totalSalary > 0 && (
+          <PnLRow
+            label="Gaji (estimasi, di luar hitungan)"
+            value={data.totalSalary}
+            divider
+            note="Perkiraan dari gaji harian x hari hadir — bukan dari buku besar, jadi TIDAK dikurangkan dari laba bersih di atas. Catat gaji sebagai pengeluaran agar ikut terhitung."
+          />
+        )}
       </CardContent>
     </Card>
   );
@@ -49,6 +60,7 @@ function PnLRow({
   emphasis,
   large,
   divider,
+  note,
 }: {
   label: string;
   value: number;
@@ -57,6 +69,7 @@ function PnLRow({
   emphasis?: boolean;
   large?: boolean;
   divider?: boolean;
+  note?: string;
 }) {
   const sign = value < 0 ? "−" : "";
   const abs = Math.abs(value);
@@ -68,15 +81,16 @@ function PnLRow({
         : "text-primary"
       : "";
   return (
-    <div
-      className={`flex items-center justify-between py-2 ${divider ? "border-t border-foreground/10 mt-1 pt-2" : ""}`}
-    >
-      <span className={`text-sm ${emphasis ? "font-medium" : ""}`}>{label}</span>
-      <span className={`tabular-nums ${large ? "text-lg font-bold" : emphasis ? "font-medium" : "text-sm"} ${colorClass}`}>
-        {sign}
-        {formatRupiah(abs)}
-        {extra && <span className="ml-2 text-xs text-muted-foreground font-normal">{extra}</span>}
-      </span>
+    <div className={divider ? "border-t border-foreground/10 mt-1" : ""}>
+      <div className="flex items-center justify-between py-2">
+        <span className={`text-sm ${emphasis ? "font-medium" : ""}`}>{label}</span>
+        <span className={`tabular-nums ${large ? "text-lg font-bold" : emphasis ? "font-medium" : "text-sm"} ${colorClass}`}>
+          {sign}
+          {formatRupiah(abs)}
+          {extra && <span className="ml-2 text-xs text-muted-foreground font-normal">{extra}</span>}
+        </span>
+      </div>
+      {note && <p className="text-xs text-muted-foreground -mt-1.5 pb-2">{note}</p>}
     </div>
   );
 }

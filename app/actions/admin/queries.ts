@@ -10,7 +10,6 @@ export {
   getTransactionDetail,
   getCashRegisterData,
   getAttendanceData,
-  getExpensesData,
   getReportData,
   getSettlementData,
   getMenuPerformanceData,

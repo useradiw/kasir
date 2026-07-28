@@ -6,7 +6,6 @@
  *
  * Tables DELETED:
  *   - OrderItem, Transaction, TableSession
- *   - ExpenseItem, Expense
  *   - AttendanceRecord, CashRegister
  *   - PackageItem, MenuVariant, Package, MenuItem, Category
  *
@@ -27,8 +26,6 @@ async function main() {
     ["OrderItem", () => prisma.orderItem.deleteMany()],
     ["Transaction", () => prisma.transaction.deleteMany()],
     ["TableSession", () => prisma.tableSession.deleteMany()],
-    ["ExpenseItem", () => prisma.expenseItem.deleteMany()],
-    ["Expense", () => prisma.expense.deleteMany()],
     ["AttendanceRecord", () => prisma.attendanceRecord.deleteMany()],
     ["CashRegister", () => prisma.cashRegister.deleteMany()],
     ["PackageItem", () => prisma.packageItem.deleteMany()],

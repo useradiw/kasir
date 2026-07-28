@@ -20,5 +20,10 @@ export default defineConfig({
     },
     testTimeout: 60_000,
     include: ["test/**/*.test.ts"],
+    // Neutralizes DATABASE_URL/DIRECT_URL before any test module is imported, so
+    // a test can never reach the PRODUCTION database through lib/prisma.ts's
+    // module-level singleton. See test/env-guard.ts for the incident this
+    // prevents. Do not remove.
+    setupFiles: ["./test/env-guard.ts"],
   },
 });
