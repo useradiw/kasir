@@ -75,7 +75,13 @@ export function balanceSheet(book: Book, dateTo?: string): BalanceSheetResult {
     ekuitasLines.push({ label: "Suspense (belum terklasifikasi)", amount: suspense });
   }
   if (prive !== 0n) {
-    ekuitasLines.push({ label: "Prive", amount: -prive });
+    // `prive` is already the equity-signed figure (negative — drawings REDUCE
+    // equity) and is counted that way in recordedEquity/totalEkuitas. Emitting
+    // `-prive` here flipped it positive, so the Ekuitas column rendered as
+    // Modal + Saldo Awal + Prive + Saldo Laba and visibly failed to reach its
+    // own Total — 9.275.000 shown against a correct total of 7.275.000. The
+    // invariant that matters is sum(lines) === total; keep the sign as-is.
+    ekuitasLines.push({ label: "Prive", amount: prive });
   }
   ekuitasLines.push({ label: "Saldo Laba", amount: npCum });
 

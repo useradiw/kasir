@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { localDateKey } from "@/lib/format";
 import { sumDaySales, type DaySalesInput } from "@/lib/day-close";
 import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
-import { getNonSalesCashMovementByDate } from "./ledger-cash-queries";
+import { getNonSalesCashMovementByDate } from "@/lib/ledger-queries";
 
 // ─── Date Range Helper ──────────────────────────────────────────────────────
 

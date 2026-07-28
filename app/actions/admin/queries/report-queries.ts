@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
 import { localDateKey } from "@/lib/format";
 import { getDateRange, reconcileCashDates } from "./_shared";
-import { getLedgerExpenseTotals, getLedgerPengeluaranForPeriod } from "./ledger-cash-queries";
+import { getLedgerExpenseTotals, getLedgerPengeluaranForPeriod } from "@/lib/ledger-queries";
 
 // ─── Report Data ─────────────────────────────────────────────────────────────
 

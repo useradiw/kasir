@@ -14,7 +14,7 @@ import { AccountingRepository } from "../lib/accounting/accountingRepository";
 import {
   getLedgerExpenseTotals,
   getLedgerPengeluaranForPeriod,
-} from "../app/actions/admin/queries/ledger-cash-queries";
+} from "../lib/ledger-queries";
 import { createTestClient, resetDb } from "./setup";
 
 let prisma: PrismaClient;

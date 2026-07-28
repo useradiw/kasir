@@ -20,7 +20,7 @@ export {
   listCashAccounts,
   listMonths,
   listSalesChannelAccounts,
-  getNonSalesCashMovementByDate,
+  getLaporanKeuangan,
 } from "./queries/index";
 
 export type {
@@ -31,4 +31,5 @@ export type {
   MenuPerformanceRow,
   DateRange,
   JurnalRow,
+  LaporanKeuangan,
 } from "./queries/index";

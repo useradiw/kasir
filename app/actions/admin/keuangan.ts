@@ -10,6 +10,7 @@ import { CatatRepository, type CatatSourceType } from "@/lib/accounting/catatRep
 import { CashAccountRepository } from "@/lib/accounting/cashAccountRepository";
 import { MonthRepository } from "@/lib/accounting/monthRepository";
 import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
+import { CalkNotesRepository } from "@/lib/accounting/calkNotesRepository";
 import { seedChartOfAccounts } from "@/lib/accounting/chart-of-accounts";
 import { SELECTED_MONTH_COOKIE } from "@/lib/keuangan-month";
 import {
@@ -25,12 +26,14 @@ import {
   setCashAccountActiveSchema,
   salesChannelAccountSchema,
   monthSchema,
+  calkNoteSchema,
   type CategoryData,
   type PengeluaranData,
   type TransferData,
   type ModalData,
   type PriveData,
   type SaldoAwalData,
+  type CalkNoteData,
 } from "@/lib/keuangan-schema";
 
 const expenses = () => new ExpenseRepository(prisma);
@@ -38,6 +41,7 @@ const catat = () => new CatatRepository(prisma);
 const cash = () => new CashAccountRepository(prisma);
 const months = () => new MonthRepository(prisma);
 const salesChannels = () => new SalesChannelRepository(prisma);
+const calkNotes = () => new CalkNotesRepository(prisma);
 
 async function setSelectedMonthCookie(month: string) {
   const store = await cookies();
@@ -285,6 +289,19 @@ export async function setSelectedMonth(input: { month: string }) {
     await requireOwner();
     const { month } = monthSchema.parse(input);
     await setSelectedMonthCookie(month);
+    revalidateKeuangan();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// CALK (Catatan Atas Laporan Keuangan) — owner-editable free-text notes
+// ---------------------------------------------------------------------------
+
+export async function saveCalkNote(data: CalkNoteData) {
+  return runAction(async () => {
+    await requireOwner();
+    const parsed = calkNoteSchema.parse(data);
+    await calkNotes().upsert(parsed.month, parsed.sectionKey, parsed.note);
     revalidateKeuangan();
   });
 }

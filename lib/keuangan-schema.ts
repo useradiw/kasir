@@ -71,9 +71,17 @@ export const salesChannelAccountSchema = z.object({
 // ---- Bulan (accounting month picker) ----
 export const monthSchema = z.object({ month: monthString });
 
+// ---- CALK (Catatan Atas Laporan Keuangan) notes ----
+export const calkNoteSchema = z.object({
+  month: monthString,
+  sectionKey: z.string().min(1),
+  note: z.string().max(4000, "Catatan terlalu panjang"),
+});
+
 export type CategoryData = z.input<typeof categorySchema>;
 export type PengeluaranData = z.input<typeof pengeluaranSchema>;
 export type TransferData = z.input<typeof transferSchema>;
 export type ModalData = z.input<typeof modalSchema>;
 export type PriveData = z.input<typeof priveSchema>;
 export type SaldoAwalData = z.input<typeof saldoAwalSchema>;
+export type CalkNoteData = z.input<typeof calkNoteSchema>;

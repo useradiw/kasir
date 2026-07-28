@@ -11,8 +11,10 @@
  * Non-blocking by design: a cashier closing the register must NEVER be
  * blocked because the owner hasn't finished the accounting setup (mapping
  * sales-channel accounts) or because the month is locked. Those failures are
- * caught here, the owners are notified, and {posted:false, reason} is
- * returned instead of throwing. Any other error is a real bug and propagates.
+ * caught here and {posted:false, reason} is returned instead of throwing; the
+ * day then shows the "Belum tercatat ke buku besar" badge on
+ * /admin/cash-register, which is the recovery path. Any other error is a real
+ * bug and propagates.
  */
 
 import { prisma } from "@/lib/prisma";
@@ -27,7 +29,7 @@ import {
   ChannelAccountNotSetError,
 } from "@/lib/accounting/salesChannelRepository";
 import { PeriodLockedError } from "@/lib/accounting/accountingRepository";
-import { getNonSalesCashMovementByDate } from "@/app/actions/admin/queries/ledger-cash-queries";
+import { getNonSalesCashMovementByDate } from "@/lib/ledger-queries";
 
 export async function postDayCloseForRegister(
   cashRegisterId: string,

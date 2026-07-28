@@ -22,6 +22,7 @@ const navItemsBase = [
     { href: "/admin/cash-register", label: "Kas Harian" },
     { href: "/admin/settlement", label: "Pencairan Online" },
     { href: "/admin/keuangan", label: "Jurnal", ownerOnly: true },
+    { href: "/admin/keuangan/laporan", label: "Laporan Keuangan", ownerOnly: true },
     { href: "/admin/keuangan/pengeluaran", label: "Pengeluaran", ownerOnly: true },
     { href: "/admin/suppliers", label: "Supplier" },
     { href: "/admin/keuangan/transfer", label: "Transfer Kas", ownerOnly: true },

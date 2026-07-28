@@ -23,7 +23,7 @@ engine** (`D:\Website\adi\tokokencana\src\lib\accounting\`), not raw Padu.
 >   replay or reconcile could drop things. Additive DDL goes via `prisma db execute`.
 
 ## ⚠ USER TESTING — do not skip at the end of the build
-The plan has **6 slices (0-5)** plus a Cutover. Done: 0, 2, 1, 3a, 3b. Remaining: 4, 5.
+The plan has **6 slices (0-5)** plus a Cutover. Done: 0, 2, 1, 3a, 3b, 4. Remaining: 5.
 
 **No guarded server action has EVER run for real.** Every `/admin/keuangan/*` page
 and action is `requireOwner()`-gated; Claude cannot log in, so the entire authed
@@ -123,6 +123,83 @@ barrels, `admin/layout.tsx`.
 - **NOT verified and cannot be:** no guarded action has run for real. No journal
   entry has ever been written by a real tutup kas or pencairan. See the UAT memo.
 - NOT committed. Next: Slice 3b.
+
+## Slice 4 — DONE, uncommitted (Laporan Keuangan: 4 statements + CALK + validasi)
+Mostly a PORT from tokokencana (`src/lib/queries/keuangan.ts`, `laporan-csv.ts`,
+`app/admin/keuangan/laporan/`) — the statement engine itself arrived in Slice 0.
+
+**☠ THREE REAL BUGS FOUND AND FIXED IN THE STATEMENT ENGINE.** All three were on
+the money path, all three shipped in the donor, and two were invisible on screen:
+
+1. **`incomeStatement` dropped expense accounts outside `Expenses:HPP:` /
+   `Expenses:OpEx:`.** In kasir that is `Expenses:SelisihKas` — so every cash
+   shortage at tutup kas was excluded from biaya operasional and **laba bersih
+   was overstated by the full amount of every selisih**. Laba Rugi still "added
+   up" on screen because the missing account was simply absent. It also
+   disagreed with `/admin/reports`, which since Slice 3b counts all `Expenses:*`
+   except HPP. Now biaya operasional = every expense account that is not HPP, so
+   the two screens can no longer diverge. Non-category accounts get friendly
+   labels via `NON_CATEGORY_LABELS` (`Selisih Kas`, `Kas Keluar`, `Diskon`).
+2. **Validation check (3) was a TAUTOLOGY.** `npPeriod` was assigned
+   `ls.laba_bersih`, so `"Laba Rugi: Laba Bersih = -(Income+Expenses)"` compared
+   a value to itself and could never fail — which is exactly why it missed bug 1.
+   `npPeriod` is now recomputed from the ledger as
+   `-(balancePrefix("Income:") + balancePrefix("Expenses:"))`, i.e. what the
+   check's own name always claimed. Bug 1 was caught only by check (4)
+   (Perubahan Modal), which is genuinely independent.
+3. **Neraca's Ekuitas column did not add up.** `balanceSheet` pushed the Prive
+   line as `-prive` when `prive` was already equity-signed, so the column showed
+   Modal + Saldo Awal + Prive + Saldo Laba = 9.275.000 against a correct total of
+   7.275.000. Sign kept as-is; the invariant `sum(lines) === total` now holds.
+
+How they were caught: the live pass drives the REAL engine from a fabricated
+`Book` instead of a hand-written fixture, so the on-screen numbers are genuinely
+computed. Four statements disagreeing by exactly 25.000 is what surfaced bug 1.
+**Keep doing it that way** — a typed fixture would have agreed with itself.
+
+**Security fix folded in (a hole I opened in Slice 3a):** every export of a
+`"use server"` file is a callable POST endpoint, and `ledger-cash-queries.ts` +
+`laporan-keuangan-queries.ts` had ZERO auth while every sibling query module had
+some. `getLaporanKeuangan` returns the whole financial position. Fixed by moving
+the pure bodies to `lib/ledger-queries.ts` + `lib/laporan-keuangan.ts` (taking an
+injectable `db`) and keeping thin `requireOwner()`-gated wrappers under
+`app/actions/`. `ledger-cash-queries.ts` is deleted and
+`getNonSalesCashMovementByDate` is no longer barrel-exported — it never needed to
+be an endpoint. **Audited: every remaining async export under
+`app/actions/admin/queries/` now calls an auth guard.**
+⚠ `queries/_shared.ts` has NO `"use server"` directive, so `reconcileCashDates`
+is a plain helper, not an endpoint. If anyone ever adds that directive it
+silently becomes an unauthenticated endpoint. Leave it alone.
+
+New: `lib/laporan-keuangan.ts` (`buildLaporanKeuangan`, `toPlain`, the kasir
+`getSaleTotals`), `lib/ledger-queries.ts`, `lib/calk.ts`, `lib/laporan-csv.ts`,
+`lib/accounting/calkNotesRepository.ts`, `app/admin/keuangan/laporan/` (6 tabs),
+`saveCalkNote`, tests `statements`/`laporan-keuangan` + `test/fixtures/`.
+- **CALK** = generated figures + editable per-section notes, persisted in the
+  existing `AccountingSetting` table as `calk:<month>:<sectionKey>` — no
+  migration. Six SAK EMKM sections.
+- **CSV** uses kasir's existing `exportCSV` (client-side, BOM already handled) —
+  the donor's papaparse + API route were NOT ported; same format, no new dep.
+- **The sales cross-check is the highest-value part.** It compares ledger
+  `Income:Sales:*` against the `Transaction` table via `sumDaySales` (+ settlement
+  gross for online). Because kasir posts sales once per CLOSED day, **a day that
+  was never closed shows up here as a gap** — the only thing that surfaces the
+  known weakness of the per-day design. The Validasi tab says so in Indonesian.
+- Gates: `tsc` clean, `lint` clean, **`npm test` 116 passed + 1 skipped** (was 95;
+  +16 pass-1, +5 regression tests I added for the three bugs), `build` clean with
+  `/admin/keuangan/laporan` present.
+- **LIVE PASS DONE** via a TEMPORARY `app/auth/dev-slice4/` route, since DELETED
+  (`grep -rn dev-slice app/`). On a book with modal + saldo awal + tunai/QRIS/
+  online sales + HPP + OpEx + selisih + prive: Laba Bersih 5.275.000, Neraca
+  "Seimbang" at 7.275.000 both sides, Arus Kas kas awal 2.000.000 + kenaikan
+  5.275.000 = 7.275.000, Perubahan Modal 7.275.000 — all four agree, every
+  column adds up, all 10 validations OK. **Prive confirmed under PENDANAAN**, not
+  operasi (the bug the UAT memo warns about). Zero console errors, zero hydration
+  warnings (checked in a FRESH tab — a retained error boundary replays old errors
+  forever and will mislead you).
+- Empty-book state verified: a calm Indonesian notice pointing at the three setup
+  steps rather than a wall of Rp 0.
+- **NOT verified and cannot be:** no guarded action has run for real. Run the UAT.
 
 ## ☠ A TEST HIT PRODUCTION ON 2026-07-28 — read before writing any test
 While building Slice 3b a subagent wrote a test that imported

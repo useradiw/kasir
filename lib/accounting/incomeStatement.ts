@@ -11,6 +11,17 @@
 
 import { Book } from "./book";
 
+/**
+ * Friendly labels for expense accounts that are NOT backed by an
+ * ExpenseCategory, so `cats` can never supply a name for them. Without this
+ * they render as a bare code like "SelisihKas".
+ */
+const NON_CATEGORY_LABELS: Readonly<Record<string, string>> = {
+  "Expenses:SelisihKas": "Selisih Kas",
+  "Expenses:KasKeluar": "Kas Keluar",
+  "Expenses:Diskon": "Diskon",
+};
+
 export interface IncomeLine {
   account: string;
   label: string;
@@ -43,7 +54,7 @@ export function incomeStatement(
 
   function catName(account: string): string {
     const code = account.split(":").at(-1) ?? account;
-    return catMap[code]?.name ?? code;
+    return catMap[code]?.name ?? NON_CATEGORY_LABELS[account] ?? code;
   }
 
   // Pendapatan
@@ -69,15 +80,28 @@ export function incomeStatement(
 
   const labaKotor = totalPendapatan - totalHpp;
 
-  // Biaya Operasional
+  // Biaya Operasional — EVERY expense account that is not HPP.
+  //
+  // This deliberately does NOT filter on the "Expenses:OpEx:" prefix. Doing so
+  // silently dropped every expense account living outside the two known
+  // prefixes — in kasir that is `Expenses:SelisihKas` (cash-drawer shortages at
+  // tutup kas), so laba bersih was overstated by the full amount of every
+  // shortage and nothing on the Laba Rugi screen revealed it. Caught 2026-07-28
+  // when Perubahan Modal, Neraca and Arus Kas all independently reported
+  // 5.275.000 while Laba Rugi claimed 5.300.000 on a book containing a 25.000
+  // selisih. Taking "all Expenses: except HPP" also makes this agree with
+  // getLedgerExpenseTotals in lib/ledger-queries.ts, which /admin/reports uses,
+  // so the two screens can no longer disagree about laba bersih.
   const opexLines: IncomeLine[] = [];
-  for (const acct of book.accounts("Expenses:OpEx:")) {
+  let totalOpex = 0n;
+  for (const acct of book.accounts("Expenses:")) {
+    if (acct.startsWith("Expenses:HPP:")) continue;
     const amt = book.balance(acct, dateFrom, dateTo);
+    totalOpex += amt;
     if (amt !== 0n) {
       opexLines.push({ account: acct, label: catName(acct), amount: amt });
     }
   }
-  const totalOpex = book.balancePrefix("Expenses:OpEx:", dateFrom, dateTo);
 
   const labaBersih = labaKotor - totalOpex;
 

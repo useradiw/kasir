@@ -67,7 +67,18 @@ export function runValidations(
   const ce = changesInEquity(book, dateFrom, dateTo);
   const cf = cashFlow(book, dateFrom, dateTo);
 
-  const npPeriod = ls.laba_bersih;
+  // Net profit for the period, recomputed straight from the ledger — NOT read
+  // off the Laba Rugi result. It used to be `ls.laba_bersih`, which made check
+  // (3) below compare a value to itself: a tautology that could never fail
+  // despite its name promising an independent cross-check. That is why the
+  // incomeStatement bug where non-HPP/non-OpEx expense accounts were dropped
+  // slipped past it (2026-07-28) and was only caught by check (4), which is
+  // genuinely independent. Income balances are credit (negative), Expenses are
+  // debit (positive), so profit = -(Income + Expenses).
+  const npPeriod = -(
+    book.balancePrefix("Income:", dateFrom, dateTo) +
+    book.balancePrefix("Expenses:", dateFrom, dateTo)
+  );
 
   // (1) every transaction balances
   const bad = book.transactions.filter((t) => !t.balances());

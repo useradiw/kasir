@@ -1,5 +1,3 @@
-"use server";
-
 /**
  * ledger-cash-queries.ts — expected-cash support (Slice 3a wiring).
  *
