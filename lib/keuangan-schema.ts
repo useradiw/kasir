@@ -78,6 +78,21 @@ export const calkNoteSchema = z.object({
   note: z.string().max(4000, "Catatan terlalu panjang"),
 });
 
+// ---- Cek Saldo (physically-counted balance assertion) — Slice 5 ----
+export const cekSaldoSchema = z.object({
+  account: kasAccount,
+  date: isoDate,
+  expected: rupiah,
+  note: z.string().optional(),
+});
+
+// ---- Tutup buku (month lock/unlock) — Slice 5 ----
+export const lockMonthSchema = z.object({
+  month: monthString,
+  force: z.boolean().default(false),
+});
+export const unlockMonthSchema = z.object({ month: monthString });
+
 export type CategoryData = z.input<typeof categorySchema>;
 export type PengeluaranData = z.input<typeof pengeluaranSchema>;
 export type TransferData = z.input<typeof transferSchema>;
@@ -85,3 +100,6 @@ export type ModalData = z.input<typeof modalSchema>;
 export type PriveData = z.input<typeof priveSchema>;
 export type SaldoAwalData = z.input<typeof saldoAwalSchema>;
 export type CalkNoteData = z.input<typeof calkNoteSchema>;
+export type CekSaldoData = z.input<typeof cekSaldoSchema>;
+export type LockMonthData = z.input<typeof lockMonthSchema>;
+export type UnlockMonthData = z.input<typeof unlockMonthSchema>;

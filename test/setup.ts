@@ -23,6 +23,28 @@ const MIGRATION_SQL = readFileSync(
   "utf8",
 );
 
+/**
+ * Every client handed out by createTestClient, so the suite can release them.
+ *
+ * pglite is in-process WASM: each instance holds its own heap, and nothing
+ * frees it when a test file finishes. With one file per pglite instance the
+ * suite accumulated all of them for the whole run and started dying with V8
+ * "Array buffer allocation failed" / Zone OOM once the file count grew (first
+ * seen at 16 files, Slice 5). `test/env-guard.ts` registers an afterAll that
+ * drains this set, so each file's database is released as soon as it is done.
+ */
+const activeClients = new Set<{ prisma: PrismaClient; pglite: PGlite }>();
+
+/** Disconnect Prisma AND close the underlying pglite — $disconnect alone
+ *  leaves the WASM heap allocated, which is the part that actually hurts. */
+export async function closeTestClients(): Promise<void> {
+  for (const { prisma, pglite } of activeClients) {
+    try { await prisma.$disconnect(); } catch { /* teardown must never fail a run */ }
+    try { await pglite.close(); } catch { /* idem */ }
+  }
+  activeClients.clear();
+}
+
 export async function createTestClient(extraSqlFiles: string[] = []): Promise<PrismaClient> {
   const pglite = new PGlite();
   await pglite.exec(MIGRATION_SQL);
@@ -38,6 +60,7 @@ export async function createTestClient(extraSqlFiles: string[] = []): Promise<Pr
     adapter,
   } as ConstructorParameters<typeof PrismaClient>[0]);
 
+  activeClients.add({ prisma, pglite });
   return prisma;
 }
 

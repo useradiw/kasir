@@ -21,6 +21,8 @@ export {
   listMonths,
   listSalesChannelAccounts,
   getLaporanKeuangan,
+  getBukuKas,
+  getCekSaldo,
 } from "./queries/index";
 
 export type {
@@ -32,4 +34,7 @@ export type {
   DateRange,
   JurnalRow,
   LaporanKeuangan,
+  BukuKasAccount,
+  BukuKasMovement,
+  CekSaldoRow,
 } from "./queries/index";

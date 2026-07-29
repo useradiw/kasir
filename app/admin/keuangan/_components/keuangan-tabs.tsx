@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const TABS = [
   { href: "/admin/keuangan", label: "Jurnal" },
+  { href: "/admin/keuangan/buku-kas", label: "Buku Kas" },
   { href: "/admin/keuangan/laporan", label: "Laporan Keuangan" },
   { href: "/admin/keuangan/pengeluaran", label: "Pengeluaran" },
   { href: "/admin/keuangan/transfer", label: "Transfer" },
@@ -15,6 +16,7 @@ const TABS = [
   { href: "/admin/keuangan/kategori", label: "Kategori" },
   { href: "/admin/keuangan/akun", label: "Akun Kas" },
   { href: "/admin/keuangan/akun-penjualan", label: "Akun Penjualan" },
+  { href: "/admin/keuangan/bulan", label: "Bulan" },
 ];
 
 export function KeuanganTabs() {

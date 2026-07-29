@@ -23,7 +23,8 @@ engine** (`D:\Website\adi\tokokencana\src\lib\accounting\`), not raw Padu.
 >   replay or reconcile could drop things. Additive DDL goes via `prisma db execute`.
 
 ## ⚠ USER TESTING — do not skip at the end of the build
-The plan has **6 slices (0-5)** plus a Cutover. Done: 0, 2, 1, 3a, 3b, 4. Remaining: 5.
+The plan has **6 slices (0-5)** plus a Cutover. **ALL SLICES DONE.** What remains
+is the UAT (memory `project_warungbooks_uat.md`) and then the Cutover.
 
 **No guarded server action has EVER run for real.** Every `/admin/keuangan/*` page
 and action is `requireOwner()`-gated; Claude cannot log in, so the entire authed
@@ -124,7 +125,77 @@ barrels, `admin/layout.tsx`.
   entry has ever been written by a real tutup kas or pencairan. See the UAT memo.
 - NOT committed. Next: Slice 3b.
 
-## Slice 4 — DONE, uncommitted (Laporan Keuangan: 4 statements + CALK + validasi)
+## Slice 5 — DONE, uncommitted (Buku Kas + Cek Saldo + Tutup Buku) — LAST SLICE
+Ported from tokokencana (`getBukuKas`/`getCekSaldo`, `lockMonth`/`unlockMonth`,
+the `buku-kas` and `bulan` screens). The lock ENFORCEMENT already existed —
+`assertNotLocked` runs inside `postEntryTx`/`voidEntryTx`, so `PeriodLockedError`
+was live on every money path since Slice 0; this slice only adds the UI that sets
+the lock, plus reconciliation. `BalanceAssertion` finally gets used (built Slice 0,
+unused until now).
+
+**☠ TWO BUGS CAUGHT — one in the donor, one in the new UI:**
+1. **The donor's `getBukuKas` used `entry.lines.find(l => l.account === acc.name)`
+   — ONE line per entry.** kasir's day-close entry puts TWO legs on the same kas
+   account (Dr kas for sales, Cr kas for the selisih), so `.find()` would count
+   only the sales leg: the running saldo would show gross sales and silently
+   disagree with `saldoAkhir` (which sums all lines via `book.balance`). Now
+   AGGREGATES every line on the account within an entry into one net movement.
+   Invariant `saldoAwal + sum(masuk) - sum(keluar) === saldoAkhir` is tested,
+   including the two-legs case specifically.
+2. **Cek Saldo's badge had the selisih sign BACKWARDS.** `selisih = saldoLedger -
+   saldoTercatat`, so POSITIVE means the buku besar exceeds the counted money —
+   cash is MISSING. The badge said "Lebih" (surplus) for that case, i.e. it showed
+   a shortage as extra money, which an owner would act on. Now "Uang kurang" /
+   "Uang lebih" (spelled out, because a bare "Kurang" is still ambiguous about
+   which side is short).
+
+**Also fixed: the test suite was intermittently OOMing.** Each test file creates
+its own in-process pglite (WASM) database and NOTHING released them — all 16
+accumulated for the whole run and the suite began dying with "Array buffer
+allocation failed" under memory pressure. `test/setup.ts` now tracks every client
+and `test/env-guard.ts` registers an `afterAll` that disconnects Prisma AND closes
+the pglite instance (`$disconnect` alone leaves the WASM heap allocated). Do not
+remove it; a new test file needs no per-file teardown.
+
+- `lockMonth({month, force})` runs `buildLaporanKeuangan(month)` first and REFUSES
+  when `validasi.all_pass` is false, naming the failing checks in Indonesian.
+  `force: true` is a separate deliberate second step in the UI, only offered after
+  a plain lock has failed — never shown up front, never automatic.
+  **No separate "unposted days" check was added on purpose:** the sales
+  cross-check already fails when a day was never closed, so such a month refuses
+  to lock by itself.
+- Cek Saldo: recording a count writes a `BalanceAssertion` and does NOT touch the
+  ledger — it is evidence of what was physically there. Never-counted accounts
+  render "Belum pernah dihitung", never Rp 0 (null ≠ zero drift).
+- Once assertions exist, `getLaporanKeuangan` feeds them to `runValidations` as
+  `closingBalances`, so the Validasi tab's drift check goes live automatically.
+- New: `lib/buku-kas.ts`, `app/actions/admin/queries/buku-kas-queries.ts`
+  (`requireOwner()` wrappers over injectable-`db` lib functions — the Slice 4
+  auth pattern), `recordBalanceAssertion`/`lockMonth`/`unlockMonth` in
+  `app/actions/admin/keuangan.ts`, `app/admin/keuangan/{buku-kas,bulan}/`,
+  tests `buku-kas`/`cek-saldo`/`month-lock`.
+- Gates: `tsc` clean, `lint` clean, **`npm test` 130 passed + 1 skipped** (was 116;
+  +14), `build` clean with both new routes.
+- **LIVE PASS DONE** via a TEMPORARY `app/auth/dev-slice5/` route, since DELETED
+  (`grep -rn dev-slice app/`). Verified: the day-close entry renders as ONE
+  movement of 4.975.000 (the aggregation fix, visible on screen); running saldo
+  2.000.000 − 500.000 + 4.975.000 = 6.475.000 = Saldo Akhir; zero amounts show
+  "—" not "Rp 0"; a never-counted account reads "Belum pernah dihitung";
+  locked/open months show the right actions; both empty states read calmly.
+  Zero console errors, zero hydration warnings (fresh tab).
+- **Could NOT be verified in the harness:** the force-lock path, because the
+  "Kunci Paksa" button only appears after a real `lockMonth` call fails
+  validation. Covered in the UAT.
+- Petunjuk updated: Buku Kas, Cek Saldo, Tutup Buku, and the consequence below.
+
+## ⚠ LOCKED MONTH vs TUTUP KAS — documented, by design
+If a month is locked and a cashier then closes a register dated inside it, the
+kas closes normally but the entry does NOT reach the buku besar — the day shows
+"Belum tercatat ke buku besar" on Kas Harian, recoverable by the owner button
+after unlocking. That is Slice 3a's non-blocking policy meeting Slice 5's lock;
+it is correct, and it is written in the petunjuk so it is not read as a bug.
+
+## Slice 4 — DONE (committed c3ac10c; Laporan Keuangan: 4 statements + CALK + validasi)
 Mostly a PORT from tokokencana (`src/lib/queries/keuangan.ts`, `laporan-csv.ts`,
 `app/admin/keuangan/laporan/`) — the statement engine itself arrived in Slice 0.
 

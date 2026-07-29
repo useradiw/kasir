@@ -24,8 +24,22 @@
  * remove this guard to make a test pass.
  */
 
+import { afterAll } from "vitest";
+import { closeTestClients } from "./setup";
+
 const BLOCKED = "postgresql://blocked:blocked@127.0.0.1:1/blocked";
 
 for (const key of ["DATABASE_URL", "DIRECT_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL"]) {
   if (process.env[key]) process.env[key] = BLOCKED;
 }
+
+/**
+ * Release each test file's pglite database when that file finishes. Without
+ * this every in-process WASM database stays allocated for the whole run (they
+ * all share one fork), and the suite started intermittently dying with
+ * "Array buffer allocation failed" once it reached 16 files. Registered here
+ * rather than in each test file so it cannot be forgotten in a new one.
+ */
+afterAll(async () => {
+  await closeTestClients();
+});

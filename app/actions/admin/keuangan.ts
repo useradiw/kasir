@@ -11,8 +11,11 @@ import { CashAccountRepository } from "@/lib/accounting/cashAccountRepository";
 import { MonthRepository } from "@/lib/accounting/monthRepository";
 import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
 import { CalkNotesRepository } from "@/lib/accounting/calkNotesRepository";
+import { BalanceAssertionRepository } from "@/lib/accounting/balanceAssertionRepository";
 import { seedChartOfAccounts } from "@/lib/accounting/chart-of-accounts";
 import { SELECTED_MONTH_COOKIE } from "@/lib/keuangan-month";
+import { buildLaporanKeuangan } from "@/lib/laporan-keuangan";
+import { DomainError } from "@/lib/errors";
 import {
   categorySchema,
   updateCategorySchema,
@@ -27,6 +30,9 @@ import {
   salesChannelAccountSchema,
   monthSchema,
   calkNoteSchema,
+  cekSaldoSchema,
+  lockMonthSchema,
+  unlockMonthSchema,
   type CategoryData,
   type PengeluaranData,
   type TransferData,
@@ -34,6 +40,9 @@ import {
   type PriveData,
   type SaldoAwalData,
   type CalkNoteData,
+  type CekSaldoData,
+  type LockMonthData,
+  type UnlockMonthData,
 } from "@/lib/keuangan-schema";
 
 const expenses = () => new ExpenseRepository(prisma);
@@ -42,6 +51,7 @@ const cash = () => new CashAccountRepository(prisma);
 const months = () => new MonthRepository(prisma);
 const salesChannels = () => new SalesChannelRepository(prisma);
 const calkNotes = () => new CalkNotesRepository(prisma);
+const balanceAssertions = () => new BalanceAssertionRepository(prisma);
 
 async function setSelectedMonthCookie(month: string) {
   const store = await cookies();
@@ -303,5 +313,69 @@ export async function saveCalkNote(data: CalkNoteData) {
     const parsed = calkNoteSchema.parse(data);
     await calkNotes().upsert(parsed.month, parsed.sectionKey, parsed.note);
     revalidateKeuangan();
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Cek Saldo — record a physically-counted balance (Slice 5)
+// ---------------------------------------------------------------------------
+
+export async function recordBalanceAssertion(data: CekSaldoData) {
+  return runAction(async () => {
+    const staff = await requireOwner();
+    const parsed = cekSaldoSchema.parse(data);
+    const row = await balanceAssertions().record({
+      account: parsed.account,
+      date: parsed.date,
+      expected: BigInt(parsed.expected),
+      note: parsed.note,
+      createdBy: staff.id,
+    });
+    revalidateKeuangan();
+    return { id: row.id };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Tutup buku — lock / unlock an accounting month (Slice 5)
+//
+// Locking is deliberately gated on the validation battery (runValidations),
+// not on a separate "any unposted days?" check. The sales cross-check
+// (runValidations check 12, "Cross-check ev_sale = Laba Rugi pendapatan")
+// already fails when a day's Transaction/OnlineSettlement rows have no
+// matching ledger posting — i.e. a day that was never closed via tutup kas.
+// So a month containing unposted days already refuses to lock through the
+// normal validation gate; adding a redundant unposted-days check here would
+// just be the same fact asserted twice.
+// ---------------------------------------------------------------------------
+
+export async function lockMonth(data: LockMonthData) {
+  return runAction(async () => {
+    await requireOwner();
+    const { month, force } = lockMonthSchema.parse(data);
+    if (!force) {
+      const laporan = await buildLaporanKeuangan(month);
+      if (!laporan.validasi.all_pass) {
+        const failing = laporan.validasi.checks.filter((c) => !c.pass);
+        throw new DomainError(
+          `${failing.length} pemeriksaan validasi gagal untuk bulan ${month} (${failing
+            .map((c) => c.name)
+            .join(", ")}). Perbaiki dulu, atau kunci paksa dengan mengabaikan pemeriksaan.`,
+        );
+      }
+    }
+    const row = await months().lock(month);
+    revalidateKeuangan();
+    return { month: row.month };
+  });
+}
+
+export async function unlockMonth(data: UnlockMonthData) {
+  return runAction(async () => {
+    await requireOwner();
+    const { month } = unlockMonthSchema.parse(data);
+    const row = await months().unlock(month);
+    revalidateKeuangan();
+    return { month: row.month };
   });
 }

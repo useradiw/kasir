@@ -91,6 +91,12 @@ export default async function PetunjukPage() {
           {isAdmin && (
             <a href="#admin-transaksi" className="text-foreground hover:text-primary transition-colors py-0.5">Transaksi</a>
           )}
+          {isOwner && (
+            <a href="#admin-buku-kas" className="text-foreground hover:text-primary transition-colors py-0.5">Buku Kas &amp; Cek Saldo</a>
+          )}
+          {isOwner && (
+            <a href="#admin-tutup-buku" className="text-foreground hover:text-primary transition-colors py-0.5">Tutup Buku</a>
+          )}
           <a href="#akses-peran" className="text-foreground hover:text-primary transition-colors py-0.5">Akses Peran</a>
         </div>
       </nav>
@@ -279,6 +285,48 @@ export default async function PetunjukPage() {
                   <li>Ketuk judul kolom untuk mengurutkan. Gunakan kolom pencarian untuk memfilter nama menu.</li>
                 </Steps>
 
+                <SubHeading id="admin-buku-kas">Buku Kas &amp; Cek Saldo</SubHeading>
+                <p className="text-sm text-muted-foreground mb-2">
+                  <strong>Buku Kas</strong> menampilkan catatan mutasi tiap akun kas selama satu
+                  bulan: saldo awal, setiap transaksi yang masuk/keluar, dan saldo akhir.
+                </p>
+                <Steps>
+                  <li>Buka <Link href="/admin/keuangan/buku-kas" className="text-primary hover:underline">Buku Kas</Link>.</li>
+                  <li>Tab <strong>Buku Kas</strong>: lihat mutasi tiap akun kas untuk bulan yang dipilih di pemilih bulan.</li>
+                  <li>
+                    Tab <strong>Cek Saldo</strong>: hitung uang fisik di setiap akun kas, lalu
+                    catat hasilnya. Aplikasi akan membandingkan uang yang dihitung dengan saldo
+                    buku besar dan menampilkan <strong>selisih</strong> jika ada perbedaan.
+                  </li>
+                  <li>Mencatat hasil hitung tidak mengubah buku besar — itu hanya bukti catatan uang yang benar-benar ada pada tanggal tersebut.</li>
+                  <li>Akun yang belum pernah dihitung akan tertulis &quot;Belum pernah dihitung&quot;, bukan Rp 0.</li>
+                </Steps>
+
+                <SubHeading id="admin-tutup-buku">Tutup Buku (Bulan)</SubHeading>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Tutup buku mengunci sebuah bulan akuntansi supaya tidak ada entri baru yang bisa
+                  diposting atau dibatalkan (void) di bulan itu — gunakan setelah laporan bulan
+                  tersebut sudah final.
+                </p>
+                <Steps>
+                  <li>Buka <Link href="/admin/keuangan/bulan" className="text-primary hover:underline">Bulan</Link>.</li>
+                  <li>Ketuk <strong>Tutup Buku</strong> pada bulan yang ingin dikunci.</li>
+                  <li>
+                    Jika ada pemeriksaan validasi yang gagal, penguncian akan ditolak dan alasan
+                    lengkapnya ditampilkan. Perbaiki dulu datanya, atau ketuk{" "}
+                    <strong>Kunci Paksa (Abaikan Pemeriksaan)</strong> jika memang ingin mengunci
+                    walau ada yang gagal.
+                  </li>
+                  <li>Untuk membuka kembali bulan yang sudah terkunci, ketuk <strong>Buka Kembali</strong>.</li>
+                </Steps>
+                <p className="rounded-md bg-warning/10 p-2 text-xs text-warning-foreground mb-2">
+                  Penting: jika sebuah bulan sudah dikunci dan kasir tetap menutup kas untuk
+                  tanggal di bulan itu, kas tetap bisa ditutup seperti biasa — tapi catatannya
+                  TIDAK masuk ke buku besar. Hari itu akan tertulis &quot;Belum tercatat ke buku
+                  besar&quot; di Kas Harian. Ini bukan bug — itu memang konsekuensi dari menutup
+                  buku bulan tersebut.
+                </p>
+
                 <SubHeading id="admin-kas-pak-har">Kas Pak Har</SubHeading>
                 <p className="text-sm text-muted-foreground mb-2">
                   Halaman Kas Pak Har yang terpisah sudah tidak ada lagi. Uang
@@ -367,6 +415,8 @@ export default async function PetunjukPage() {
                   ["Absensi", true, true, false, false],
                   ["Performa Menu", true, false, false, false],
                   ["Jurnal / Buku Besar (Keuangan)", true, false, false, false],
+                  ["Buku Kas & Cek Saldo", true, false, false, false],
+                  ["Tutup Buku (Bulan)", true, false, false, false],
                   ["Laporan", true, true, false, false],
                   ["Kelola Staff", true, false, false, false],
                   ["Notifikasi sistem", true, false, false, false],

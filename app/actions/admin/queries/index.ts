@@ -15,3 +15,5 @@ export { listJurnal, listPengeluaran, listCategories, listCatat, listCashAccount
 export type { DateRange, JurnalRow } from "./keuangan-queries";
 export { getLaporanKeuangan } from "./laporan-keuangan-queries";
 export type { LaporanKeuangan } from "./laporan-keuangan-queries";
+export { getBukuKas, getCekSaldo } from "./buku-kas-queries";
+export type { BukuKasAccount, BukuKasMovement, CekSaldoRow } from "./buku-kas-queries";

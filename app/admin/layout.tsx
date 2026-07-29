@@ -22,6 +22,7 @@ const navItemsBase = [
     { href: "/admin/cash-register", label: "Kas Harian" },
     { href: "/admin/settlement", label: "Pencairan Online" },
     { href: "/admin/keuangan", label: "Jurnal", ownerOnly: true },
+    { href: "/admin/keuangan/buku-kas", label: "Buku Kas", ownerOnly: true },
     { href: "/admin/keuangan/laporan", label: "Laporan Keuangan", ownerOnly: true },
     { href: "/admin/keuangan/pengeluaran", label: "Pengeluaran", ownerOnly: true },
     { href: "/admin/suppliers", label: "Supplier" },
@@ -32,6 +33,7 @@ const navItemsBase = [
     { href: "/admin/keuangan/kategori", label: "Kategori Pengeluaran", ownerOnly: true },
     { href: "/admin/keuangan/akun", label: "Akun Kas", ownerOnly: true },
     { href: "/admin/keuangan/akun-penjualan", label: "Akun Penjualan", ownerOnly: true },
+    { href: "/admin/keuangan/bulan", label: "Bulan (Tutup Buku)", ownerOnly: true },
   ]},
   { trigger: "Laporan", content: [
     { href: "/admin/reports", label: "Laporan" },
