@@ -19,7 +19,16 @@ export function LoginForm() {
                     Masuk dengan username dan password.
                 </CardDescription>
             </CardHeader>
-            <form action={(fd) => run(() => login(fd))}>
+            <form
+                action={(fd) =>
+                  // login returns failures as data (prod redacts thrown server
+                  // action messages) — raise locally so the copy survives.
+                  run(async () => {
+                    const res = await login(fd);
+                    if (res?.error) throw new Error(res.error);
+                  })
+                }
+            >
                 <CardContent className="mb-6">
                     <div className="flex flex-col gap-6">
                         {error && (
