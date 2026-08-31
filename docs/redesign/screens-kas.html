@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir — Kas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="redesign.css">
+</head><body>
+
+<div class="caption"><span class="n">1</span><span><b>Kas · Shift terbuka</b> — merge dari /cashregister + /admin/cash-register; owner tombol ekstra muncul sesuai role</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Kas</h1><div class="sub">Kas Laci · Jumat, 29 Agu</div></div>
+    <div class="right"><div class="monthpill">Agu 2026 ▾</div></div></div>
+  <div class="pad">
+    <div class="bento" style="margin-top:4px">
+      <div class="bcard wide">
+        <div class="lbl">Seharusnya di laci</div>
+        <div class="big xl">Rp 4.650.000</div>
+        <div class="sub">kas awal + penjualan tunai + transfer masuk − keluar</div>
+      </div>
+      <div class="bcard"><div class="lbl">Kas awal</div><div class="big">300.000</div><div class="sub">19:02 · Kasir Dina</div></div>
+      <div class="bcard"><div class="lbl">Tunai masuk</div><div class="big" style="color:var(--mint)">4.500.000</div><div class="sub">23 transaksi</div></div>
+    </div>
+    <div class="rows">
+      <div class="row"><div><div class="who">Transfer ke Bank BCA</div><div class="meta">18:40 · OWNER</div></div>
+        <div class="amt"><span class="v" style="color:var(--red)">−150.000</span></div></div>
+      <div class="row"><div><div class="who">Pengeluaran — gas</div><div class="meta">17:10 · Kasir Dina</div></div>
+        <div class="amt"><span class="v" style="color:var(--red)">−35.000</span></div></div>
+    </div>
+    <button class="btn">Tutup Kas</button>
+    <div class="btnrow"><button class="btn ghost">＋ Catat Uang Masuk/Keluar</button></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">2</span><span><b>Tutup kas</b> — selisih dihitung live, penjelasan + tujuan pencatatan selalu tampak</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:18px">
+    <div class="back">⟵ Kas</div>
+    <div class="hero"><span class="amt">4.650.000</span><span class="lbl">SEHARUSNYA</span></div>
+    <div class="field"><label>Hitung uang di laci</label>
+      <div class="input">4.640.000 <span class="suf">riil</span></div></div>
+    <div class="change bad"><span class="lbl">Selisih — kurang</span><span class="amt">Rp 10.000</span></div>
+    <div class="alert" style="margin-top:12px"><div class="t">Selisih dicatat otomatis ke <b>Expenses:SelisihKas</b><small>Kas ditutup tetap jalan walau bulan terkunci — catatan menyusul.</small></div><button class="go ghost">Kenapa?</button></div>
+    <button class="btn">Tutup Kas · Shift Siang</button>
+    <p class="confirm-note">Setelah ditutup, penjualan hari ini tercatat ke buku besar</p>
+  </div>
+</div>
+
+<div class="caption"><span class="n">3</span><span><b>Kas · Riwayat</b> — tiap hari: selisih + status buku besar (staff pun melihat tag-nya)</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Kas · Riwayat</h1><div class="sub">Agustus 2026 · 26 hari</div></div>
+    <div class="right"><div class="icbtn">☰</div></div></div>
+  <div class="pad">
+    <div class="rows">
+      <div class="row"><div><div class="who">Kamis, 28 Agu — Shift Siang</div><div class="meta">Tunai 4.500.000 · QRIS 2.100.000 · ditutup 21:10</div><span class="tag bad">Belum tercatat ke buku besar</span></div>
+        <div class="amt"><span class="v">4.440.000</span><span class="tag warn">Kurang 10rb</span></div></div>
+      <div class="row"><div><div class="who">Rabu, 27 Agu — Shift Siang</div><div class="meta">Tunai 3.900.000 · QRIS 1.800.000</div><span class="tag ok">Tercatat · #0231</span></div>
+        <div class="amt"><span class="v">3.900.000</span><span class="tag ok">Seimbang</span></div></div>
+      <div class="row"><div><div class="who">Selasa, 26 Agu — Shift Siang</div><div class="meta">Tunai 4.100.000 · QRIS 2.050.000</div><span class="tag ok">Tercatat · #0225</span></div>
+        <div class="amt"><span class="v">4.105.000</span><span class="tag ok">Lebih 5rb</span></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">4</span><span><b>Detail hari</b> — breakdown lengkap + tombol recovery "Catat ke buku besar" (owner)</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:18px">
+    <div class="back">⟵ Riwayat</div>
+    <div class="hero"><span class="amt">28 Agu</span><span class="lbl">SHIFT SIANG</span></div>
+    <div class="fcard">
+      <div class="fhead">Rincian kas</div>
+      <div class="frow"><span class="l">Kas awal</span><span class="v">300.000</span></div>
+      <div class="frow"><span class="l">Penjualan tunai</span><span class="v">4.500.000</span></div>
+      <div class="frow"><span class="l">Transfer / modal masuk</span><span class="v">0</span></div>
+      <div class="frow"><span class="l">Pengeluaran & transfer keluar</span><span class="v neg">−360.000</span></div>
+      <div class="frow total"><span class="l">Seharusnya</span><span class="v">4.440.000</span></div>
+      <div class="frow"><span class="l">Dihitung riil</span><span class="v">4.440.000</span></div>
+      <div class="frow grand"><span class="l">Selisih</span><span class="v">0</span></div>
+    </div>
+    <div class="alert" style="margin-top:12px"><div class="t">Belum tercatat ke buku besar<small>Bulan Agustus terkunci saat kas ditutup — entri bisa dibuat sekarang.</small></div><button class="go">Catat</button></div>
+    <div class="btnrow"><button class="btn ghost">Unduh CSV</button><button class="btn ghost">Lihat di Buku Kas →</button></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">5</span><span><b>Buka kas</b> — awal shift; bila bulan terkunci, kas tetap bisa dibuka</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:18px">
+    <div class="back">⟵ Kas</div>
+    <div class="hero"><span class="amt">Buka Kas</span><span class="lbl">SHIFT PAGI</span></div>
+    <div class="field"><label>Kas awal — uang kembalian</label>
+      <div class="input">300.000 <span class="suf">Rp</span></div></div>
+    <div class="two" style="margin-top:10px">
+      <div class="input" style="font-size:13px; padding:11px 12px">100rb × <b style="margin-left:auto">2</b></div>
+      <div class="input" style="font-size:13px; padding:11px 12px">50rb × <b style="margin-left:auto">2</b></div>
+      <div class="input" style="font-size:13px; padding:11px 12px">20rb × <span class="suf">…</span></div>
+      <div class="input" style="font-size:13px; padding:11px 12px">Pecahan kecil <span class="suf">…</span></div>
+    </div>
+    <div class="field"><label>Nama shift / kasir</label><div class="input" style="font:600 14px 'Plus Jakarta Sans'">Shift Pagi — Kasir Dina</div></div>
+    <button class="btn">Buka Kas</button>
+    <p class="confirm-note">Kas awal tercatat sebagai modal kerja di laci, bukan pendapatan</p>
+  </div>
+</div>
+
+</body></html>

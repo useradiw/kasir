@@ -65,7 +65,7 @@ export default async function PetunjukPage() {
       <h1 className="text-2xl font-bold mb-1">Petunjuk Penggunaan</h1>
       <p className="text-muted-foreground text-sm mb-6">
         Panduan cara menggunakan fitur-fitur aplikasi Kasir POS.
-        <span className="block mt-1 text-xs">Diperbarui: 28 Juli 2026</span>
+        <span className="block mt-1 text-xs">Diperbarui: 30 Agustus 2026</span>
       </p>
 
       {/* TOC at top */}
@@ -96,6 +96,12 @@ export default async function PetunjukPage() {
           )}
           {isOwner && (
             <a href="#admin-tutup-buku" className="text-foreground hover:text-primary transition-colors py-0.5">Tutup Buku</a>
+          )}
+          {isOwner && (
+            <a href="#admin-akun-penjualan" className="text-foreground hover:text-primary transition-colors py-0.5">Akun Penjualan</a>
+          )}
+          {isOwner && (
+            <a href="#admin-laporan-keuangan" className="text-foreground hover:text-primary transition-colors py-0.5">Laporan Keuangan</a>
           )}
           <a href="#akses-peran" className="text-foreground hover:text-primary transition-colors py-0.5">Akses Peran</a>
         </div>
@@ -302,6 +308,17 @@ export default async function PetunjukPage() {
                   <li>Akun yang belum pernah dihitung akan tertulis &quot;Belum pernah dihitung&quot;, bukan Rp 0.</li>
                 </Steps>
 
+                <SubHeading id="admin-akun-penjualan">Akun Penjualan</SubHeading>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Penjualan baru masuk ke buku besar jika setiap cara bayar sudah
+                  dipetakan ke akun kasnya. Pemetaan ini cukup dilakukan sekali.
+                </p>
+                <Steps>
+                  <li>Buka <Link href="/admin/keuangan/akun-penjualan" className="text-primary hover:underline">Akun Penjualan</Link>.</li>
+                  <li>Petakan ketiga saluran ke akun kas: <strong>Tunai</strong> (mis. Kas Laci), <strong>Elektronik (QRIS/transfer)</strong> (mis. Bank), dan <strong>Online</strong>.</li>
+                  <li>Simpan. Selama masih ada yang belum dipetakan, penjualan tetap jalan seperti biasa — hanya belum masuk ke jurnal.</li>
+                </Steps>
+
                 <SubHeading id="admin-tutup-buku">Tutup Buku (Bulan)</SubHeading>
                 <p className="text-sm text-muted-foreground mb-2">
                   Tutup buku mengunci sebuah bulan akuntansi supaya tidak ada entri baru yang bisa
@@ -324,7 +341,9 @@ export default async function PetunjukPage() {
                   tanggal di bulan itu, kas tetap bisa ditutup seperti biasa — tapi catatannya
                   TIDAK masuk ke buku besar. Hari itu akan tertulis &quot;Belum tercatat ke buku
                   besar&quot; di Kas Harian. Ini bukan bug — itu memang konsekuensi dari menutup
-                  buku bulan tersebut.
+                  buku bulan tersebut. Untuk memulihkannya, Owner membuka kembali bulan itu
+                  (Buka Kembali), lalu menekan tombol pemulihan pada tanda di Kas Harian agar
+                  catatan hari itu masuk ke buku besar.
                 </p>
 
                 <SubHeading id="admin-kas-pak-har">Kas Pak Har</SubHeading>
@@ -346,6 +365,31 @@ export default async function PetunjukPage() {
                   <li>Gaji karyawan yang ditampilkan adalah perkiraan (gaji harian x hari hadir) — tidak dikurangkan dari laba bersih. Catat gaji sebagai pengeluaran agar ikut masuk buku besar dan laba bersih.</li>
                   <li>Ketuk <strong>Export PDF</strong> atau <strong>Export CSV</strong> untuk mengunduh laporan.</li>
                 </Steps>
+                <p className="rounded-md bg-warning/10 p-2 text-xs text-warning-foreground mt-3 mb-2">
+                  Penting: laporan sekarang dibaca dari buku besar. Pengeluaran yang dicatat
+                  sebelum tanggal perpindahan ke buku besar tidak lagi muncul di laporan mana
+                  pun — datanya tetap tersimpan dan ter-backup, hanya tidak terlihat. Masukkan
+                  kembali yang masih penting lewat Pengeluaran atau Saldo Awal.
+                </p>
+
+                <SubHeading id="admin-laporan-keuangan">Laporan Keuangan</SubHeading>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Laporan keuangan bulanan yang disusun langsung dari buku besar — angkanya
+                  selalu cocok dengan Jurnal, Buku Kas, dan tutup kas.
+                </p>
+                <Steps>
+                  <li>Buka <Link href="/admin/keuangan/laporan" className="text-primary hover:underline">Laporan Keuangan</Link>.</li>
+                  <li>Pilih bulan di pemilih bulan, lalu pilih tab yang dibutuhkan di bagian atas.</li>
+                  <li>Ketuk <strong>Unduh CSV</strong> untuk mengunduh laporan bulan yang sedang dibuka.</li>
+                </Steps>
+                <Tips>
+                  <li><strong>Laba Rugi</strong> — untung atau rugi bulan itu: penjualan dikurangi HPP dan pengeluaran.</li>
+                  <li><strong>Neraca</strong> — harta, utang, dan modal toko pada akhir bulan.</li>
+                  <li><strong>Arus Kas</strong> — dari mana uang masuk dan ke mana uang keluar selama sebulan.</li>
+                  <li><strong>Perubahan Modal</strong> — berapa modal toko bertambah atau berkurang dibanding bulan sebelumnya.</li>
+                  <li><strong>CALK</strong> — Catatan Atas Laporan Keuangan: catatan singkat per bagian laporan; tulis langsung di halamannya.</li>
+                  <li><strong>Validasi</strong> — pemeriksaan otomatis bahwa semua laporan cocok satu sama lain; semua baris harus lolos.</li>
+                </Tips>
 
                 <SubHeading id="admin-staff">Kelola Staff</SubHeading>
                 <Steps>
@@ -417,6 +461,8 @@ export default async function PetunjukPage() {
                   ["Jurnal / Buku Besar (Keuangan)", true, false, false, false],
                   ["Buku Kas & Cek Saldo", true, false, false, false],
                   ["Tutup Buku (Bulan)", true, false, false, false],
+                  ["Akun Penjualan", true, false, false, false],
+                  ["Laporan Keuangan", true, false, false, false],
                   ["Laporan", true, true, false, false],
                   ["Kelola Staff", true, false, false, false],
                   ["Notifikasi sistem", true, false, false, false],

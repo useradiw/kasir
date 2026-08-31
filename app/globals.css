@@ -7,8 +7,14 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Was `var(--font-sans)` — self-referential, so it resolved to nothing and
+     every screen fell back to the browser's serif. app/layout.tsx defines the
+     face as --font-geist-sans. Body stays Geist until the design doc's
+     Phase 6 (docs/redesign/design.md section 1.2). */
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-sora);
+  --font-body: var(--font-jakarta);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -26,8 +32,15 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
   --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
   --color-warning-foreground: var(--warning-foreground);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-card-2: var(--card-2);
+  --color-primary-soft: var(--primary-soft);
+  --color-nav-bg: var(--nav-bg);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -84,42 +97,59 @@
   --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
   --sidebar-border: oklch(0.925 0.005 214.3);
   --sidebar-ring: oklch(0.723 0.014 214.4);
+  /* redesign extension tokens (docs/redesign/design.md) — light equivalents */
+  --card-2: oklch(0.97 0.004 197);
+  --primary-soft: oklch(0.93 0.04 180);
+  --success: oklch(0.55 0.13 155);
+  --success-soft: oklch(0.94 0.05 155);
+  --warning-soft: oklch(0.95 0.05 80);
+  --destructive-soft: oklch(0.94 0.03 25);
+  --nav-bg: oklch(0.99 0.002 197);
 }
 
 .dark {
-  --background: oklch(0.148 0.004 228.8);
-  --foreground: oklch(0.987 0.002 197.1);
-  --card: oklch(0.218 0.008 223.9);
-  --card-foreground: oklch(0.987 0.002 197.1);
-  --popover: oklch(0.218 0.008 223.9);
-  --popover-foreground: oklch(0.987 0.002 197.1);
-  --primary: oklch(0.437 0.078 188.216);
-  --primary-foreground: oklch(0.984 0.014 180.72);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.275 0.011 216.9);
-  --muted-foreground: oklch(0.723 0.014 214.4);
-  --accent: oklch(0.275 0.011 216.9);
-  --accent-foreground: oklch(0.987 0.002 197.1);
-  --destructive: oklch(0.704 0.191 22.216);
-  --warning: oklch(0.65 0.12 75);
-  --warning-foreground: oklch(0.78 0.11 75);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.56 0.021 213.5);
-  --chart-1: oklch(0.855 0.138 181.071);
-  --chart-2: oklch(0.704 0.14 182.503);
-  --chart-3: oklch(0.6 0.118 184.704);
-  --chart-4: oklch(0.511 0.096 186.391);
-  --chart-5: oklch(0.437 0.078 188.216);
-  --sidebar: oklch(0.218 0.008 223.9);
-  --sidebar-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-primary: oklch(0.704 0.14 182.503);
-  --sidebar-primary-foreground: oklch(0.277 0.046 192.524);
-  --sidebar-accent: oklch(0.275 0.011 216.9);
-  --sidebar-accent-foreground: oklch(0.987 0.002 197.1);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.56 0.021 213.5);
+  /* Unified redesign palette (docs/redesign/SPEC.md) — dark terminal skin. */
+  --background: #101214;
+  --foreground: #f1f3f5;
+  --card: #181b1f;
+  --card-foreground: #f1f3f5;
+  --popover: #1d2126;
+  --popover-foreground: #f1f3f5;
+  --primary: #2fd6b5;
+  --primary-foreground: #06231c;
+  --secondary: #1d2126;
+  --secondary-foreground: #f1f3f5;
+  --muted: #1d2126;
+  --muted-foreground: #8b96a0;
+  --accent: #12312b;
+  --accent-foreground: #2fd6b5;
+  --destructive: #f27e6f;
+  --warning: #f2b33d;
+  --warning-foreground: #e8b04b;
+  --border: #262c33;
+  --input: #262c33;
+  --ring: #2fd6b5;
+  --chart-1: #2fd6b5;
+  --chart-2: #3ecf8e;
+  --chart-3: #f2b33d;
+  --chart-4: #4fe3c1;
+  --chart-5: #8b96a0;
+  /* redesign extensions */
+  --card-2: #1d2126;
+  --primary-soft: #12312b;
+  --success: #3ecf8e;
+  --success-soft: #12301f;
+  --warning-soft: #33290f;
+  --destructive-soft: #371a16;
+  --nav-bg: #14171a;
+  --sidebar: #181b1f;
+  --sidebar-foreground: #f1f3f5;
+  --sidebar-primary: #2fd6b5;
+  --sidebar-primary-foreground: #06231c;
+  --sidebar-accent: #12312b;
+  --sidebar-accent-foreground: #f1f3f5;
+  --sidebar-border: #262c33;
+  --sidebar-ring: #2fd6b5;
 }
 
 @layer base {

@@ -6,7 +6,7 @@ import { DevNav } from "@/components/admin/dev-nav";
 const navItemsBase = [
   { trigger: "Navigasi", content: [
     { href: "/admin", label: "Dashboard" },
-    { href: "/", label: "Menu Utama" },
+    { href: "/beranda", label: "Beranda" },
     { href: "/petunjuk", label: "Petunjuk" },
   ]},
   { trigger: "Staff", content: [
@@ -19,7 +19,7 @@ const navItemsBase = [
     { href: "/admin/menu-performance", label: "Performa Menu", ownerOnly: true },
   ]},
   { trigger: "Keuangan", content: [
-    { href: "/admin/cash-register", label: "Kas Harian" },
+    { href: "/kas", label: "Kas Harian" },
     { href: "/admin/settlement", label: "Pencairan Online" },
     { href: "/admin/keuangan", label: "Jurnal", ownerOnly: true },
     { href: "/admin/keuangan/buku-kas", label: "Buku Kas", ownerOnly: true },

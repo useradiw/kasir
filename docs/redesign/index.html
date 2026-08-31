@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir Redesign — Semua Layar (gelap)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="redesign.css">
+<style>
+  body{padding-top:56px}
+  h1{font:800 26px "Sora"; margin-bottom:6px}
+  .lead{color:#9BA3AB; font:600 14px/1.6 "Plus Jakarta Sans"; margin-bottom:28px; max-width:620px}
+  .idx{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:12px; width:min(960px,100%)}
+  .idx a{
+    display:block; text-decoration:none; background:var(--card); border:1px solid var(--edge);
+    border-radius:18px; padding:18px; color:var(--ink);
+  }
+  .idx a:hover{border-color:var(--accent)}
+  .idx .t{font:800 15px "Sora"; display:flex; align-items:center; gap:10px}
+  .idx .t span{width:26px;height:26px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:13px}
+  .idx .d{font:600 12.5px/1.5 "Plus Jakarta Sans"; color:var(--mut); margin-top:8px}
+</style>
+</head><body>
+<div style="width:min(960px,100%)">
+  <h1>Kasir Redesign — Semua Layar</h1>
+  <p class="lead">Sistem "Unified Dark" (Opsi E, skin gelap) — diterapkan ke seluruh aplikasi sebelum satu baris pun diimplementasi. Setiap file = satu bagian navigasi; buka di browser, scroll layar demi layar. Dasar: <b style="color:var(--ink)">SPEC.md</b> di folder ini.</p>
+</div>
+<div class="idx">
+  <a href="screens-beranda.html"><div class="t"><span>1</span>Beranda</div><div class="d">Owner bento · kasir · kondisi kas belum dibuka — 3 layar</div></a>
+  <a href="screens-jual.html"><div class="t"><span>2</span>Jual</div><div class="d">Checkout item/favorit/keypad, bayar tunai/QRIS/split, selesai, sesi — 8 layar</div></a>
+  <a href="screens-kas.html"><div class="t"><span>3</span>Kas</div><div class="d">Shift, tutup kas + selisih live, riwayat, detail hari + recovery, buka kas — 5 layar</div></a>
+  <a href="screens-buku.html"><div class="t"><span>4</span>Buku</div><div class="d">Glance keuangan, setup checklist, tutup buku, buku kas, cek saldo — 5 layar</div></a>
+  <a href="screens-buku-forms.html"><div class="t"><span>5</span>Buku · Formulir</div><div class="d">Template entri: pengeluaran, transfer, saldo awal; kategori, akun kas, akun penjualan — 6 layar</div></a>
+  <a href="screens-laporan.html"><div class="t"><span>6</span>Laporan & Jurnal</div><div class="d">Laba rugi, neraca, arus kas, modal, CALK/validasi, jurnal + detail — 7 layar</div></a>
+  <a href="screens-admin.html"><div class="t"><span>7</span>Admin Ops</div><div class="d">Transaksi + detail, pencairan, inventori, performa menu, staff, notifikasi+backup — 7 layar</div></a>
+  <a href="screens-auth.html"><div class="t"><span>8</span>Auth & Sistem</div><div class="d">Login, cek email, error states, 404 — 4 layar</div></a>
+</div>
+</body></html>

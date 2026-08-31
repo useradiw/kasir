@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option C — Terminal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1216; --panel:#171C22; --card:#1D242C; --edge:#2A323B;
+    --amber:#F5A623; --amber-ink:#171204; --mint:#3ECF8E; --mint-soft:#123527;
+    --red:#F26D5F; --txt:#EDF1F4; --mut:#8B96A0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:#1B1D20; color:var(--txt);
+    font-family:"Manrope",system-ui,sans-serif; font-variant-numeric:tabular-nums;
+    display:flex; flex-direction:column; align-items:center;
+    padding:40px 16px 80px; gap:0;
+  }
+  .step{
+    display:flex; align-items:center; gap:12px;
+    margin:30px 0 12px; font:700 12.5px/1.4 "Manrope"; letter-spacing:.12em;
+    text-transform:uppercase; color:#9BA3AB; width:min(430px,100%);
+  }
+  .step b{color:#E8ECEE}
+  .step .n{
+    width:24px;height:24px;border-radius:8px;background:var(--amber);color:var(--amber-ink);
+    display:grid;place-items:center;font-size:13px;flex:none;
+  }
+  .phone{
+    width:min(430px,100%); min-height:820px; background:var(--bg);
+    border:1px solid #33383E; border-radius:26px; overflow:hidden;
+    display:flex; flex-direction:column; box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .bar{
+    display:flex; align-items:center; gap:10px;
+    padding:16px 16px 12px; border-bottom:1px solid var(--edge);
+  }
+  .bar h1{font:700 18px "Space Grotesk",sans-serif; letter-spacing:.01em}
+  .bar .right{margin-left:auto; display:flex; gap:8px}
+  .icbtn{
+    width:38px;height:38px;border-radius:10px;background:var(--panel);
+    border:1px solid var(--edge); display:grid; place-items:center;
+    font-size:15px; color:var(--mut);
+  }
+  .chips{display:flex; gap:8px; padding:12px 16px; overflow-x:auto}
+  .chips span{
+    flex:none; font:600 13px/1 "Manrope"; color:var(--mut);
+    background:var(--panel); border:1px solid var(--edge);
+    padding:10px 14px; border-radius:12px;
+  }
+  .chips span.on{background:var(--amber); color:var(--amber-ink); border-color:var(--amber); font-weight:800}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:2px 16px 120px}
+  .item{
+    background:var(--card); border:1px solid var(--edge); border-radius:16px;
+    padding:14px; min-height:92px; display:flex; flex-direction:column;
+  }
+  .item .name{font:600 14.5px/1.3 "Manrope"}
+  .item .price{margin-top:auto; font:700 15px "Manrope"; color:var(--amber)}
+  .item .qty{
+    margin-top:10px; display:flex; align-items:center; gap:12px;
+    font:800 15px "Manrope";
+  }
+  .item .qty .pm{
+    width:28px;height:28px;border-radius:8px;background:var(--panel);
+    border:1px solid var(--edge); display:grid; place-items:center; color:var(--txt);
+  }
+  .item .qty .minus{color:var(--mut)}
+  .dock{
+    margin:auto 12px 14px; background:var(--panel);
+    border:1px solid var(--edge); border-radius:18px;
+    display:flex; align-items:center; gap:10px; padding:10px;
+    box-shadow:0 -8px 30px rgba(0,0,0,.4);
+  }
+  .dock .sum{padding:0 6px}
+  .dock .sum .l1{font:600 12px "Manrope"; color:var(--mut)}
+  .dock .sum .l2{font:800 17px "Manrope"}
+  .dock .pay{
+    margin-left:auto; background:var(--amber); color:var(--amber-ink);
+    font:800 15px "Manrope"; border:0; border-radius:12px; padding:15px 22px;
+  }
+  .sheet{padding:16px}
+  .total-row{display:flex; align-items:baseline; padding:6px 4px 14px}
+  .total-row .lbl{font:600 14px "Manrope"; color:var(--mut)}
+  .total-row .amt{margin-left:auto; font:700 34px "Space Grotesk",sans-serif}
+  .seg{display:flex; background:var(--panel); border:1px solid var(--edge); border-radius:14px; padding:4px}
+  .seg span{
+    flex:1; text-align:center; font:700 14px "Manrope"; color:var(--mut);
+    padding:12px; border-radius:10px;
+  }
+  .seg span.on{background:var(--amber); color:var(--amber-ink)}
+  .quick{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:14px}
+  .quick span{
+    text-align:center; background:var(--card); border:1px solid var(--edge);
+    border-radius:12px; padding:13px 4px; font:700 13.5px "Manrope"; color:var(--txt);
+  }
+  .quick span.lit{background:var(--mint-soft); border-color:var(--mint); color:var(--mint)}
+  .keyrow{display:flex; gap:8px; margin-top:14px}
+  .keyrow .key{
+    flex:1; text-align:center; background:var(--card); border:1px solid var(--edge);
+    border-radius:14px; padding:16px 0; font:700 19px "Space Grotesk",sans-serif;
+  }
+  .keyrow .key.wide{flex:2.2; color:var(--mut); font-size:14px; font-family:"Manrope"}
+  .keyrow .key.enter{background:var(--amber); border-color:var(--amber); color:var(--amber-ink)}
+  .change{
+    margin-top:14px; display:flex; align-items:center; gap:10px;
+    background:var(--mint-soft); border:1px solid var(--mint);
+    border-radius:14px; padding:14px 16px;
+  }
+  .change .lbl{font:600 13px "Manrope"; color:var(--mint)}
+  .change .amt{margin-left:auto; font:700 20px "Space Grotesk"; color:var(--mint)}
+  .btn{
+    display:block; width:100%; text-align:center; border:0; border-radius:14px;
+    background:var(--amber); color:var(--amber-ink);
+    font:800 15.5px "Manrope"; padding:16px; margin-top:14px;
+  }
+  .btn.ghost{background:var(--panel); color:var(--txt); border:1px solid var(--edge)}
+  .done-hero{text-align:center; padding:26px 0 8px}
+  .done-hero .ring{
+    width:84px;height:84px;border-radius:999px;background:var(--mint-soft);
+    border:2px solid var(--mint); display:grid; place-items:center;
+    margin:0 auto 14px; font-size:34px; color:var(--mint);
+  }
+  .done-hero h2{font:700 21px "Space Grotesk"}
+  .done-hero .sub{color:var(--mut); font:600 13.5px "Manrope"; margin-top:6px}
+  .struk-mini{
+    margin-top:16px; background:var(--panel); border:1px dashed var(--edge);
+    border-radius:16px; padding:4px 14px;
+  }
+  .struk-mini .r{
+    display:flex; padding:9px 0; font:500 13.5px "Manrope";
+    border-bottom:1px dashed var(--edge);
+  }
+  .struk-mini .r:last-child{border-bottom:0}
+  .struk-mini .r b{margin-left:auto; font-weight:700}
+  .ses{padding:14px 16px 20px; display:flex; flex-direction:column; gap:10px}
+  .srow{
+    background:var(--card); border:1px solid var(--edge); border-radius:16px;
+    padding:14px; display:flex; align-items:center; gap:12px;
+  }
+  .srow .who{font:700 14.5px "Manrope"}
+  .srow .meta{font:600 12px "Manrope"; color:var(--mut); margin-top:3px}
+  .srow .amt{margin-left:auto; text-align:right}
+  .srow .amt .v{font:700 15px "Manrope"}
+  .tag{
+    display:inline-block; font:800 10.5px/1 "Manrope"; letter-spacing:.08em;
+    text-transform:uppercase; border-radius:6px; padding:5px 7px; margin-top:5px;
+  }
+  .tag.warn{background:#3A2E12; color:var(--amber)}
+  .tag.ok{background:var(--mint-soft); color:var(--mint)}
+  .tag.mut{background:var(--panel); color:var(--mut)}
+</style>
+</head>
+<body>
+
+<div class="step"><span class="n">1</span><span><b>Buka — langsung ke menu.</b> Tanpa "buat sesi" dulu.</span></div>
+<div class="phone">
+  <div class="bar">
+    <h1>Jual</h1>
+    <div class="right"><div class="icbtn">☰</div><div class="icbtn">⧉</div></div>
+  </div>
+  <div class="chips">
+    <span class="on">Semua</span><span>Sate</span><span>Minuman</span><span>Snack</span><span>Paket</span>
+  </div>
+  <div class="grid">
+    <div class="item"><div class="name">Sate Kambing</div><div class="price">25.000</div></div>
+    <div class="item"><div class="name">Sate Kulit</div><div class="price">18.000</div>
+      <div class="qty"><span class="pm minus">−</span>2<span class="pm">+</span></div></div>
+    <div class="item"><div class="name">Gulai Kambing</div><div class="price">28.000</div></div>
+    <div class="item"><div class="name">Teh Tawar</div><div class="price">5.000</div>
+      <div class="qty"><span class="pm minus">−</span>1<span class="pm">+</span></div></div>
+    <div class="item"><div class="name">Es Jeret</div><div class="price">8.000</div></div>
+    <div class="item"><div class="name">Sop Kambing</div><div class="price">30.000</div></div>
+  </div>
+  <div class="dock">
+    <div class="sum"><div class="l1">3 item</div><div class="l2">Rp 61.000</div></div>
+    <button class="pay">Bayar →</button>
+  </div>
+</div>
+
+<div class="step"><span class="n">2</span><span><b>Bayar — satu sheet.</b> Tunai / QRIS / Split, tanpa pindah layar.</span></div>
+<div class="phone">
+  <div class="bar"><h1>Bayar</h1><div class="right"><div class="icbtn">✕</div></div></div>
+  <div class="sheet">
+    <div class="total-row"><span class="lbl">Total · 3 item</span><span class="amt">61.000</span></div>
+    <div class="seg"><span class="on">Tunai</span><span>QRIS</span><span>Split</span></div>
+    <div class="quick">
+      <span class="lit">Uang pas</span><span>70.000</span><span>100.000</span>
+      <span>65.000</span><span>60.000</span><span>50.000</span>
+    </div>
+    <div class="change"><span class="lbl">Kembalian</span><span class="amt">Rp 39.000</span></div>
+    <div class="keyrow"><span class="key">1</span><span class="key">2</span><span class="key">3</span></div>
+    <div class="keyrow"><span class="key">4</span><span class="key">5</span><span class="key">6</span></div>
+    <div class="keyrow"><span class="key">7</span><span class="key">8</span><span class="key">9</span></div>
+    <div class="keyrow"><span class="key wide">⌫ hapus</span><span class="key">0</span><span class="key enter">✓</span></div>
+    <button class="btn">Terima 100.000 · Kembali 39.000</button>
+  </div>
+</div>
+
+<div class="step"><span class="n">3</span><span><b>Selesai — langsung jual lagi.</b> Struk opsional, satu tap.</span></div>
+<div class="phone">
+  <div class="bar"><h1>&nbsp;</h1></div>
+  <div class="sheet">
+    <div class="done-hero">
+      <div class="ring">✓</div>
+      <h2>Lunas — Rp 61.000</h2>
+      <div class="sub">Tunai · kembalian Rp 39.000</div>
+    </div>
+    <div class="struk-mini">
+      <div class="r">Sate Kulit × 2 <b>36.000</b></div>
+      <div class="r">Teh Tawar × 1 <b>5.000</b></div>
+      <div class="r">Sate Kambing × 1 <b>25.000</b> </div>
+    </div>
+    <button class="btn">Transaksi Baru</button>
+    <button class="btn ghost">Cetak Struk</button>
+    <p style="text-align:center;color:var(--mut);font:600 12px Manrope;margin-top:12px">
+      Tersimpan di perangkat — terkirim otomatis saat online
+    </p>
+  </div>
+</div>
+
+<div class="step"><span class="n">4</span><span><b>Sesi &amp; riwayat.</b> Status sinkron selalu terlihat.</span></div>
+<div class="phone">
+  <div class="bar"><h1>Sesi Hari Ini</h1><div class="right"><div class="icbtn">🏠</div></div></div>
+  <div class="ses">
+    <div class="srow">
+      <div><div class="who">Meja 3 — Pak Budi</div><div class="meta">4 item · 19:02</div>
+        <span class="tag.warn">2 belum terkirim</span></div>
+      <div class="amt"><div class="v">Rp 87.000</div><span class="tag ok">Lunas</span></div>
+    </div>
+    <div class="srow">
+      <div><div class="who">Bungkus — Ibu Sari</div><div class="meta">3 item · 19:14</div>
+        <span class="tag.ok">Terkirim</span></div>
+      <div class="amt"><div class="v">Rp 61.000</div><span class="tag ok">Lunas</span></div>
+    </div>
+    <div class="srow">
+      <div><div class="who">Meja 1 — Arka</div><div class="meta">2 item · 19:21</div>
+        <span class="tag mut">Terbuka</span></div>
+      <div class="amt"><div class="v">Rp 43.000</div></div>
+    </div>
+  </div>
+  <div class="dock">
+    <div class="sum"><div class="l1">Buka sesi baru</div></div>
+    <button class="pay">+ Jual</button>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir — Admin Ops</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="redesign.css">
+</head><body>
+
+<div class="caption"><span class="n">1</span><span><b>Transaksi</b> — cari + filter; tiap baris menampilkan kanal & status</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Transaksi</h1><div class="sub">29 Agu · 23 transaksi</div></div>
+    <div class="right"><div class="monthpill">Hari ini ▾</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="search">🔎 Cari nama pelanggan / item…</div>
+    <div class="chips"><span class="on">Semua</span><span>Tunai</span><span>QRIS</span><span>Online</span><span>VOID</span></div>
+    <div class="rows">
+      <div class="row"><div><div class="who">Meja 3 — Pak Budi</div><div class="meta">3 item · 19:02 · Kasir Dina</div></div>
+        <div class="amt"><span class="v">61.000</span><span class="tag ok">Tunai</span></div></div>
+      <div class="row"><div><div class="who">Bungkus — Ibu Sari</div><div class="meta">4 item · 19:14</div></div>
+        <div class="amt"><span class="v">87.000</span><span class="tag acc">QRIS</span></div></div>
+      <div class="row"><div><div class="who">GoFood #8821</div><div class="meta">2 item · 18:50 · online</div></div>
+        <div class="amt"><span class="v">52.000</span><span class="tag warn">Belum cair</span></div></div>
+      <div class="row"><div><div class="who">Meja 2 — Bapak Jon</div><div class="meta">VOID 18:31 · pembalik #0229</div></div>
+        <div class="amt"><span class="v">40.000</span><span class="tag bad">VOID</span></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">2</span><span><b>Detail Transaksi</b> — rincian + aksi void; terhubung ke sesi & hari kas</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:18px">
+    <div class="back">⟵ Transaksi</div>
+    <div class="hero"><span class="amt">61.000</span><span class="lbl">MEJA 3 · LUNAS</span></div>
+    <div class="fcard">
+      <div class="fhead">Rincian</div>
+      <div class="frow"><span class="l">Sate Kambing ×1</span><span class="v">25.000</span></div>
+      <div class="frow"><span class="l">Sate Kulit ×2</span><span class="v">36.000</span></div>
+      <div class="frow"><span class="l">Teh Tawar ×1</span><span class="v">5.000</span></div>
+      <div class="frow total"><span class="l">Tunai diterima / kembali</span><span class="v">100.000 / 39.000</span></div>
+    </div>
+    <div class="rows">
+      <div class="row"><div><div class="who">Sesi</div><div class="meta">Meja 3 — Pak Budi · Kasir Dina</div></div><div class="amt"><span class="tag acc">Buka →</span></div></div>
+      <div class="row"><div><div class="who">Kas hari ini</div><div class="meta">Tutup kas 29 Agu · tercatat #0231</div></div><div class="amt"><span class="tag acc">Buka →</span></div></div>
+      <div class="row"><div><div class="who">Batalkan transaksi</div><div class="meta">Membalik penjualan & stok jurnalnya</div></div><button class="go ghost" style="background:transparent;color:var(--red);border:1.5px solid var(--red)">Void</button></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">3</span><span><b>Pencairan Online</b> — dana belum cair jadi alert; settle = posting neto komisi</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Pencairan Online</h1><div class="sub">Agustus 2026</div></div>
+    <div class="right"><div class="icbtn">＋</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="alert" style="margin-top:2px"><div class="t">Rp 890.000 belum dicairkan<small>GoFood & GrabFood — settle tiap pencairan masuk ke Bank BCA neto komisi.</small></div><button class="go">Cairkan</button></div>
+    <div class="rows">
+      <div class="row"><div><div class="who">GoFood · 26 Agu</div><div class="meta">Bruto 2.300.000 · komisi 230.000 · potongan 45.000</div></div>
+        <div class="amt"><span class="v">2.025.000</span><span class="tag ok">Tercatat #0226</span></div></div>
+      <div class="row"><div><div class="who">GrabFood · 22 Agu</div><div class="meta">Bruto 1.850.000 · komisi 185.000</div></div>
+        <div class="amt"><span class="v">1.665.000</span><span class="tag ok">Tercatat #0219</span></div></div>
+      <div class="row"><div><div class="who">Hapus settlement</div><div class="meta">Void jurnal otomatis sebelum baris dihapus</div></div>
+        <div class="amt"><span class="tag mut">OWNER</span></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">4</span><span><b>Inventori</b> — toggle tersedia/habis langsung di baris</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Inventori</h1><div class="sub">31 menu · 4 kategori</div></div>
+    <div class="right"><div class="icbtn">＋</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="search">🔎 Cari menu…</div>
+    <div class="rows">
+      <div class="row"><div><div class="who">Sate Kambing</div><div class="meta">Rp 25.000 · Sate · terjual 96 bln ini</div></div>
+        <div class="amt" style="display:flex;align-items:center;gap:10px"><span class="sw"></span></div></div>
+      <div class="row"><div><div class="who">Sop Kambing</div><div class="meta">Rp 30.000 · Sate · terjual 41 bln ini</div></div>
+        <div class="amt" style="display:flex;align-items:center;gap:10px"><span class="sw"></span></div></div>
+      <div class="row"><div><div class="who">Es Jeret</div><div class="meta">Rp 8.000 · Minuman</div></div>
+        <div class="amt" style="display:flex;align-items:center;gap:10px"><span class="sw off"></span></div></div>
+      <div class="row" style="opacity:.6"><div><div class="who">Paket Keluarga</div><div class="meta">Rp 95.000 · Paket · HABIS hari ini</div></div>
+        <div class="amt" style="display:flex;align-items:center;gap:10px"><span class="sw off"></span></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">5</span><span><b>Performa Menu</b> — qty & omzet per item, bar proporsional</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Performa Menu</h1><div class="sub">Agustus 2026</div></div>
+    <div class="right"><div class="monthpill">Bulan ▾</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="fcard">
+      <div class="fhead">Terlaris</div>
+      <div class="bar-rows" style="margin-top:4px; padding:4px 0 6px">
+        <div class="brow"><span style="width:104px">Sate Kambing</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="v">96 · 2,4jt</span></div>
+        <div class="brow"><span style="width:104px">Sate Kulit</span><div class="track"><div class="fill" style="width:74%"></div></div><span class="v">71 · 1,3jt</span></div>
+        <div class="brow"><span style="width:104px">Gulai Kambing</span><div class="track"><div class="fill dim" style="width:52%"></div></div><span class="v">50 · 1,4jt</span></div>
+        <div class="brow"><span style="width:104px">Teh Tawar</span><div class="track"><div class="fill dim" style="width:88%"></div></div><span class="v">85 · 425rb</span></div>
+        <div class="brow"><span style="width:104px">Es Jeret</span><div class="track"><div class="fill dim" style="width:34%"></div></div><span class="v">33 · 264rb</span></div>
+      </div>
+      <div class="frow total"><span class="l">Total omzet item</span><span class="v">7.580.000</span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">6</span><span><b>Staff</b> — absensi ringkas per orang; invite = link, bukan form publik</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Staff</h1><div class="sub">4 orang aktif</div></div>
+    <div class="right"><div class="icbtn">＋</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="rows" style="margin-top:2px">
+      <div class="row"><div><div class="who">Dina — Kasir</div><div class="meta">Hadir 26/27 hari · shift pagi</div></div>
+        <div class="amt"><span class="v">Rp 1,2jt</span><span class="tag ok">Aktif</span></div></div>
+      <div class="row"><div><div class="who">Raka — Kasir</div><div class="meta">Hadir 24/27 hari · shift siang</div></div>
+        <div class="amt"><span class="v">Rp 1,2jt</span><span class="tag ok">Aktif</span></div></div>
+      <div class="row"><div><div class="who">Sari — Staff dapur</div><div class="meta">Hadir 27/27 hari</div></div>
+        <div class="amt"><span class="v">Rp 950rb</span><span class="tag ok">Aktif</span></div></div>
+      <div class="row" style="opacity:.6"><div><div class="who">Budi — Kasir</div><div class="meta">Nonaktif 10 Agu</div></div>
+        <div class="amt"><span class="tag mut">Nonaktif</span></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">7</span><span><b>Notifikasi & Backup</b> — notifikasi owner dengan tindakan; backup = daftar tabel + unduh</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Notifikasi</h1><div class="sub">3 belum dibaca</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="rows" style="margin-top:2px">
+      <div class="row" style="border-color:rgba(242,126,111,.5)"><div><div class="who">Void: Meja 2 — Bapak Jon</div><div class="meta">Rp 40.000 · Raka · 18:31</div></div>
+        <div class="amt"><span class="tag bad">Baru</span></div></div>
+      <div class="row"><div><div class="who">28 Agu belum tercatat</div><div class="meta">Bulan terkunci saat tutup kas</div></div>
+        <div class="amt"><span class="tag warn">Aksi</span></div></div>
+      <div class="row"><div><div class="who">Backup belum diambil 7 hari</div><div class="meta">Terakhir: 22 Agu</div></div>
+        <div class="amt"><span class="tag warn">Aksi</span></div></div>
+    </div>
+    <div class="fcard" style="margin-top:14px">
+      <div class="fhead">Backup Database<span class="v">22 Agu</span></div>
+      <div class="frow"><span class="l">40 tabel — termasuk buku besar & tabel dorman</span><span class="v"></span></div>
+      <div class="frow total"><span class="l">Unduh JSON penuh</span><span class="go" style="padding:8px 12px">Unduh</span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+</body></html>

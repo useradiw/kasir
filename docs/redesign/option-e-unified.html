@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option E — Unified (Square-school)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ── warm-light skin (Qasir / BukuKas school) ── */
+    --bg:#F4F3EE; --card:#FFFFFF; --card2:#FBFAF6; --ink:#1D1C18; --mut:#85806F;
+    --edge:#E7E4DB; --accent:#0E7C6B; --accent-ink:#FFFFFF; --accent-soft:#E2F1ED;
+    --amber:#B97F10; --amber-soft:#F8EFD8; --red:#C74343; --red-soft:#F9E9E9;
+    --mint:#0E7C6B; --mint-soft:#E2F1ED;
+    --nav-bg:#FFFFFF; --nav-edge:#E7E4DB;
+    --shadow:0 10px 30px rgba(29,28,24,.08);
+  }
+  body.dark{
+    /* ── dark skin (Toast / terminal school) ── */
+    --bg:#101214; --card:#181B1F; --card2:#1D2126; --ink:#F1F3F5; --mut:#8B96A0;
+    --edge:#262C33; --accent:#2FD6B5; --accent-ink:#06231C; --accent-soft:#12312B;
+    --amber:#F2B33D; --amber-soft:#33290F; --red:#F27E6F; --red-soft:#371A16;
+    --mint:#3ECF8E; --mint-soft:#12301F;
+    --nav-bg:#14171A; --nav-edge:#262C33;
+    --shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:#1C1E22; color:var(--ink);
+    font-family:"Plus Jakarta Sans",system-ui,sans-serif; font-variant-numeric:tabular-nums;
+    display:flex; flex-direction:column; align-items:center;
+    padding:0 16px 80px;
+  }
+  .skinbar{
+    position:sticky; top:10px; z-index:50;
+    display:flex; gap:8px; background:#26282D; border:1px solid #3A3E44;
+    border-radius:999px; padding:6px; margin-top:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5);
+  }
+  .skinbar button{
+    border:0; border-radius:999px; padding:11px 20px; cursor:pointer;
+    font:700 13px "Plus Jakarta Sans"; color:#C9CDD2; background:transparent;
+  }
+  .skinbar button.on{background:#ECEDEF; color:#1D1C18}
+  .step{
+    display:flex; align-items:flex-start; gap:12px;
+    margin:30px 0 12px; font:700 12.5px/1.5 "Plus Jakarta Sans"; letter-spacing:.1em;
+    text-transform:uppercase; color:#9BA3AB; width:min(430px,100%);
+  }
+  .step b{color:#E8ECEE}
+  .step .n{
+    width:24px;height:24px;border-radius:8px;background:#ECEDEF;color:#1D1C18;
+    display:grid;place-items:center;font-size:13px;flex:none;
+  }
+  .phone{
+    width:min(430px,100%); min-height:860px; background:var(--bg); color:var(--ink);
+    border-radius:28px; overflow:hidden; display:flex; flex-direction:column;
+    box-shadow:0 24px 60px rgba(0,0,0,.55); transition:background .25s;
+  }
+  .pad{padding:14px 16px 20px; display:flex; flex-direction:column; flex:1}
+  .greet{display:flex; align-items:center; padding:18px 16px 4px}
+  .greet h1{font:700 17px "Sora",sans-serif}
+  .greet .sub{font:600 12px "Plus Jakarta Sans"; color:var(--mut); margin-top:2px}
+  .bell{
+    margin-left:auto; width:40px;height:40px;border-radius:14px;
+    background:var(--card); border:1px solid var(--edge);
+    display:grid;place-items:center; position:relative; font-size:15px;
+  }
+  .bell::after{
+    content:""; position:absolute; top:9px; right:10px; width:8px; height:8px;
+    border-radius:99px; background:var(--red); border:2px solid var(--card);
+  }
+
+  /* bento home — the researched dashboard pattern */
+  .bento{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:12px}
+  .bcard{background:var(--card); border:1px solid var(--edge); border-radius:20px; padding:16px; box-shadow:var(--shadow)}
+  .bcard .lbl{font:700 11.5px "Plus Jakarta Sans"; color:var(--mut); letter-spacing:.05em; text-transform:uppercase}
+  .bcard .big{font:700 30px/1.1 "Sora",sans-serif; letter-spacing:-.02em; margin-top:8px}
+  .bcard .big.xl{font-size:38px}
+  .bcard .sub{font:600 11.5px "Plus Jakarta Sans"; color:var(--mut); margin-top:6px}
+  .up{color:var(--mint); font-weight:800}
+  .bento .wide{grid-column:1 / -1}
+  .spark{display:flex; gap:4px; align-items:flex-end; height:26px; margin-top:12px}
+  .spark i{flex:1; border-radius:3px; background:var(--accent-soft)}
+  .spark i.hi{background:var(--accent)}
+  .kbtn{
+    display:flex; flex-direction:column; align-items:center; gap:7px;
+    background:var(--card); border:1px solid var(--edge); border-radius:16px;
+    padding:13px 6px; font:700 11.5px "Plus Jakarta Sans"; color:var(--ink);
+    text-align:center; box-shadow:var(--shadow);
+  }
+  .kbtn .ic{
+    width:34px;height:34px;border-radius:11px;background:var(--accent-soft);
+    color:var(--accent); display:grid;place-items:center; font-size:15px;
+  }
+  .alert{
+    display:flex; align-items:center; gap:12px;
+    background:var(--amber-soft); border:1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+    border-radius:18px; padding:13px 14px; margin-top:2px;
+  }
+  .alert .t{font:700 12.5px/1.4 "Plus Jakarta Sans"}
+  .alert .t small{display:block; font-weight:600; color:var(--mut); letter-spacing:0}
+  .alert .go{
+    margin-left:auto; flex:none; background:var(--accent); color:var(--accent-ink);
+    font:800 12.5px "Plus Jakarta Sans"; border-radius:11px; padding:11px 14px; border:0;
+  }
+
+  /* bottom nav — the signature system element */
+  .nav{
+    margin-top:auto; display:flex; background:var(--nav-bg);
+    border-top:1px solid var(--nav-edge); padding:10px 8px 14px;
+  }
+  .nav a{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+    text-decoration:none; color:var(--mut); font:700 10.5px "Plus Jakarta Sans";
+  }
+  .nav a.on{color:var(--accent)}
+  .nav a.on .pip{width:16px; height:3px; border-radius:2px; background:var(--accent); margin-top:2px}
+  .nav a:not(.on) .pip{margin-top:2px}
+  .nav svg{width:21px;height:21px}
+
+  /* unified checkout — item/favorit/keypad switcher + dock */
+  .switch{display:flex; background:var(--card); border:1px solid var(--edge); border-radius:14px; padding:4px; margin-top:12px}
+  .switch span{flex:1; text-align:center; font:700 13px "Plus Jakarta Sans"; color:var(--mut); padding:10px; border-radius:10px}
+  .switch span.on{background:var(--accent); color:var(--accent-ink)}
+  .chips{display:flex; gap:8px; padding:12px 0 2px; overflow-x:auto}
+  .chips span{
+    flex:none; font:700 12.5px/1 "Plus Jakarta Sans"; color:var(--mut);
+    background:var(--card); border:1px solid var(--edge); padding:10px 14px; border-radius:999px;
+  }
+  .chips span.on{background:var(--ink); color:var(--bg); border-color:var(--ink)}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px 0 110px}
+  .item{
+    background:var(--card); border:1px solid var(--edge); border-radius:18px;
+    padding:13px; min-height:88px; display:flex; flex-direction:column; box-shadow:var(--shadow);
+  }
+  .item .fav{margin-left:auto; color:var(--amber); font-size:12px}
+  .item .name{font:700 13.5px/1.3 "Plus Jakarta Sans"}
+  .item .price{margin-top:auto; font:800 14px "Sora"; color:var(--accent)}
+  .item .qty{margin-top:10px; display:flex; align-items:center; gap:10px; font:800 14px "Sora"}
+  .item .qty .pm{
+    width:29px;height:29px;border-radius:10px;background:var(--accent);color:var(--accent-ink);
+    display:grid;place-items:center;font-size:14px;
+  }
+  .item .qty .minus{background:var(--card2); color:var(--mut); border:1px solid var(--edge)}
+  .dock{
+    position:absolute; left:12px; right:12px; bottom:86px;
+    background:var(--ink); color:var(--bg); border-radius:18px;
+    display:flex; align-items:center; padding:9px 9px 9px 18px;
+    box-shadow:0 14px 34px rgba(0,0,0,.35);
+  }
+  .phone{position:relative}
+  .dock .l1{font:700 10.5px "Plus Jakarta Sans"; opacity:.7; letter-spacing:.06em}
+  .dock .l2{font:700 17px "Sora"}
+  .dock .pay{
+    margin-left:auto; background:var(--accent); color:var(--accent-ink);
+    font:800 14.5px "Plus Jakarta Sans"; border:0; border-radius:13px; padding:15px 22px;
+  }
+
+  /* payment — one surface, hero total */
+  .sheet{padding:16px; display:flex; flex-direction:column; flex:1}
+  .back{font:700 13px "Plus Jakarta Sans"; color:var(--mut); display:flex; align-items:center; gap:6px}
+  .hero{padding:18px 0 6px; display:flex; align-items:baseline}
+  .hero .amt{font:800 44px/1 "Sora"; letter-spacing:-.03em}
+  .hero .lbl{margin-left:auto; font:700 12px "Plus Jakarta Sans"; color:var(--mut)}
+  .payseg{display:flex; gap:8px; margin-top:10px}
+  .payseg span{
+    flex:1; text-align:center; font:800 13.5px "Plus Jakarta Sans"; color:var(--mut);
+    background:var(--card); border:1px solid var(--edge); padding:14px; border-radius:15px;
+  }
+  .payseg span.on{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+  .quick{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px}
+  .quick span{
+    text-align:center; background:var(--card); border:1px solid var(--edge);
+    border-radius:13px; padding:14px 4px; font:700 13px "Sora";
+  }
+  .quick span.lit{background:var(--accent-soft); border-color:var(--accent); color:var(--accent)}
+  .change{
+    margin-top:12px; display:flex; align-items:center;
+    background:var(--mint-soft); border-radius:14px; padding:14px 16px;
+  }
+  .change .lbl{font:700 12.5px "Plus Jakarta Sans"; color:var(--mint)}
+  .change .amt{margin-left:auto; font:700 20px "Sora"; color:var(--mint)}
+  .keys{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:12px}
+  .keys span{
+    text-align:center; background:var(--card); border:1px solid var(--edge);
+    border-radius:13px; padding:14px 0; font:700 17px "Sora";
+  }
+  .keys span.wide{color:var(--mut); font:700 12px "Plus Jakarta Sans"; display:grid; place-items:center}
+  .keys span.enter{background:var(--accent); border-color:var(--accent); color:var(--accent-ink)}
+  .confirm{
+    display:block; width:100%; text-align:center; border:0; border-radius:16px;
+    background:var(--accent); color:var(--accent-ink);
+    font:800 15.5px "Plus Jakarta Sans"; padding:17px; margin-top:14px;
+  }
+
+  /* buku tab — glanceable keuangan */
+  .monhead{display:flex; align-items:center; padding:16px 16px 0}
+  .monhead .m{font:700 16px "Sora"}
+  .monhead .pill{
+    margin-left:auto; font:800 11px "Plus Jakarta Sans"; letter-spacing:.04em;
+    background:var(--mint-soft); color:var(--mint); border-radius:999px; padding:8px 12px;
+  }
+  .kpis{margin:12px 16px 0; background:var(--card); border:1px solid var(--edge); border-radius:22px; padding:20px 18px; box-shadow:var(--shadow)}
+  .kpis .lbl{font:700 11.5px "Plus Jakarta Sans"; color:var(--mut); letter-spacing:.05em; text-transform:uppercase}
+  .kpis .big{font:800 42px/1.05 "Sora"; letter-spacing:-.03em; margin-top:8px}
+  .kpis .sub{font:600 12px "Plus Jakarta Sans"; color:var(--mut); margin-top:6px}
+  .bars{display:flex; flex-direction:column; gap:9px; margin-top:16px}
+  .brow{display:flex; align-items:center; gap:10px; font:600 12px "Plus Jakarta Sans"; color:var(--mut)}
+  .brow .track{flex:1; height:7px; border-radius:4px; background:var(--card2); border:1px solid var(--edge); overflow:hidden}
+  .brow .fill{height:100%; border-radius:4px; background:var(--accent)}
+  .brow .fill.dim{background:color-mix(in srgb, var(--accent) 45%, transparent)}
+  .brow .v{font:700 12.5px "Sora"; color:var(--ink); min-width:74px; text-align:right}
+  .bkrow{
+    display:flex; align-items:center; gap:12px; margin:10px 16px 0;
+    background:var(--card); border:1px solid var(--edge); border-radius:16px; padding:13px 14px;
+    box-shadow:var(--shadow);
+  }
+  .bkrow .t{font:700 12.5px/1.4 "Plus Jakarta Sans"}
+  .bkrow .t small{display:block; font-weight:600; color:var(--mut)}
+  .bkrow .go{margin-left:auto; font:800 12.5px "Plus Jakarta Sans"; color:var(--accent); border:0; background:none}
+  .bkrow.warn{background:var(--amber-soft); border-color:color-mix(in srgb, var(--amber) 35%, transparent)}
+</style>
+</head>
+<body>
+
+<div class="skinbar">
+  <button id="bL" class="on" onclick="setSkin(false)">☀️ Terang · warung</button>
+  <button id="bD" onclick="setSkin(true)">🌙 Gelap · terminal</button>
+</div>
+
+<!-- ═══ 1 · HOME BENTO ═══ -->
+<div class="step"><span class="n">1</span><span><b>Home bento — per role.</b> Pendapatan hari ini sebagai angka raksasa; satu-satunya tempat alert & recovery muncul.</span></div>
+<div class="phone">
+  <div class="greet">
+    <div><h1>Selamat malam, Pak Adi</h1><div class="sub">Toko Kencana · Jumat, 29 Agu</div></div>
+    <div class="bell">🔔</div>
+  </div>
+  <div class="pad">
+    <div class="bento">
+      <div class="bcard wide">
+        <div class="lbl">Pendapatan hari ini</div>
+        <div class="big xl">Rp 4.730.000</div>
+        <div class="sub"><span class="up">▲ 12%</span> dari kemarin · 23 transaksi</div>
+        <div class="spark"><i style="height:30%"></i><i style="height:45%"></i><i style="height:38%"></i><i style="height:60%"></i><i style="height:52%"></i><i style="height:78%"></i><i class="hi" style="height:100%"></i></div>
+      </div>
+      <div class="bcard">
+        <div class="lbl">Kas di laci</div>
+        <div class="big">1.250.000</div>
+        <div class="sub">Kas Laci · dicek 19:40</div>
+      </div>
+      <div class="bcard">
+        <div class="lbl">QRIS belum cair</div>
+        <div class="big">890.000</div>
+        <div class="sub" style="color:var(--accent); font-weight:800">Setor sekarang →</div>
+      </div>
+      <div class="alert wide">
+        <div class="t">28 Agu belum tercatat ke buku besar<small>Bulan terkunci saat itu — bisa dicatat sekarang.</small></div>
+        <button class="go">Catat</button>
+      </div>
+      <div class="kbtn wide" style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:12px">
+        <div class="kbtn" style="border:0;box-shadow:none;background:none;padding:0"><span class="ic">💵</span>Tutup Kas</div>
+        <div class="kbtn" style="border:0;box-shadow:none;background:none;padding:0"><span class="ic">🧾</span>Belanja</div>
+        <div class="kbtn" style="border:0;box-shadow:none;background:none;padding:0"><span class="ic">🔁</span>Transfer</div>
+        <div class="kbtn" style="border:0;box-shadow:none;background:none;padding:0"><span class="ic">📊</span>Laporan</div>
+      </div>
+    </div>
+  </div>
+  <div class="nav">
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a>
+  </div>
+</div>
+
+<!-- ═══ 2 · CHECKOUT SURFACE ═══ -->
+<div class="step"><span class="n">2</span><span><b>Jual — satu permukaan checkout.</b> Item / Favorit / Keypad bisa diganti tanpa pindah layar; dock nempel di atas nav.</span></div>
+<div class="phone">
+  <div class="greet"><div><h1>Jual</h1><div class="sub">Shift siang · Kasir Dina</div></div></div>
+  <div class="pad">
+    <div class="switch"><span class="on">Item</span><span>Favorit ★</span><span>Keypad</span></div>
+    <div class="chips">
+      <span class="on">Semua</span><span>Sate</span><span>Minuman</span><span>Snack</span><span>Paket</span>
+    </div>
+    <div class="grid">
+      <div class="item"><div class="name">Sate Kambing <span class="fav">★</span></div><div class="price">25.000</div></div>
+      <div class="item"><div class="name">Sate Kulit <span class="fav">★</span></div><div class="price">18.000</div>
+        <div class="qty"><span class="pm minus">−</span>2<span class="pm">+</span></div></div>
+      <div class="item"><div class="name">Gulai Kambing</div><div class="price">28.000</div></div>
+      <div class="item"><div class="name">Teh Tawar <span class="fav">★</span></div><div class="price">5.000</div>
+        <div class="qty"><span class="pm minus">−</span>1<span class="pm">+</span></div></div>
+      <div class="item"><div class="name">Es Jeret</div><div class="price">8.000</div></div>
+      <div class="item"><div class="name">Sop Kambing</div><div class="price">30.000</div></div>
+    </div>
+    <div class="dock">
+      <div><div class="l1">3 ITEM</div><div class="l2">Rp 61.000</div></div>
+      <button class="pay">Bayar →</button>
+    </div>
+  </div>
+  <div class="nav" style="opacity:.45">
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a>
+  </div>
+</div>
+
+<!-- ═══ 3 · PAYMENT ═══ -->
+<div class="step"><span class="n">3</span><span><b>Bayar — tetap satu permukaan.</b> Total jadi angka hero; tunai/QRIS/split + keypad dalam satu layar, satu tombol konfirmasi.</span></div>
+<div class="phone">
+  <div class="sheet">
+    <div class="back">⟵ Keranjang (3 item)</div>
+    <div class="hero"><span class="amt">61.000</span><span class="lbl">TOTAL</span></div>
+    <div class="payseg"><span class="on">Tunai</span><span>QRIS</span><span>Split</span></div>
+    <div class="quick">
+      <span class="lit">Uang pas</span><span>70.000</span><span>100.000</span>
+      <span>65.000</span><span>60.000</span><span>50.000</span>
+    </div>
+    <div class="change"><span class="lbl">Kembalian</span><span class="amt">Rp 39.000</span></div>
+    <div class="keys">
+      <span>1</span><span>2</span><span>3</span>
+      <span>4</span><span>5</span><span>6</span>
+      <span>7</span><span>8</span><span>9</span>
+      <span class="wide">← hapus</span><span>0</span><span class="enter">✓</span>
+    </div>
+    <button class="confirm">Terima 100.000 · Kembali 39.000</button>
+  </div>
+</div>
+
+<!-- ═══ 4 · BUKU TAB ═══ -->
+<div class="step"><span class="n">4</span><span><b>Buku — keuangan sekilas.</b> Laba bersih sebagai hero; dari sini drill-down ke Laporan penuh & Tutup Buku.</span></div>
+<div class="phone">
+  <div class="monhead"><div class="m">Agustus 2026 ▾</div><div class="pill">✓ Validasi seimbang</div></div>
+  <div class="kpis">
+    <div class="lbl">Laba bersih bulan ini</div>
+    <div class="big">Rp 2.652.000</div>
+    <div class="sub">dari 7.580.000 pendapatan · update 5 menit lalu</div>
+    <div class="bars">
+      <div class="brow"><span style="width:88px">Pendapatan</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="v">7.580.000</span></div>
+      <div class="brow"><span style="width:88px">HPP</span><div class="track"><div class="fill dim" style="width:39%"></div></div><span class="v">2.940.000</span></div>
+      <div class="brow"><span style="width:88px">Beban</span><div class="track"><div class="fill dim" style="width:26%"></div></div><span class="v">1.988.000</span></div>
+    </div>
+  </div>
+  <div class="bkrow warn">
+    <div class="t">28 Agu belum tercatat ke buku besar<small>Tap untuk lihat harinya</small></div>
+    <button class="go">Catat →</button>
+  </div>
+  <div class="bkrow">
+    <div class="t">Buku terbuka sampai 31 Agu<small>Tutup buku mengunci bulan ini</small></div>
+    <button class="go">Tutup Buku</button>
+  </div>
+  <div class="pad" style="flex:1"></div>
+  <div class="nav">
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a>
+    <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a>
+    <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a>
+  </div>
+</div>
+
+<script>
+  function setSkin(dark){
+    document.body.classList.toggle("dark", dark);
+    document.getElementById("bL").classList.toggle("on", !dark);
+    document.getElementById("bD").classList.toggle("on", dark);
+  }
+</script>
+</body>
+</html>

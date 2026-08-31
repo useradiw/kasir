@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir — Buku</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="redesign.css">
+</head><body>
+
+<div class="caption"><span class="n">1</span><span><b>Buku</b> — keuangan sekilas; setup belum lengkap = kartu pertama; alert recovery ikut muncul di sini</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Buku</h1><div class="sub">Pembukuan Toko Kencana</div></div>
+    <div class="right"><div class="monthpill">Agu 2026 ▾</div></div></div>
+  <div class="pad">
+    <div class="alert" style="margin-top:2px"><div class="t">Setup buku belum lengkap — 1 langkah tersisa<small>Akun penjualan Online belum dipetakan; penjualan online belum tercatat.</small></div><button class="go">Lanjut</button></div>
+    <div class="fcard">
+      <div class="fhead">Laba bersih · Agustus<span class="v">✓ Validasi</span></div>
+      <div class="frow grand"><span class="l">Laba bersih</span><span class="v">2.652.000</span></div>
+      <div class="bar-rows" style="padding:2px 14px 14px">
+        <div class="brow"><span style="width:84px">Pendapatan</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="v">7.580.000</span></div>
+        <div class="brow"><span style="width:84px">HPP</span><div class="track"><div class="fill dim" style="width:39%"></div></div><span class="v">2.940.000</span></div>
+        <div class="brow"><span style="width:84px">Beban</span><div class="track"><div class="fill dim" style="width:26%"></div></div><span class="v">1.988.000</span></div>
+      </div>
+    </div>
+    <div class="rows">
+      <div class="row"><div><div class="who">28 Agu belum tercatat ke buku besar</div><div class="meta">Bulan terkunci saat kas ditutup — bisa dicatat sekarang</div></div><button class="go">Catat</button></div>
+      <div class="row"><div><div class="who">Buku terbuka sampai 31 Agu</div><div class="meta">Tutup buku mengunci bulan ini</div></div><button class="go ghost" style="background:transparent;color:var(--accent);border:1.5px solid var(--accent)">Tutup Buku</button></div>
+    </div>
+    <div class="kgrid" style="margin-top:12px">
+      <div class="kbtn"><span class="ic">📊</span>Laporan</div>
+      <div class="kbtn"><span class="ic">📜</span>Jurnal</div>
+      <div class="kbtn"><span class="ic">💰</span>Buku Kas</div>
+      <div class="kbtn"><span class="ic">🧾</span>Belanja</div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">2</span><span><b>Setup checklist</b> — baru; urutan wajib jadi alur terpandu, bukan tombol tersebar</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Persiapan Buku</h1><div class="sub">Agustus 2026 · 2/5 selesai</div></div></div>
+  <div class="pad">
+    <div class="fcard">
+      <div class="fhead">Sebelum pencatatan bisa jalan</div>
+      <div class="check done"><span class="dot">✓</span><div><h4>Isi akun default</h4><p>Struktur buku besar terisi otomatis.</p></div></div>
+      <div class="check done"><span class="dot">✓</span><div><h4>Buat akun kas</h4><p>Kas Laci · Bank BCA</p></div></div>
+      <div class="check now"><span class="dot">3</span><div><h4>Petakan akun penjualan</h4><p>Tunai ✓ QRIS ✓ — Online belum dipetakan.</p></div><button class="go">Lanjut →</button></div>
+      <div class="check"><span class="dot">4</span><div><h4>Isi kategori pengeluaran</h4><p>Belum ada kategori.</p></div></div>
+      <div class="check"><span class="dot">5</span><div><h4>Buat bulan & saldo awal</h4><p>Hitung uang riil sebagai titik awal.</p></div></div>
+    </div>
+    <button class="btn">Lanjut: Petakan Akun Penjualan</button>
+    <div class="btnrow"><button class="btn ghost">Lewati dulu</button></div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">3</span><span><b>Bulan · Tutup Buku</b> — status tiap bulan + validasi; kunci paksa terpisah & sengaja</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Bulan</h1><div class="sub">Tutup buku & kunci periode</div></div>
+    <div class="right"><div class="monthpill">+ Baru</div></div></div>
+  <div class="pad">
+    <div class="rows" style="margin-top:4px">
+      <div class="row" style="border-color:var(--accent)"><div><div class="who">Agustus 2026</div><div class="meta">Berbuka · 129 jurnal · validasi ✓</div></div>
+        <div class="amt"><span class="tag acc">Berjalan</span><span class="tag ok" style="margin-left:0">Tutup Buku →</span></div></div>
+      <div class="row"><div><div class="who">Juli 2026</div><div class="meta">Terkunci 1 Agu · 141 jurnal</div></div>
+        <div class="amt"><span class="tag mut">🔒 Terkunci</span><span class="tag warn" style="margin-left:0">Buka →</span></div></div>
+      <div class="row"><div><div class="who">Juni 2026</div><div class="meta">Terkunci · validasi gagal dulu</div></div>
+        <div class="amt"><span class="tag bad">Validasi ✕</span></div></div>
+    </div>
+    <div class="alert" style="margin-top:12px"><div class="t">Menutup bulan menolak bila validasi gagal<small>Kunci paksa ada, tapi sebagai langkah terpisah yang disengaja.</small></div><button class="go ghost">Pelajari</button></div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">4</span><span><b>Buku Kas</b> — saldo berjalan per akun kas; tiap entri bisa dibuka ke jurnalnya</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Buku Kas</h1><div class="sub">Agustus 2026</div></div>
+    <div class="right"><div class="monthpill">Kas Laci ▾</div></div></div>
+  <div class="pad">
+    <div class="switch"><span class="on">Mutasi</span><span>Cek Saldo</span></div>
+    <div class="fcard">
+      <div class="fhead">29 Agu<span class="v">Saldo 1.250.000</span></div>
+      <div class="frow"><span class="l">Kas awal shift</span><span class="v">+300.000</span></div>
+      <div class="frow"><span class="l">Penjualan tunai (tutup kas)</span><span class="v">+4.500.000</span></div>
+      <div class="frow"><span class="l">Transfer ke Bank BCA</span><span class="v neg">−150.000</span></div>
+      <div class="frow"><span class="l">Pengeluaran — gas</span><span class="v neg">−35.000</span></div>
+    </div>
+    <div class="fcard">
+      <div class="fhead">28 Agu<span class="v">Saldo 3.900.000</span></div>
+      <div class="frow"><span class="l">Kas awal shift</span><span class="v">+300.000</span></div>
+      <div class="frow"><span class="l">Penjualan tunai (tutup kas)</span><span class="v">+4.140.000</span></div>
+      <div class="frow"><span class="l">Selisih kas kurang</span><span class="v neg">−10.000</span></div>
+      <div class="frow total"><span class="l">Buka ke jurnal #0231 →</span><span class="v"></span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">5</span><span><b>Cek Saldo</b> — hitung fisik vs buku; selisih langsung jelas arahnya</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Cek Saldo</h1><div class="sub">Kas Laci · 29 Agu 19:40</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="fcard">
+      <div class="fhead">Menurut buku</div>
+      <div class="frow grand"><span class="l">Saldo kas laci</span><span class="v">1.250.000</span></div>
+    </div>
+    <div class="field"><label>Hitung uang fisik sekarang</label>
+      <div class="input">1.240.000 <span class="suf">riil</span></div></div>
+    <div class="change bad"><span class="lbl">Selisih — uang kurang</span><span class="amt">Rp 10.000</span></div>
+    <div class="alert" style="margin-top:12px"><div class="t">Kas riil lebih sedikit dari buku<small>Cek lagi sebelum menyimpan; selisih terekam sebagai penyesuaian berikutnya.</small></div><button class="go ghost">Hitung ulang</button></div>
+    <button class="btn">Simpan Hasil Cek</button>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+</body></html>

@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir — Laporan & Jurnal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="redesign.css">
+</head><body>
+
+<div class="caption"><span class="n">1</span><span><b>Laba Rugi</b> — angka baris bisa di-tap → jurnal sumbernya (drill-down baru)</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Laporan</h1><div class="sub">Agustus 2026</div></div>
+    <div class="right"><div class="icbtn">⬇</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="chips" style="padding-top:12px"><span class="on">Laba Rugi</span><span>Neraca</span><span>Arus Kas</span><span>Modal</span><span>CALK</span><span>Validasi</span></div>
+    <div class="fcard">
+      <div class="fhead">Pendapatan</div>
+      <div class="frow"><span class="l">Penjualan Tunai</span><span class="v">4.500.000</span></div>
+      <div class="frow"><span class="l">Penjualan QRIS</span><span class="v">2.100.000</span></div>
+      <div class="frow"><span class="l">Penjualan Online</span><span class="v">980.000</span></div>
+      <div class="frow total"><span class="l">Total Pendapatan</span><span class="v">7.580.000</span></div>
+    </div>
+    <div class="fcard">
+      <div class="fhead">HPP</div>
+      <div class="frow"><span class="l">Bahan baku terjual</span><span class="v">2.940.000</span></div>
+      <div class="frow total"><span class="l">Laba Kotor</span><span class="v">4.640.000</span></div>
+    </div>
+    <div class="fcard">
+      <div class="fhead">Beban Operasional</div>
+      <div class="frow"><span class="l">Gaji</span><span class="v">1.200.000</span></div>
+      <div class="frow"><span class="l">Sewa</span><span class="v">500.000</span></div>
+      <div class="frow"><span class="l">Listrik & air</span><span class="v">180.000</span></div>
+      <div class="frow"><span class="l">Komisi online</span><span class="v">98.000</span></div>
+      <div class="frow"><span class="l">Selisih kas</span><span class="v neg">10.000</span></div>
+      <div class="frow total"><span class="l">Total Beban</span><span class="v">1.988.000</span></div>
+    </div>
+    <div class="fcard">
+      <div class="frow grand"><span class="l">Laba Bersih</span><span class="v">2.652.000</span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">2</span><span><b>Neraca</b> — aset = liabilitas + ekuitas, badge validasi di header</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Laporan</h1><div class="sub">Agustus 2026</div></div>
+    <div class="right"><span class="pill ok">✓ Seimbang</span></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="chips" style="padding-top:12px"><span>Laba Rugi</span><span class="on">Neraca</span><span>Arus Kas</span><span>Modal</span><span>CALK</span><span>Validasi</span></div>
+    <div class="fcard">
+      <div class="fhead">Aset</div>
+      <div class="frow"><span class="l">Kas Laci</span><span class="v">1.250.000</span></div>
+      <div class="frow"><span class="l">Kas QRIS belum cair</span><span class="v">890.000</span></div>
+      <div class="frow"><span class="l">Bank BCA</span><span class="v">12.400.000</span></div>
+      <div class="frow total"><span class="l">Total Aset</span><span class="v">14.540.000</span></div>
+    </div>
+    <div class="fcard">
+      <div class="fhead">Liabilitas</div>
+      <div class="frow"><span class="l">Belum ada hutang</span><span class="v">0</span></div>
+    </div>
+    <div class="fcard">
+      <div class="fhead">Ekuitas</div>
+      <div class="frow"><span class="l">Modal disetor</span><span class="v">10.000.000</span></div>
+      <div class="frow"><span class="l">Saldo awal</span><span class="v">1.888.000</span></div>
+      <div class="frow"><span class="l">Laba berjalan</span><span class="v">2.652.000</span></div>
+      <div class="frow total"><span class="l">Total Ekuitas + Liabilitas</span><span class="v">14.540.000</span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">3</span><span><b>Arus Kas</b> — metode langsung; operasi/investasi/pendanaan</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Laporan</h1><div class="sub">Agustus 2026</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="chips" style="padding-top:12px"><span>Laba Rugi</span><span>Neraca</span><span class="on">Arus Kas</span><span>Modal</span><span>CALK</span><span>Validasi</span></div>
+    <div class="fcard">
+      <div class="fhead">Operasi</div>
+      <div class="frow"><span class="l">Penerimaan penjualan</span><span class="v">7.580.000</span></div>
+      <div class="frow"><span class="l">Pembayaran bahan & beban</span><span class="v neg">−4.928.000</span></div>
+      <div class="frow total"><span class="l">Kas dari operasi</span><span class="v">2.652.000</span></div>
+    </div>
+    <div class="fcard">
+      <div class="fhead">Pendanaan</div>
+      <div class="frow"><span class="l">Setoran modal</span><span class="v">0</span></div>
+      <div class="frow"><span class="l">Prive</span><span class="v neg">−500.000</span></div>
+    </div>
+    <div class="fcard">
+      <div class="frow grand"><span class="l">Kas bersih bulan ini</span><span class="v">+2.152.000</span></div>
+      <div class="frow"><span class="l">Kas awal bulan</span><span class="v">12.088.000</span></div>
+      <div class="frow total"><span class="l">Kas akhir bulan</span><span class="v">14.540.000</span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">4</span><span><b>Perubahan Modal</b> — prive tampil di pendanaan, bukan operasi</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Laporan</h1><div class="sub">Agustus 2026</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="chips" style="padding-top:12px"><span>Laba Rugi</span><span>Neraca</span><span>Arus Kas</span><span class="on">Modal</span><span>CALK</span><span>Validasi</span></div>
+    <div class="fcard">
+      <div class="fhead">Perubahan Modal</div>
+      <div class="frow"><span class="l">Modal awal bulan</span><span class="v">11.888.000</span></div>
+      <div class="frow"><span class="l">＋ Setoran modal</span><span class="v">0</span></div>
+      <div class="frow"><span class="l">＋ Laba bersih</span><span class="v">2.652.000</span></div>
+      <div class="frow"><span class="l">－ Prive</span><span class="v neg">−500.000</span></div>
+      <div class="frow grand"><span class="l">Modal akhir bulan</span><span class="v">14.040.000</span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">5</span><span><b>CALK & Validasi</b> — CALK: catatan per bagian (editable); Validasi: semua tie-out hijau</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Laporan</h1><div class="sub">Agustus 2026</div></div>
+    <div class="right"><span class="pill ok">✓ 12/12</span></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="chips" style="padding-top:12px"><span>Laba Rugi</span><span>Neraca</span><span>Arus Kas</span><span>Modal</span><span class="on">CALK</span><span>Validasi</span></div>
+    <div class="fcard">
+      <div class="fhead">Catatan Atas Laporan Keuangan</div>
+      <div class="frow"><span class="l">1. Kebijakan akuntansi</span><span class="go" style="padding:8px 10px">Edit</span></div>
+      <div class="frow"><span class="l">Kas — basis kas; HPP — harga beli terakhir…</span><span class="v"></span></div>
+      <div class="frow"><span class="l">2. Kas & setara kas</span><span class="go" style="padding:8px 10px">Edit</span></div>
+      <div class="frow"><span class="l">3 akun kas: Laci, QRIS tengah, BCA…</span><span class="v"></span></div>
+    </div>
+    <div class="fcard">
+      <div class="fhead">Validasi · 12/12 lolos</div>
+      <div class="frow"><span class="l">Jurnal berimbang (129 entri)</span><span class="v" style="color:var(--mint)">✓</span></div>
+      <div class="frow"><span class="l">Neraca seimbang</span><span class="v" style="color:var(--mint)">✓</span></div>
+      <div class="frow"><span class="l">Laba rugi = perubahan modal</span><span class="v" style="color:var(--mint)">✓</span></div>
+      <div class="frow"><span class="l">Kas laporan = buku kas</span><span class="v" style="color:var(--mint)">✓</span></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">6</span><span><b>Jurnal</b> — daftar entri bernomor gapless;VOID tampil jujur</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Jurnal</h1><div class="sub">Agustus 2026 · 129 entri</div></div>
+    <div class="right"><div class="icbtn">☰</div></div></div>
+  <div class="pad" style="padding-top:4px">
+    <div class="chips" style="padding-top:12px"><span class="on">Semua</span><span>Penjualan</span><span>Belanja</span><span>Kas</span><span>VOID</span></div>
+    <div class="rows">
+      <div class="row"><div><div class="who">#0231 · Penjualan tunai 27 Agu</div><div class="meta">Tutup kas Kas Laci · 2 kaki</div></div>
+        <div class="amt"><span class="v">4.140.000</span><span class="tag ok">Seimbang</span></div></div>
+      <div class="row"><div><div class="who">#0230 · Pengeluaran — gas</div><div class="meta">Kas Laci → Expenses:OpEx:Utilitas</div></div>
+        <div class="amt"><span class="v">35.000</span><span class="tag ok">Seimbang</span></div></div>
+      <div class="row"><div><div class="who">#0229 · Pengeluaran — daging (VOID)</div><div class="meta">Dibatalkan 26 Agu · pembalik #0228b</div></div>
+        <div class="amt"><span class="v">220.000</span><span class="tag bad">VOID</span></div></div>
+      <div class="row"><div><div class="who">#0228 · Transfer Kas Laci → BCA</div><div class="meta">Setoran harian</div></div>
+        <div class="amt"><span class="v">1.000.000</span><span class="tag ok">Seimbang</span></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+  <div class="nav"><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-6h-6v6H3z"/></svg>Beranda<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1.2 13H7.2L6 7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>Jual<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.4"/></svg>Kas<span class="pip"></span></a><a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z"/><path d="M8 7h7M8 11h7"/></svg>Buku<span class="pip"></span></a><a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Akun<span class="pip"></span></a></div>
+</div>
+
+<div class="caption"><span class="n">7</span><span><b>Detail Jurnal</b> — kaki Dr/Cr, sumber dokumen, void = entri pembalik (append-only)</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:18px">
+    <div class="back">⟵ Jurnal</div>
+    <div class="hero"><span class="amt">35.000</span><span class="lbl">#0230 · SEIMBANG</span></div>
+    <div class="fcard">
+      <div class="fhead">29 Agu 2026 · Pengeluaran</div>
+      <div class="frow"><span class="l">Dr · Expenses:OpEx:Utilitas</span><span class="v">35.000</span></div>
+      <div class="frow"><span class="l">Cr · Kas Laci</span><span class="v">35.000</span></div>
+      <div class="frow total"><span class="l">Selisih Dr − Cr</span><span class="v" style="color:var(--mint)">0</span></div>
+    </div>
+    <div class="rows">
+      <div class="row"><div><div class="who">Sumber</div><div class="meta">Pengeluaran "Gas 12kg" · dicatat Kasir Dina 17:10</div></div><div class="amt"><span class="tag acc">Buka →</span></div></div>
+      <div class="row"><div><div class="who">Batalkan (void)</div><div class="meta">Membuat entri pembalik — tidak pernah menghapus</div></div><button class="go ghost" style="background:transparent;color:var(--red);border:1.5px solid var(--red)">Void</button></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+</body></html>

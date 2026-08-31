@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir — Buku · Formulir Entri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="redesign.css">
+</head><body>
+
+<div class="caption"><span class="n">1</span><span><b>Pengeluaran</b> — satu template form untuk semua entri (belanja/transfer/modal/prive/saldo awal)</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Catat Pengeluaran</h1><div class="sub">Kas Laci · 29 Agu 2026</div></div>
+    <div class="right"><div class="backbtn">✕</div></div></div>
+  <div class="pad">
+    <div class="field"><label>Akun kas <b>*</b></label><div class="input select">Kas Laci</div></div>
+    <div class="field"><label>Kategori <b>*</b></label><div class="input select">Bahan baku — HPP</div></div>
+    <div class="field"><label>Nama / keterangan <b>*</b></label><div class="input" style="font:600 14px 'Plus Jakarta Sans'">Daging kambing — Pasar Katamso</div></div>
+    <div class="lines">
+      <div class="line">
+        <div class="t">Item 1 <span class="del">🗑</span></div>
+        <div class="calc">
+          <div class="input">2,5 <span class="suf">kg</span></div>
+          <div class="input">110.000 <span class="suf">/kg</span></div>
+        </div>
+      </div>
+      <div class="line" style="border-style:dashed"><div class="t" style="color:var(--accent)">＋ Tambah item</div></div>
+    </div>
+    <div class="totalbar"><span class="l">Total keluar dari kas</span><span class="v">Rp 275.000</span></div>
+    <button class="btn">Simpan Pengeluaran</button>
+    <p class="confirm-note">Tercatat sebagai jurnal berimbang — nomor otomatis, bisa di-void</p>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">2</span><span><b>Transfer</b> — varian template: dari → ke, dua kaki jurnal otomatis</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Transfer Kas</h1><div class="sub">Antar akun kas</div></div>
+    <div class="right"><div class="backbtn">✕</div></div></div>
+  <div class="pad">
+    <div class="field"><label>Dari</label><div class="input select">Kas Laci</div></div>
+    <div class="field"><label>Ke</label><div class="input select">Bank BCA</div></div>
+    <div class="field"><label>Jumlah</label><div class="input">1.000.000 <span class="suf">Rp</span></div></div>
+    <div class="field"><label>Catatan</label><div class="input" style="font:600 14px 'Plus Jakarta Sans'">Setoran harian</div></div>
+    <div class="totalbar"><span class="l">Kas Laci setelah transfer</span><span class="v">Rp 250.000</span></div>
+    <button class="btn">Simpan Transfer</button>
+    <p class="confirm-note">Tercatat sebagai jurnal berimbang — nomor otomatis, bisa di-void</p>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">3</span><span><b>Saldo Awal</b> — varian template: cutover & bulan baru</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Saldo Awal</h1><div class="sub">Titik awal pembukuan</div></div>
+    <div class="right"><div class="backbtn">✕</div></div></div>
+  <div class="pad">
+    <div class="alert info" style="margin:2px 0 4px"><div class="t">Bulan Agustus belum punya saldo awal<small>Hitung uang & posisi riil hari cutover, catat di sini.</small></div></div>
+    <div class="field"><label>Akun kas</label><div class="input select">Kas Laci</div></div>
+    <div class="field"><label>Jumlah fisik saat dihitung</label><div class="input">300.000 <span class="suf">Rp</span></div></div>
+    <div class="field"><label>Tanggal</label><div class="input select">29 Agu 2026</div></div>
+    <div class="field"><label>Catatan</label><div class="input area"><textarea rows="2">Saldo awal cutover Warung Books</textarea></div></div>
+    <button class="btn">Simpan Saldo Awal</button>
+    <p class="confirm-note">Bukan pendapatan — hanya titik awal penghitungan</p>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">4</span><span><b>Kategori</b> — seed default selalu tersedia, bukan hanya saat kosong</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Kategori</h1><div class="sub">Kategori pengeluaran</div></div>
+    <div class="right"><div class="icbtn">＋</div></div></div>
+  <div class="pad">
+    <div class="btnrow" style="margin-top:2px"><button class="btn ghost">Isi kategori default</button><button class="btn">＋ Baru</button></div>
+    <div class="rows">
+      <div class="row"><div><div class="who">Bahan baku — HPP</div><div class="meta">12 pengeluaran bulan ini</div></div><div class="amt"><span class="v">2.940.000</span><span class="tag acc">HPP</span></div></div>
+      <div class="row"><div><div class="who">Gaji</div><div class="meta">1× bulan ini</div></div><div class="amt"><span class="v">1.200.000</span><span class="tag mut">OpEx</span></div></div>
+      <div class="row"><div><div class="who">Sewa</div><div class="meta">1× bulan ini</div></div><div class="amt"><span class="v">500.000</span><span class="tag mut">OpEx</span></div></div>
+      <div class="row"><div><div class="who">Listrik & air</div><div class="meta">2× bulan ini</div></div><div class="amt"><span class="v">180.000</span><span class="tag mut">OpEx</span></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">5</span><span><b>Akun Kas</b> — chart of accounts + seed; akun kas didefinisikan pemilik, tidak di-seed</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Akun Kas</h1><div class="sub">Struktur buku besar</div></div>
+    <div class="right"><div class="icbtn">＋</div></div></div>
+  <div class="pad">
+    <div class="btnrow" style="margin-top:2px"><button class="btn ghost">Isi akun default</button></div>
+    <div class="sectiont">Akun kas (dibuat sendiri)</div>
+    <div class="rows" style="margin-top:0">
+      <div class="row"><div><div class="who">Kas Laci</div><div class="meta">Saldo 1.250.000 · dipakai 3 kanal</div></div><div class="amt"><span class="tag acc">Utama</span></div></div>
+      <div class="row"><div><div class="who">Bank BCA</div><div class="meta">Saldo 12.400.000</div></div><div class="amt"><span class="tag mut">Bank</span></div></div>
+    </div>
+    <div class="sectiont">Struktur (hasil seed)</div>
+    <div class="rows" style="margin-top:0">
+      <div class="row"><div class="who">Income:Sales:Tunai / QRIS / Online</div><div class="amt"><span class="tag ok">3 akun</span></div></div>
+      <div class="row"><div class="who">Expenses:HPP / OpEx / SelisihKas</div><div class="amt"><span class="tag ok">3 grup</span></div></div>
+      <div class="row"><div class="who">Equity:Modal / Prive</div><div class="amt"><span class="tag ok">2 akun</span></div></div>
+    </div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">6</span><span><b>Akun Penjualan</b> — peta kanal → kas; belum lengkap = peringatan di Buku & Setup</span></div>
+<div class="phone">
+  <div class="topbar"><div><h1>Akun Penjualan</h1><div class="sub">Ke mana uang tiap kanal mengalir</div></div></div>
+  <div class="pad">
+    <div class="rows" style="margin-top:2px">
+      <div class="row"><div><div class="who">Tunai</div><div class="meta">Diterima di laci saat tutup kas</div></div>
+        <div class="amt"><div class="input select" style="padding:10px 12px; font-size:13px; min-width:130px">Kas Laci</div></div></div>
+      <div class="row"><div><div class="who">Elektronik / QRIS</div><div class="meta">Masuk kas saat ditransfer</div></div>
+        <div class="amt"><div class="input select" style="padding:10px 12px; font-size:13px; min-width:130px">Kas Laci</div></div></div>
+      <div class="row" style="border-color:rgba(242,126,111,.5)"><div><div class="who">Online (GoFood/Grab)</div><div class="meta" style="color:var(--red)">Belum dipetakan — penjualan online belum tercatat</div></div>
+        <div class="amt"><div class="input select" style="padding:10px 12px; font-size:13px; min-width:130px; border-color:var(--red); color:var(--red)">Pilih…</div></div></div>
+    </div>
+    <button class="btn" style="margin-top:16px">Simpan Pemetaan</button>
+    <p class="confirm-note">Tidak ada apa pun yang tercatat ke buku besar sampai ketiganya lengkap</p>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+</body></html>

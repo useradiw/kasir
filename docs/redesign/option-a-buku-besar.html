@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option A — Buku Besar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F5F6F4; --card:#FDFDFC; --ink:#1A2B23; --green:#0E5E4A;
+    --green-soft:#E4EEEA; --red:#A93226; --red-soft:#F5E7E5;
+    --blue:#35618F; --hair:#D8D6CE; --muted:#6E6A5E;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:#26282A; color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;
+    font-variant-numeric:tabular-nums;
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    padding:48px 16px 80px;
+  }
+  .caption{
+    font:600 13px/1 "IBM Plex Sans"; letter-spacing:.14em; text-transform:uppercase;
+    color:#9DA3A0; margin:36px 0 14px;
+  }
+  .caption b{color:#E8EAE8}
+  .phone{
+    width:min(430px,100%); background:var(--paper);
+    border-radius:24px; overflow:hidden;
+    box-shadow:0 24px 60px rgba(0,0,0,.5);
+  }
+  .topbar{
+    position:sticky; top:0; z-index:2;
+    display:flex; align-items:center; gap:10px;
+    padding:14px 18px; background:var(--paper);
+    border-bottom:1px solid var(--hair);
+  }
+  .topbar .title{font:600 17px "Fraunces",serif; letter-spacing:.01em}
+  .topbar .month{
+    margin-left:auto; font:600 12.5px/1 "IBM Plex Sans"; color:var(--green);
+    border:1px solid var(--green); border-radius:999px; padding:7px 12px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .tabs{
+    display:flex; gap:2px; padding:10px 12px 0; overflow-x:auto;
+    background:var(--paper); border-bottom:1px solid var(--hair);
+  }
+  .tabs span{
+    white-space:nowrap; font:500 13px/1 "IBM Plex Sans"; color:var(--muted);
+    padding:10px 12px 12px; border-bottom:2px solid transparent;
+  }
+  .tabs span.on{color:var(--ink); font-weight:600; border-bottom-color:var(--ink)}
+  .sheet{padding:16px 18px 22px}
+
+  /* ledger grid — the signature */
+  .ledger{background:var(--card); border:1px solid var(--hair); border-radius:10px; overflow:hidden}
+  .ledger + .ledger{margin-top:14px}
+  .lrow{
+    display:flex; align-items:baseline; gap:12px;
+    padding:10px 14px; font-size:14px;
+    border-bottom:1px solid var(--hair);
+  }
+  .lrow:last-child{border-bottom:0}
+  .lrow .lbl{color:var(--muted)}
+  .lrow .amt{margin-left:auto; font-weight:500}
+  .lhead{
+    display:flex; align-items:baseline; padding:11px 14px 9px;
+    font:600 11px/1 "IBM Plex Sans"; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--green); background:var(--green-soft);
+    border-bottom:1px solid var(--hair);
+  }
+  .total{
+    display:flex; align-items:baseline; padding:11px 14px;
+    background:var(--card); font-size:14px;
+  }
+  .total .amt{margin-left:auto; font-weight:700}
+  .double{border-top:3px double var(--ink)}      /* accounting double rule */
+  .grand{background:var(--green-soft)}
+  .grand .lbl{color:var(--ink)}
+  .grand .amt{font:700 17px "Fraunces",serif}
+
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    font:600 11px/1 "IBM Plex Sans"; letter-spacing:.1em; text-transform:uppercase;
+    border:1.5px solid; border-radius:4px; padding:6px 9px;
+  }
+  .badge.ok{color:var(--green); border-color:var(--green)}
+  .badge.bad{color:var(--red); border-color:var(--red)}
+  .stamp{
+    font:700 11px/1 "IBM Plex Sans"; letter-spacing:.16em; text-transform:uppercase;
+    border:2px solid var(--red); color:var(--red); border-radius:4px;
+    padding:5px 8px; transform:rotate(-4deg); display:inline-block;
+  }
+  .field{margin-top:14px}
+  .field label{display:block; font:600 12px/1 "IBM Plex Sans"; color:var(--muted); margin-bottom:7px}
+  .field .input{
+    display:flex; align-items:center; background:var(--card);
+    border:1px solid var(--hair); border-bottom:2px solid var(--ink);
+    border-radius:8px; padding:13px 14px; font-size:17px; font-weight:600;
+  }
+  .field .input small{margin-left:auto; color:var(--muted); font-weight:500; font-size:12px}
+  .btn{
+    display:block; width:100%; text-align:center;
+    background:var(--green); color:#fff; border:0; border-radius:10px;
+    font:600 15px "IBM Plex Sans"; padding:15px; margin-top:16px;
+  }
+  .btn.ghost{background:transparent; color:var(--green); border:1.5px solid var(--green)}
+  .hint{font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.5}
+  .check{display:flex; gap:12px; align-items:flex-start; padding:13px 14px; border-bottom:1px solid var(--hair)}
+  .check:last-child{border-bottom:0}
+  .check .dot{
+    width:22px; height:22px; border-radius:999px; flex:none; margin-top:1px;
+    display:grid; place-items:center; font-size:12px; font-weight:700;
+    border:1.5px solid var(--hair); color:var(--muted); background:var(--paper);
+  }
+  .check.done .dot{background:var(--green); border-color:var(--green); color:#fff}
+  .check.now .dot{border-color:var(--green); color:var(--green)}
+  .check h4{font-size:14px; font-weight:600}
+  .check.done h4{color:var(--muted); text-decoration:line-through; text-decoration-color:var(--hair)}
+  .check p{font-size:12.5px; color:var(--muted); margin-top:3px; line-height:1.45}
+  .check .go{margin-left:auto; flex:none; align-self:center; color:var(--green); font:600 13px "IBM Plex Sans"}
+  .serif{font-family:"Fraunces",serif}
+</style>
+</head>
+<body>
+
+<div class="caption"><b>Option A — Buku Besar</b> · owner · laporan keuangan</div>
+<div class="phone">
+  <div class="topbar">
+    <div class="title">Laporan Keuangan</div>
+    <div class="month">Agustus 2026 ▾</div>
+  </div>
+  <div class="tabs">
+    <span class="on">Laba Rugi</span><span>Neraca</span><span>Arus Kas</span>
+    <span>Perubahan Modal</span><span>CALK</span><span>Validasi</span>
+  </div>
+  <div class="sheet">
+    <div class="ledger">
+      <div class="lhead">Pendapatan</div>
+      <div class="lrow"><span class="lbl">Penjualan Tunai</span><span class="amt">4.500.000</span></div>
+      <div class="lrow"><span class="lbl">Penjualan QRIS</span><span class="amt">2.100.000</span></div>
+      <div class="lrow"><span class="lbl">Penjualan Online</span><span class="amt">980.000</span></div>
+      <div class="total"><span class="lbl">Total Pendapatan</span><span class="amt">7.580.000</span></div>
+    </div>
+    <div class="ledger">
+      <div class="lhead">HPP</div>
+      <div class="lrow"><span class="lbl">Bahan baku terjual</span><span class="amt">2.940.000</span></div>
+      <div class="total"><span class="lbl">Laba Kotor</span><span class="amt">4.640.000</span></div>
+    </div>
+    <div class="ledger">
+      <div class="lhead">Beban Operasional</div>
+      <div class="lrow"><span class="lbl">Gaji</span><span class="amt">1.200.000</span></div>
+      <div class="lrow"><span class="lbl">Sewa</span><span class="amt">500.000</span></div>
+      <div class="lrow"><span class="lbl">Listrik &amp; air</span><span class="amt">180.000</span></div>
+      <div class="lrow"><span class="lbl">Komisi online</span><span class="amt">98.000</span></div>
+      <div class="lrow"><span class="lbl">Selisih kas</span><span class="amt" style="color:var(--red)">10.000</span></div>
+      <div class="total"><span class="lbl">Total Beban</span><span class="amt">1.988.000</span></div>
+    </div>
+    <div class="ledger">
+      <div class="total double grand"><span class="lbl">Laba Bersih</span><span class="amt">2.652.000</span></div>
+    </div>
+    <p class="hint" style="margin-top:14px">
+      <span class="badge ok">Validasi · Seimbang</span>
+      Setiap angka berasal dari buku besar — bukan diinput manual.
+    </p>
+  </div>
+</div>
+
+<div class="caption"><b>Option A</b> · kasir · tutup kas</div>
+<div class="phone">
+  <div class="topbar">
+    <div class="title">Kas Harian</div>
+    <div class="month" style="color:var(--muted); border-color:var(--hair)">30 Agu 2026</div>
+  </div>
+  <div class="sheet">
+    <div class="ledger">
+      <div class="lhead">Tutup Kas · Shift Siang</div>
+      <div class="lrow"><span class="lbl">Kas awal</span><span class="amt">300.000</span></div>
+      <div class="lrow"><span class="lbl">Penjualan tunai</span><span class="amt">4.500.000</span></div>
+      <div class="lrow"><span class="lbl">Pengeluaran / transfer keluar</span><span class="amt" style="color:var(--red)">−150.000</span></div>
+      <div class="total"><span class="lbl">Seharusnya di laci</span><span class="amt">4.650.000</span></div>
+    </div>
+    <div class="field">
+      <label>Hitung uang di laci</label>
+      <div class="input">4.640.000 <small>riil</small></div>
+    </div>
+    <p class="hint">
+      Selisih <b style="color:var(--red)">Rp 10.000 kurang</b> — dicatat ke
+      <span class="serif" style="font-style:italic">Expenses:SelisihKas</span> saat tutup kas.
+    </p>
+    <button class="btn">Tutup Kas</button>
+    <div class="ledger" style="margin-top:20px">
+      <div class="lhead">Riwayat</div>
+      <div class="lrow" style="align-items:center">
+        <div><div style="font-weight:600">29 Agu</div><div class="hint" style="margin:2px 0 0">Selisih 0</div></div>
+        <span class="stamp" style="margin-left:auto">Tercatat</span>
+      </div>
+      <div class="lrow" style="align-items:center">
+        <div><div style="font-weight:600">28 Agu</div><div class="hint" style="margin:2px 0 0">Selisih Rp 5.000 lebih · <a href="#" style="color:var(--blue)">kenapa ini terjadi?</a></div></div>
+        <span class="badge bad" style="margin-left:auto">Belum tercatat</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="caption"><b>Option A</b> · baru · setup checklist</div>
+<div class="phone">
+  <div class="topbar">
+    <div class="title">Persiapan Buku</div>
+    <div class="month">Agustus 2026 ▾</div>
+  </div>
+  <div class="sheet">
+    <div class="ledger">
+      <div class="lhead">Sebelum pencatatan bisa jalan</div>
+      <div class="check done">
+        <span class="dot">✓</span>
+        <div><h4>Isi akun default</h4><p>Struktur buku besar terisi otomatis.</p></div>
+      </div>
+      <div class="check done">
+        <span class="dot">✓</span>
+        <div><h4>Buat akun kas</h4><p>Kas Laci · Bank BCA</p></div>
+      </div>
+      <div class="check now">
+        <span class="dot">3</span>
+        <div><h4>Petakan akun penjualan</h4><p>Tunai ✓ &nbsp; QRIS ✓ &nbsp; <b style="color:var(--red)">Online belum</b> — penjualan online belum bisa dicatat.</p></div>
+        <span class="go">Lanjut →</span>
+      </div>
+      <div class="check">
+        <span class="dot">4</span>
+        <div><h4>Isi kategori pengeluaran</h4><p>Belum ada kategori.</p></div>
+      </div>
+      <div class="check">
+        <span class="dot">5</span>
+        <div><h4>Buat bulan &amp; saldo awal</h4><p>Hitung uang riil, catat sebagai titik awal.</p></div>
+      </div>
+    </div>
+    <button class="btn">Lanjut: Petakan Akun Penjualan</button>
+    <button class="btn ghost">Lihat Jurnal</button>
+  </div>
+</div>
+
+<script>
+  // ?screen=1|2|3 shows only that phone (for clean per-screen captures)
+  const s = new URLSearchParams(location.search).get("screen");
+  if (s) {
+    const kids = [...document.body.children];
+    const idx = parseInt(s, 10) - 1;
+    kids.forEach((el, i) => {
+      const pair = Math.floor(i / 2);
+      if (pair !== idx && el.tagName !== "SCRIPT") el.style.display = "none";
+    });
+    document.body.style.paddingTop = "24px";
+  }
+</script>
+</body>
+</html>

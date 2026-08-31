@@ -1,54 +1,12 @@
-import Link from "next/link";
+import { LogOut } from "lucide-react";
+import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
 import { Container } from "@/components/shared/container";
 import { LoginForm } from "@/components/login-form";
-import { RoleBadge } from "@/components/admin/ui";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { signOut } from "@/app/actions/sign-out";
-import {
-  ShoppingCart,
-  LayoutDashboard,
-  Users,
-  Monitor,
-  ClipboardCheck,
-  Package,
-  Receipt,
-  Wallet,
-  Landmark,
-  Banknote,
-  LogOut,
-  UserPen,
-  HardDrive,
-  Settings,
-  Bell,
-  BookOpen,
-} from "lucide-react";
-
-const allKasirLinks = [
-  { href: "/kasir", label: "Kasir", desc: "Buka halaman kasir (POS)", icon: ShoppingCart, roles: ["OWNER", "MANAGER", "CASHIER"] },
-  { href: "/expenses", label: "Pengeluaran", desc: "Catat pengeluaran", icon: Landmark, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
-  { href: "/cashregister", label: "Kas Kecil", desc: "Buka & tutup kas", icon: Wallet, roles: ["OWNER", "MANAGER", "CASHIER"] },
-  { href: "/settlement", label: "Pencairan Online", desc: "Catat pencairan GoFood/Shopee/Grab", icon: Banknote, roles: ["OWNER", "MANAGER", "CASHIER"] },
-  { href: "/profile", label: "Profil", desc: "Profil pengguna", icon: UserPen, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
-  { href: "/petunjuk", label: "Petunjuk Penggunaan", desc: "Panduan fitur aplikasi", icon: BookOpen, roles: ["OWNER", "MANAGER", "CASHIER", "STAFF"] },
-] as const;
-
-const allAdminLinks = [
-  { href: "/admin", label: "Dashboard", desc: "Ringkasan & statistik", icon: LayoutDashboard, roles: ["OWNER", "MANAGER", "CASHIER"] },
-  { href: "/admin/staff", label: "Kelola Staff", desc: "Tambah & atur staff", icon: Users },
-  { href: "/admin/sessions", label: "Sesi Login", desc: "Aktivitas login pengguna", icon: Monitor },
-  { href: "/admin/attendance", label: "Absensi", desc: "Pencatatan kehadiran", icon: ClipboardCheck },
-  { href: "/admin/inventory", label: "Inventori", desc: "Kategori & menu", icon: Package },
-  { href: "/admin/transactions", label: "Transaksi", desc: "Riwayat transaksi", icon: Receipt },
-  { href: "/admin/settlement", label: "Pencairan Online", desc: "Kelola pencairan GoFood/Shopee/Grab", icon: Banknote },
-  { href: "/admin/cash-register", label: "Kas Harian", desc: "Buka & tutup kas", icon: Landmark },
-  { href: "/admin/notifications", label: "Notifikasi", desc: "Riwayat notifikasi sistem", icon: Bell, roles: ["OWNER"] },
-  { href: "/admin/reports", label: "Laporan", desc: "Laporan & analitik", icon: Receipt },
-  { href: "/admin/backup", label: "Backup DB", desc: "Export data database", icon: HardDrive, roles: ["OWNER"] },
-  { href: "/settings", label: "Pengaturan", desc: "Konfigurasi toko & sistem", icon: Settings, roles: ["OWNER"] },
-];
 
 export default async function Home() {
   const supabase = await createClient();
@@ -64,75 +22,35 @@ export default async function Home() {
     );
   }
 
-  const staff = await prisma.staff.findUnique({
+  // Authenticated users live in the tab-shell app now (docs/redesign/SPEC.md);
+  // the old hub cards remain below only as a deep-link fallback.
+  const staffRecord = await prisma.staff.findUnique({
     where: { supabaseUserId: user.id },
+    select: { id: true, isActive: true },
   });
+  if (staffRecord?.isActive) redirect("/beranda");
 
-  const staffName = staff?.name ?? user.email ?? "Pengguna";
-  const staffRole = staff?.role ?? "STAFF";
-
-  const kasirLinks = allKasirLinks.filter(
-    (l) => staffRole === "DEVELOPER" || (l.roles as readonly string[]).includes(staffRole),
-  );
-  const adminLinks = allAdminLinks.filter((l) => {
-    const roles = l.roles ?? ["OWNER", "MANAGER"];
-    return staffRole === "DEVELOPER" || (roles as readonly string[]).includes(staffRole);
-  });
-
+  // Active staff were redirected to /beranda above. What is left: a session
+  // whose Staff record is missing or inactive — show a plain sign-out screen,
+  // NOT the old hub (which used to render them a fake STAFF view).
   return (
-    <Container id="menu" sectionStyle="bg-white dark:bg-black min-h-screen" className="py-6">
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/profile" className="hover:underline">
-          <h1 className="text-lg font-bold">{staffName}</h1>
-          <RoleBadge role={staffRole} />
-        </Link>
-        <form action={signOut}>
-          <Button type="submit" variant="outline" size="sm" className="cursor-pointer gap-1.5">
-            <LogOut className="size-4" />
-            Keluar
-          </Button>
-        </form>
-      </div>
-
-      <section className="mb-6">
-        <h2 className="text-sm font-semibold text-muted-foreground mb-3">Kasir</h2>
-        <div className="grid gap-3">
-          {kasirLinks.map((item) => (
-            <Link key={item.href} href={item.href}>
-              <Card className="transition-colors hover:bg-accent/50 cursor-pointer">
-                <CardHeader className="flex-row items-center gap-3 py-3">
-                  <item.icon className="size-5 text-primary shrink-0" />
-                  <div className="min-w-0">
-                    <CardTitle className="text-sm">{item.label}</CardTitle>
-                    <CardDescription className="text-xs">{item.desc}</CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      {adminLinks.length > 0 && (
-        <section>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3">Admin</h2>
-          <div className="grid gap-3">
-            {adminLinks.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <Card className="transition-colors hover:bg-accent/50 cursor-pointer">
-                  <CardHeader className="flex-row items-center gap-3 py-3">
-                    <item.icon className="size-5 text-primary shrink-0" />
-                    <div className="min-w-0">
-                      <CardTitle className="text-sm">{item.label}</CardTitle>
-                      <CardDescription className="text-xs">{item.desc}</CardDescription>
-                    </div>
-                  </CardHeader>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+    <Container id="main" sectionStyle="bg-white dark:bg-black" className="flex h-screen justify-center items-center">
+      <Card className="w-full max-w-sm" size="sm">
+        <CardHeader>
+          <CardTitle>Akun tidak aktif</CardTitle>
+          <CardDescription>
+            Akun ini sudah tidak aktif atau tidak terdaftar sebagai staff. Hubungi pemilik toko.
+          </CardDescription>
+        </CardHeader>
+        <CardFooter>
+          <form action={signOut} className="w-full">
+            <Button type="submit" variant="outline" className="w-full cursor-pointer gap-1.5">
+              <LogOut className="size-4" />
+              Keluar
+            </Button>
+          </form>
+        </CardFooter>
+      </Card>
     </Container>
   );
 }

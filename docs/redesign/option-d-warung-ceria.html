@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Option D — Warung Ceria</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAF7; --card:#FFFFFF; --ink:#23201B; --coral:#E8542F; --coral-soft:#FDEDE7;
+    --teal:#0E7C7B; --teal-soft:#E5F2F1; --sun:#F7C948; --sun-soft:#FCF3D7;
+    --red:#D64545; --mut:#8D8880; --edge:#ECE9E2;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:#23252A; color:var(--ink);
+    font-family:"Plus Jakarta Sans",system-ui,sans-serif; font-variant-numeric:tabular-nums;
+    display:flex; flex-direction:column; align-items:center;
+    padding:40px 16px 80px; gap:0;
+  }
+  .step{
+    display:flex; align-items:center; gap:12px;
+    margin:30px 0 12px; font:700 12.5px/1.4 "Plus Jakarta Sans"; letter-spacing:.12em;
+    text-transform:uppercase; color:#9BA3AB; width:min(430px,100%);
+  }
+  .step b{color:#E8ECEE}
+  .step .n{
+    width:24px;height:24px;border-radius:999px;background:var(--coral);color:#fff;
+    display:grid;place-items:center;font-size:13px;flex:none;
+  }
+  .phone{
+    width:min(430px,100%); min-height:820px; background:var(--bg);
+    border-radius:28px; overflow:hidden; display:flex; flex-direction:column;
+    box-shadow:0 24px 60px rgba(0,0,0,.55);
+  }
+  .bar{
+    display:flex; align-items:center; gap:10px;
+    padding:16px 16px 12px; background:var(--bg);
+    border-bottom:2px solid var(--ink);
+  }
+  .bar h1{font:800 19px "Plus Jakarta Sans"; letter-spacing:-.01em}
+  .bar .hello{font:600 11.5px "Plus Jakarta Sans"; color:var(--mut); margin-top:2px}
+  .bar .right{margin-left:auto; display:flex; gap:8px}
+  .icbtn{
+    width:40px;height:40px;border-radius:14px;background:var(--card);
+    border:1.5px solid var(--ink); display:grid; place-items:center; font-size:15px;
+  }
+  .chips{display:flex; gap:8px; padding:14px 16px 6px; overflow-x:auto}
+  .chips span{
+    flex:none; font:700 13px/1 "Plus Jakarta Sans"; color:var(--mut);
+    background:var(--card); border:1.5px solid var(--edge);
+    padding:10px 15px; border-radius:999px;
+  }
+  .chips span.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:10px 16px 120px}
+  .item{
+    background:var(--card); border:1.5px solid var(--edge); border-radius:20px;
+    padding:12px; min-height:96px; display:flex; flex-direction:column;
+  }
+  .item .cat{
+    width:26px;height:26px;border-radius:9px;display:grid;place-items:center;
+    font-size:12px; margin-bottom:8px;
+  }
+  .cat.food{background:var(--coral-soft); color:var(--coral)}
+  .cat.drink{background:var(--teal-soft); color:var(--teal)}
+  .cat.snack{background:var(--sun-soft); color:#8A6A0A}
+  .item .name{font:700 14px/1.3 "Plus Jakarta Sans"}
+  .item .price{margin-top:auto; font:800 14.5px "Plus Jakarta Sans"; color:var(--coral)}
+  .item .qty{margin-top:10px; display:flex; align-items:center; gap:12px; font:800 15px "Plus Jakarta Sans"}
+  .item .qty .pm{
+    width:30px;height:30px;border-radius:999px;background:var(--ink);color:#fff;
+    display:grid; place-items:center; font-size:14px;
+  }
+  .item .qty .minus{background:var(--card); color:var(--ink); border:1.5px solid var(--edge)}
+  .dockwrap{position:relative}
+  .dock{
+    margin:auto 14px 16px; background:var(--ink); border-radius:999px;
+    display:flex; align-items:center; gap:10px; padding:8px 8px 8px 20px;
+    box-shadow:0 10px 28px rgba(35,32,27,.35);
+  }
+  .dock .sum .l1{font:700 11px "Plus Jakarta Sans"; color:#B9B3A8; letter-spacing:.04em}
+  .dock .sum .l2{font:800 16.5px "Plus Jakarta Sans"; color:#fff}
+  .dock .pay{
+    margin-left:auto; background:var(--coral); color:#fff;
+    font:800 15px "Plus Jakarta Sans"; border:0; border-radius:999px; padding:15px 24px;
+  }
+  .sheet{padding:18px 16px}
+  .grip{width:44px;height:5px;border-radius:99px;background:var(--edge);margin:0 auto 16px}
+  .total-row{display:flex; align-items:baseline; padding:0 4px 14px}
+  .total-row .lbl{font:700 13.5px "Plus Jakarta Sans"; color:var(--mut)}
+  .total-row .amt{margin-left:auto; font:800 34px "Plus Jakarta Sans"; letter-spacing:-.02em}
+  .seg{display:flex; gap:8px}
+  .seg span{
+    flex:1; text-align:center; font:800 14px "Plus Jakarta Sans"; color:var(--mut);
+    background:var(--card); border:1.5px solid var(--edge); padding:13px; border-radius:16px;
+  }
+  .seg span.on{background:var(--coral); border-color:var(--coral); color:#fff}
+  .quick{display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:14px}
+  .quick span{
+    text-align:center; background:var(--card); border:1.5px solid var(--edge);
+    border-radius:14px; padding:14px 4px; font:700 13.5px "Plus Jakarta Sans";
+  }
+  .quick span.lit{background:var(--sun-soft); border-color:var(--sun)}
+  .change{
+    margin-top:14px; display:flex; align-items:center; gap:10px;
+    background:var(--teal-soft); border-radius:16px; padding:15px 16px;
+  }
+  .change .lbl{font:700 13px "Plus Jakarta Sans"; color:var(--teal)}
+  .change .amt{margin-left:auto; font:800 20px "Plus Jakarta Sans"; color:var(--teal)}
+  .btn{
+    display:block; width:100%; text-align:center; border:0; border-radius:18px;
+    background:var(--coral); color:#fff;
+    font:800 15.5px "Plus Jakarta Sans"; padding:17px; margin-top:16px;
+  }
+  .btn.ghost{background:var(--card); color:var(--ink); border:1.5px solid var(--ink)}
+  .done-hero{text-align:center; padding:24px 0 10px}
+  .done-hero .ring{
+    width:88px;height:88px;border-radius:999px;background:var(--teal-soft);
+    display:grid; place-items:center; margin:0 auto 14px;
+    font-size:36px; color:var(--teal); font-weight:800;
+  }
+  .done-hero h2{font:800 21px "Plus Jakarta Sans"; letter-spacing:-.01em}
+  .done-hero .sub{color:var(--mut); font:600 13.5px "Plus Jakarta Sans"; margin-top:6px}
+  .struk-mini{
+    margin-top:16px; background:var(--card); border:1.5px solid var(--edge);
+    border-radius:20px; padding:4px 16px;
+  }
+  .struk-mini .r{
+    display:flex; padding:10px 0; font:600 13.5px "Plus Jakarta Sans";
+    border-bottom:1.5px dashed var(--edge);
+  }
+  .struk-mini .r:last-child{border-bottom:0}
+  .struk-mini .r b{margin-left:auto; font-weight:800}
+  .ses{padding:16px; display:flex; flex-direction:column; gap:10px}
+  .srow{
+    background:var(--card); border:1.5px solid var(--edge); border-radius:20px;
+    padding:14px 16px; display:flex; align-items:center; gap:12px;
+  }
+  .srow .who{font:800 14px "Plus Jakarta Sans"}
+  .srow .meta{font:600 12px "Plus Jakarta Sans"; color:var(--mut); margin-top:3px}
+  .srow .amt{margin-left:auto; text-align:right}
+  .srow .amt .v{font:800 15px "Plus Jakarta Sans"}
+  .tag{
+    display:inline-block; font:800 10.5px/1 "Plus Jakarta Sans"; letter-spacing:.06em;
+    text-transform:uppercase; border-radius:999px; padding:6px 9px; margin-top:6px;
+  }
+  .tag.warn{background:var(--sun-soft); color:#8A6A0A}
+  .tag.ok{background:var(--teal-soft); color:var(--teal)}
+  .tag.mut{background:var(--bg); color:var(--mut); border:1.5px solid var(--edge)}
+  .fabrow{display:flex; gap:10px; padding:0 16px 18px}
+  .fab{
+    flex:1; text-align:center; background:var(--ink); color:#fff;
+    border-radius:18px; font:800 14.5px "Plus Jakarta Sans"; padding:16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="step"><span class="n">1</span><span><b>Buka — langsung ke menu.</b> Tanpa "buat sesi" dulu.</span></div>
+<div class="phone">
+  <div class="bar">
+    <div><h1>Jual</h1><div class="hello">Shift siang · Kasir Dina</div></div>
+    <div class="right"><div class="icbtn">☰</div><div class="icbtn">⧉</div></div>
+  </div>
+  <div class="chips">
+    <span class="on">Semua</span><span>🍲 Sate</span><span>🥤 Minuman</span><span>🍟 Snack</span>
+  </div>
+  <div class="grid">
+    <div class="item"><div class="cat food">🍲</div><div class="name">Sate Kambing</div><div class="price">Rp 25.000</div></div>
+    <div class="item"><div class="cat food">🍢</div><div class="name">Sate Kulit</div><div class="price">Rp 18.000</div>
+      <div class="qty"><span class="pm minus">−</span>2<span class="pm">+</span></div></div>
+    <div class="item"><div class="cat food">🍜</div><div class="name">Gulai Kambing</div><div class="price">Rp 28.000</div></div>
+    <div class="item"><div class="cat drink">🥤</div><div class="name">Teh Tawar</div><div class="price">Rp 5.000</div>
+      <div class="qty"><span class="pm minus">−</span>1<span class="pm">+</span></div></div>
+    <div class="item"><div class="cat drink">🧊</div><div class="name">Es Jeret</div><div class="price">Rp 8.000</div></div>
+    <div class="item"><div class="cat food">🍲</div><div class="name">Sop Kambing</div><div class="price">Rp 30.000</div></div>
+  </div>
+  <div class="dock">
+    <div class="sum"><div class="l1">3 ITEM</div><div class="l2">Rp 61.000</div></div>
+    <button class="pay">Bayar →</button>
+  </div>
+</div>
+
+<div class="step"><span class="n">2</span><span><b>Bayar — satu sheet.</b> Tunai / QRIS / Split, tanpa pindah layar.</span></div>
+<div class="phone">
+  <div class="bar"><h1>Bayar</h1><div class="right"><div class="icbtn">✕</div></div></div>
+  <div class="sheet">
+    <div class="grip"></div>
+    <div class="total-row"><span class="lbl">Total · 3 item</span><span class="amt">61.000</span></div>
+    <div class="seg"><span class="on">Tunai</span><span>QRIS</span><span>Split</span></div>
+    <div class="quick">
+      <span class="lit">Uang pas ✓</span><span>70.000</span><span>100.000</span>
+      <span>65.000</span><span>60.000</span><span>50.000</span>
+    </div>
+    <div class="change"><span class="lbl">Kembalian</span><span class="amt">Rp 39.000</span></div>
+    <button class="btn">Terima 100.000 · Kembali 39.000</button>
+    <p style="text-align:center;color:var(--mut);font:700 12px "Plus Jakarta Sans";margin-top:12px">
+      ketuk angka di atas untuk nominal lain
+    </p>
+  </div>
+</div>
+
+<div class="step"><span class="n">3</span><span><b>Selesai — langsung jual lagi.</b> Struk opsional, satu tap.</span></div>
+<div class="phone">
+  <div class="bar"><h1>&nbsp;</h1></div>
+  <div class="sheet">
+    <div class="done-hero">
+      <div class="ring">✓</div>
+      <h2>Lunas — Rp 61.000</h2>
+      <div class="sub">Tunai · kembalian Rp 39.000</div>
+    </div>
+    <div class="struk-mini">
+      <div class="r">Sate Kulit × 2 <b>36.000</b></div>
+      <div class="r">Teh Tawar × 1 <b>5.000</b></div>
+      <div class="r">Sate Kambing × 1 <b>25.000</b></div>
+    </div>
+    <button class="btn">Transaksi Baru</button>
+    <button class="btn ghost">Cetak Struk</button>
+    <p style="text-align:center;color:var(--mut);font:700 12px "Plus Jakarta Sans";margin-top:12px">
+      Tersimpan di perangkat — terkirim otomatis saat online
+    </p>
+  </div>
+</div>
+
+<div class="step"><span class="n">4</span><span><b>Sesi &amp; riwayat.</b> Status sinkron selalu terlihat.</span></div>
+<div class="phone">
+  <div class="bar"><h1>Sesi Hari Ini</h1><div class="right"><div class="icbtn">🏠</div></div></div>
+  <div class="ses">
+    <div class="srow">
+      <div><div class="who">Meja 3 — Pak Budi</div><div class="meta">4 item · 19:02</div>
+        <span class="tag warn">● 2 belum terkirim</span></div>
+      <div class="amt"><div class="v">Rp 87.000</div><span class="tag ok">Lunas</span></div>
+    </div>
+    <div class="srow">
+      <div><div class="who">Bungkus — Ibu Sari</div><div class="meta">3 item · 19:14</div>
+        <span class="tag ok">Terkirim</span></div>
+      <div class="amt"><div class="v">Rp 61.000</div><span class="tag ok">Lunas</span></div>
+    </div>
+    <div class="srow">
+      <div><div class="who">Meja 1 — Arka</div><div class="meta">2 item · 19:21</div>
+        <span class="tag mut">Terbuka</span></div>
+      <div class="amt"><div class="v">Rp 43.000</div></div>
+    </div>
+  </div>
+  <div class="fabrow"><div class="fab">+ Mulai Jual Lagi</div></div>
+</div>
+
+</body>
+</html>

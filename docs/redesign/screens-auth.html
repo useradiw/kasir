@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kasir — Auth & Sistem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="redesign.css">
+</head><body>
+
+<div class="caption"><span class="n">1</span><span><b>Login</b> — gelap, brand di depan; tanpa link daftar (invite-only dari Staff)</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:64px">
+    <div style="text-align:center">
+      <div style="width:72px;height:72px;border-radius:22px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin:0 auto 16px;font:800 30px 'Sora'">S</div>
+      <div style="font:700 22px 'Sora'">Sate Kambing Katamso</div>
+      <div class="sub" style="font-size:13px; margin-top:6px">Kasir & pembukuan — masuk untuk mulai</div>
+    </div>
+    <div class="field" style="margin-top:34px"><label>Username</label><div class="input" style="font:600 15px 'Plus Jakarta Sans'">dina</div></div>
+    <div class="field"><label>Password</label><div class="input"><span class="ph">••••••••</span><span class="suf">lihat</span></div></div>
+    <button class="btn">Masuk</button>
+    <p class="confirm-note">Akun dibuat oleh pemilik lewat menu Staff — bukan daftar mandiri</p>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">2</span><span><b>Cek Email & Error OTP</b> — bahasa manusia + langkah berikutnya</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:70px">
+    <div style="text-align:center">
+      <div style="width:72px;height:72px;border-radius:22px;background:var(--accent-soft);display:grid;place-items:center;margin:0 auto 16px;font-size:30px">📬</div>
+      <div style="font:700 19px 'Sora'">Cek email kamu</div>
+      <div class="sub" style="font-size:13px; margin-top:8px; line-height:1.6">Kami kirim tautan verifikasi ke<br><b style="color:var(--ink)">dina@tokokencana.com</b></div>
+    </div>
+    <button class="btn ghost" style="margin-top:30px">Buka Aplikasi Email</button>
+    <button class="btn ghost">Kirim Ulang Tautan</button>
+    <p class="confirm-note">Tautan kedaluwarsa dalam 1 jam — minta ulang saja bila lewat</p>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">3</span><span><b>Error state</b> — apa yang terjadi + apa yang harus dilakukan (AlertRow language)</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:24px">
+    <div class="alert bad" style="margin-top:8px"><div class="t">Tautan verifikasi sudah kedaluwarsa<small>Tautan hanya berlaku 1 jam. Minta tautan baru, lalu buka di browser yang sama.</small></div><button class="go">Minta Baru</button></div>
+    <div class="alert" style="margin-top:10px"><div class="t">Gagal sinkron — 2 transaksi tertahan<small>Data aman di perangkat ini. Tekan "Kirim" saat internet kembali.</small></div><button class="go">Kirim</button></div>
+    <div class="empty" style="margin-top:24px"><b style="color:var(--ink)">Belum ada apa pun di sini</b><br>Transaksi hari ini akan muncul di layar Sesi.</div>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+<div class="caption"><span class="n">4</span><span><b>404 / Halaman hilang</b> — selalu ada jalan pulang</span></div>
+<div class="phone">
+  <div class="pad" style="padding-top:80px">
+    <div style="text-align:center">
+      <div style="font:800 64px 'Sora'; color:var(--accent)">404</div>
+      <div style="font:700 17px 'Plus Jakarta Sans'; margin-top:8px">Halaman tidak ditemukan</div>
+      <div class="sub" style="font-size:13px; margin-top:8px">Mungkin tautannya salah, atau halamannya sudah dipindah.</div>
+    </div>
+    <button class="btn" style="margin-top:30px">← Kembali ke Beranda</button>
+    <div class="spacer"></div>
+  </div>
+</div>
+
+</body></html>
