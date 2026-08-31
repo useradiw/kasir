@@ -367,7 +367,7 @@ export async function recordPayment(input: PaymentInput): Promise<string> {
     .toArray();
 
   if (session) {
-    pushTransaction({ session, orderItems, transaction })
+    pushTransaction({ session, orderItems, transaction, origin: "payment" })
       .then(async () => {
         await db.transaction(
           "rw",
@@ -426,7 +426,9 @@ export async function retryUnsyncedTransactions(): Promise<void> {
 
     if (!session) continue;
 
-    pushTransaction({ session, orderItems, transaction: tx })
+    // "retry": these items are read now, not as they were when the sale was
+    // paid, so the server does not hold the subtotal against them.
+    pushTransaction({ session, orderItems, transaction: tx, origin: "retry" })
       .then(async () => {
         await db.transaction(
           "rw",
