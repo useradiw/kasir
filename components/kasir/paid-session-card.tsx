@@ -34,22 +34,25 @@ export function PaidSessionCard({
       onKeyDown={isErased ? undefined : (e) => { if (e.key === "Enter") onClick(); }}
     >
       <div className="flex items-center justify-between">
-        <span className={cn("font-medium text-sm", isErased && "text-muted-foreground")}>{session.name}</span>
+        <span className={cn("text-[13.5px] font-bold", isErased && "text-muted-foreground")}>
+          {session.name}
+        </span>
         <div className="flex items-center gap-1.5">
           <SyncBadge synced={session.synced} />
           {isErased ? (
             <Badge className="bg-destructive/10 text-destructive">Dibatalkan</Badge>
           ) : firstTx ? (
             <>
-              {isSplit && <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300">Split</Badge>}
-              <Badge className="bg-primary/10 text-primary">
+              {isSplit && <Badge className="bg-card-2 text-muted-foreground">Split</Badge>}
+              <span className="font-display text-[14.5px] font-bold tabular-nums">
                 {formatRupiah(totalAmount)}
-              </Badge>
+              </span>
+              <Badge className="bg-success-soft text-success">Lunas</Badge>
             </>
           ) : null}
         </div>
       </div>
-      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="mt-1 flex items-center gap-2 text-[11.5px] font-semibold text-muted-foreground">
         {session.customerAlias && <span>{session.customerAlias}</span>}
         {session.customerPhone && <span>{session.customerPhone}</span>}
         {!isErased && firstTx && <span>{isSplit ? "Split" : formatPaymentMethod(firstTx.paymentMethod)}</span>}

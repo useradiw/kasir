@@ -90,8 +90,18 @@ export function KasirShell() {
     );
   }
 
-  const staffData = staff.data!;
-  const storeConfig = config.data!;
+  // A query can settle past isLoading/isError (e.g. disabled) with data
+  // still undefined — render a waiting state instead of crashing.
+  if (!staff.data || !config.data) {
+    return (
+      <Container id="kasir" className="flex h-screen items-center justify-center">
+        <p className="text-sm text-muted-foreground">Memuat data…</p>
+      </Container>
+    );
+  }
+
+  const staffData = staff.data;
+  const storeConfig = config.data;
 
   const kasirCtx: KasirContextValue = {
     staffId: staffData.staffId,

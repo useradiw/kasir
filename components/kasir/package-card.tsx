@@ -87,8 +87,10 @@ function PackageCard({
         onClick={onToggle}
         className="w-full p-3 text-left active:bg-accent transition-colors rounded-2xl"
       >
-        <p className="font-medium text-sm leading-tight">{pkg.name}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{formatRupiah(pkg.bundlePrice)}</p>
+        <p className="text-[13.5px] font-bold leading-tight">{pkg.name}</p>
+        <p className="font-display mt-1 text-[14.5px] font-bold tabular-nums text-muted-foreground">
+          {formatRupiah(pkg.bundlePrice)}
+        </p>
       </button>
 
       {isExpanded && (
@@ -120,7 +122,7 @@ function PackageCard({
 
           {/* Price + Add button */}
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
+            <span className="font-display text-[16px] font-bold tabular-nums">
               {formatRupiah(pkg.bundlePrice * qty)}
             </span>
             <Button size="sm" onClick={handleAdd}>

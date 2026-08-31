@@ -7,25 +7,42 @@ import { Container } from "@/components/shared/container";
 
 // ─── Kasir Top Bar ───────────────────────────────────────────────────────────
 
+/**
+ * Screen header for the POS views — the topbar in docs/redesign/screens-jual.html.
+ * `sub` carries the context line (session, shift) the mockup puts under the
+ * title; every view that has one should pass it.
+ */
 export function KasirTopBar({
   title,
+  sub,
   onBack,
   onHome,
   children,
 }: {
   title: string;
+  sub?: string;
   onBack?: () => void;
   onHome?: () => void;
   children?: React.ReactNode;
 }) {
   return (
-    <Container id="kasirtopbar" className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-background px-3">
+    <Container
+      id="kasirtopbar"
+      className="sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b border-border bg-background px-3 py-2"
+    >
       {onBack && (
         <button type="button" onClick={onBack} className="p-2.5 -ml-2.5" aria-label="Kembali">
           <ArrowLeft className="size-5" />
         </button>
       )}
-      <span className="flex-1 truncate font-semibold text-sm">{title}</span>
+      <span className="min-w-0 flex-1">
+        <span className="font-display block truncate text-[17px] font-bold leading-tight">{title}</span>
+        {sub && (
+          <span className="block truncate text-[11.5px] font-semibold text-muted-foreground">
+            {sub}
+          </span>
+        )}
+      </span>
       {children}
       {onHome && (
         <button type="button" onClick={onHome} className="p-2.5" aria-label="Daftar sesi">
@@ -38,11 +55,45 @@ export function KasirTopBar({
 
 // ─── Bottom Bar ──────────────────────────────────────────────────────────────
 
+/**
+ * The pinned dock at the foot of a POS view. The redesign floats it as a card
+ * over the content instead of ruling a line across the screen, so the cart
+ * total reads as an object you act on rather than a footer.
+ */
 export function BottomBar({ children }: { children: React.ReactNode }) {
   return (
-    <Container id="kasirbottombar" className="sticky bottom-0 z-30 border-t bg-background px-3 py-3 space-y-2">
+    <Container
+      id="kasirbottombar"
+      className="sticky bottom-0 z-30 space-y-2 bg-gradient-to-t from-background via-background to-transparent px-3 pb-3 pt-4"
+    >
       {children}
     </Container>
+  );
+}
+
+/**
+ * Dock contents: a label/figure pair on the left, the action on the right.
+ * Money is Sora + tabular-nums, as every figure in the system is.
+ */
+export function DockSummary({
+  label,
+  value,
+  children,
+}: {
+  label: string;
+  value: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 pl-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+        <p className="font-display truncate text-[19px] font-bold tabular-nums">{value}</p>
+      </div>
+      {children}
+    </div>
   );
 }
 
@@ -64,19 +115,19 @@ export function QtyControl({
   min?: number;
 }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1.5">
       <Button
         variant="outline"
-        size="icon-sm"
+        size="icon-lg"
         onClick={onDecrease}
         disabled={qty <= min}
         aria-label="Kurangi jumlah"
       >
-        <Minus className="size-3" />
+        <Minus className="size-4" />
       </Button>
-      <span className="w-6 text-center text-sm font-medium">{qty}</span>
-      <Button variant="outline" size="icon-sm" onClick={onIncrease} aria-label="Tambah jumlah">
-        <Plus className="size-3" />
+      <span className="font-display w-7 text-center text-[15px] font-bold tabular-nums">{qty}</span>
+      <Button variant="outline" size="icon-lg" onClick={onIncrease} aria-label="Tambah jumlah">
+        <Plus className="size-4" />
       </Button>
     </div>
   );
@@ -133,7 +184,7 @@ export function NumericKeypad({
           variant="outline"
           onClick={() => handleKey(key)}
           className={cn(
-            "h-12 text-lg",
+            "font-display h-14 rounded-xl text-[19px] font-bold tabular-nums",
             key === "del" && "text-muted-foreground"
           )}
         >

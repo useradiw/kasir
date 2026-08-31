@@ -110,7 +110,7 @@ export function SessionCard({
           </div>
         ) : (
           <div className="flex items-center gap-1 min-w-0">
-            <span className="font-medium text-sm truncate">{session.name}</span>
+            <span className="truncate text-[13.5px] font-bold">{session.name}</span>
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); startEdit(e); }}
@@ -123,7 +123,7 @@ export function SessionCard({
         )}
         <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
           {typeof itemCount === "number" && itemCount > 0 && (
-            <Badge className="bg-primary/10 text-primary">{itemCount} item</Badge>
+            <Badge className="bg-primary-soft text-primary">{itemCount} item</Badge>
           )}
           {isEditingService ? (
             <select
@@ -193,7 +193,7 @@ export function SessionCard({
         </div>
       )}
       {(session.customerAlias || session.customerPhone || session.createdAt) && (
-        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+        <div className="mt-1 flex items-center gap-2 text-[11.5px] font-semibold text-muted-foreground">
           {session.customerAlias && <span>{session.customerAlias}</span>}
           {session.customerPhone && <span>{session.customerPhone}</span>}
           <span>{formatDateTime(session.createdAt, "short")}</span>

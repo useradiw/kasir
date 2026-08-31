@@ -54,12 +54,16 @@ export function OrderReview({
 
       {/* Transaction summary for read-only (history) */}
       {readOnly && tx && (
-        <div className="border-b bg-primary/5 px-3 py-2 space-y-1">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total</span>
-            <span className="font-bold tabular-nums">{formatRupiah(tx.totalAmount)}</span>
+        <div className="space-y-1 border-b border-border bg-primary-soft px-4 py-3">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11.5px] font-extrabold uppercase tracking-wide text-muted-foreground">
+              Total
+            </span>
+            <span className="font-display text-[22px] font-bold tabular-nums">
+              {formatRupiah(tx.totalAmount)}
+            </span>
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
+          <div className="flex justify-between text-[11.5px] font-semibold text-muted-foreground">
             <span>{formatPaymentMethod(tx.paymentMethod)}</span>
             <span>{formatDateTime(tx.paidAt, "short")}</span>
           </div>
@@ -77,7 +81,9 @@ export function OrderReview({
 
             {cancelledItems.length > 0 && (
               <>
-                <p className="text-xs text-muted-foreground pt-2">Dibatalkan</p>
+                <p className="pt-2 text-[11.5px] font-extrabold uppercase tracking-wide text-muted-foreground">
+                  Dibatalkan
+                </p>
                 {cancelledItems.map((item) => (
                   <OrderItemRow key={item.id} item={item} readOnly={readOnly} />
                 ))}
@@ -89,19 +95,25 @@ export function OrderReview({
 
       {!readOnly && activeItems.length > 0 && onPay && (
         <BottomBar>
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Subtotal</span>
-            <span className="text-lg font-bold tabular-nums">{formatRupiah(subtotal)}</span>
-          </div>
-          <div className="flex gap-2">
-            {onSplitItems && (
-              <Button size="lg" variant="outline" className="flex-1" onClick={onSplitItems}>
-                Split
+          <div className="space-y-2.5 rounded-2xl border border-border bg-card p-3">
+            <div className="flex items-baseline justify-between px-1">
+              <span className="text-[11.5px] font-extrabold uppercase tracking-wide text-muted-foreground">
+                Subtotal
+              </span>
+              <span className="font-display text-[22px] font-bold tabular-nums">
+                {formatRupiah(subtotal)}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              {onSplitItems && (
+                <Button size="lg" variant="outline" className="flex-1 font-bold" onClick={onSplitItems}>
+                  Split
+                </Button>
+              )}
+              <Button size="lg" className="flex-1 font-bold" onClick={onPay}>
+                Bayar
               </Button>
-            )}
-            <Button size="lg" className="flex-1" onClick={onPay}>
-              Bayar
-            </Button>
+            </div>
           </div>
         </BottomBar>
       )}
@@ -132,11 +144,11 @@ function OrderItemRow({ item, readOnly }: { item: OrderItem; readOnly?: boolean 
       {/* Name + Status + Remove */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className={cn("text-sm font-medium", isCancelled && "line-through")}>
+          <p className={cn("text-[13.5px] font-bold leading-tight", isCancelled && "line-through")}>
             {item.nameSnapshot}
           </p>
           {item.note && (
-            <p className="text-xs text-muted-foreground mt-0.5">
+            <p className="mt-0.5 text-[11.5px] font-semibold text-muted-foreground">
               {item.note}
             </p>
           )}
@@ -161,7 +173,7 @@ function OrderItemRow({ item, readOnly }: { item: OrderItem; readOnly?: boolean 
 
       {/* Qty + Price + Status action */}
       {!isCancelled && (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             {!readOnly && isPending ? (
               <QtyControl
@@ -170,9 +182,13 @@ function OrderItemRow({ item, readOnly }: { item: OrderItem; readOnly?: boolean 
                 onIncrease={() => updateOrderItemQty(item.id, item.qty + 1)}
               />
             ) : (
-              <span className="text-xs text-muted-foreground">{item.qty}x</span>
+              <span className="font-display text-[13px] font-bold tabular-nums text-muted-foreground">
+                {item.qty}x
+              </span>
             )}
-            <span className="text-sm tabular-nums">{formatRupiah(item.price * item.qty)}</span>
+            <span className="font-display whitespace-nowrap text-[14.5px] font-bold tabular-nums">
+              {formatRupiah(item.price * item.qty)}
+            </span>
           </div>
 
           <div className="flex gap-1.5">

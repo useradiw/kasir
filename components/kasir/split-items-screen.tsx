@@ -10,11 +10,17 @@ import { cn } from "@/lib/utils";
 import { Users, Plus, Trash2, CheckCircle } from "lucide-react";
 import type { OrderItem } from "@/lib/db";
 
+/**
+ * Identity colours for the split groups. These cycle, so they are the one place
+ * a set of distinct hues is legitimate — but they are still design tokens
+ * (docs/redesign/design.md 1.1), never raw Tailwind palette entries, so they
+ * stay coherent with the rest of the app in dark mode.
+ */
 const GROUP_COLORS = [
-  "bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300",
-  "bg-green-100 text-green-700 border-green-300 dark:bg-green-900/30 dark:text-green-300",
-  "bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-300",
-  "bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300",
+  "bg-primary-soft text-primary border-primary/40",
+  "bg-warning-soft text-warning border-warning/40",
+  "bg-success-soft text-success border-success/40",
+  "bg-destructive-soft text-destructive border-destructive/40",
 ];
 
 export function SplitItemsScreen({
@@ -98,7 +104,7 @@ export function SplitItemsScreen({
                   className={cn(
                     "rounded-2xl border p-2 text-xs font-medium transition-colors",
                     isPaid
-                      ? "bg-green-50 text-green-700 border-green-300 dark:bg-green-900/20 dark:text-green-300 opacity-70"
+                      ? "border-success/40 bg-success-soft text-success opacity-70"
                       : selectedGroup === g
                         ? GROUP_COLORS[(g - 1) % GROUP_COLORS.length]
                         : "bg-card text-muted-foreground border-border"
@@ -109,9 +115,11 @@ export function SplitItemsScreen({
                     <span>Orang {g}</span>
                   </div>
                   {isPaid ? (
-                    <p className="font-bold text-green-600 dark:text-green-400">LUNAS</p>
+                    <p className="font-bold text-success">LUNAS</p>
                   ) : (
-                    <p className="font-bold tabular-nums">{formatRupiah(groupSubtotal(g))}</p>
+                    <p className="font-display text-[15px] font-bold tabular-nums">
+                      {formatRupiah(groupSubtotal(g))}
+                    </p>
                   )}
                   <p className="text-[10px] opacity-70">
                     {activeItems.filter((i) => i.splitGroup === g).length} item
@@ -124,7 +132,7 @@ export function SplitItemsScreen({
 
         {/* Unassigned warning */}
         {unassigned.length > 0 && (
-          <p className="text-xs text-yellow-600 dark:text-yellow-400">
+          <p className="text-[11.5px] font-semibold text-warning">
             {unassigned.length} item belum ditugaskan — ketuk item untuk menugaskan ke orang yang dipilih
           </p>
         )}
@@ -145,11 +153,13 @@ export function SplitItemsScreen({
                 )}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">
+                  <span className="text-[13.5px] font-bold">
                     {item.qty}× {item.nameSnapshot}
                   </span>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm">{formatRupiah(item.price * item.qty)}</span>
+                    <span className="font-display text-[13.5px] font-bold tabular-nums">
+                      {formatRupiah(item.price * item.qty)}
+                    </span>
                     {itemGroup > 0 && (
                       <span className="text-xs font-bold">O{itemGroup}</span>
                     )}

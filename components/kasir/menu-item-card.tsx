@@ -116,8 +116,10 @@ const MenuItemCard = memo(function MenuItemCard({
         onClick={onToggle}
         className="w-full p-3 text-left active:bg-accent active:scale-[0.98] transition-all duration-150 rounded-2xl"
       >
-        <p className="font-medium text-sm leading-tight">{item.name}</p>
-        <p className="text-xs text-muted-foreground mt-0.5">{formatRupiah(calcItemPrice(item, null, service, onlinePrices))}</p>
+        <p className="text-[13.5px] font-bold leading-tight">{item.name}</p>
+        <p className="font-display mt-1 text-[14.5px] font-bold tabular-nums text-muted-foreground">
+          {formatRupiah(calcItemPrice(item, null, service, onlinePrices))}
+        </p>
       </button>
 
       {isExpanded && (
@@ -129,10 +131,10 @@ const MenuItemCard = memo(function MenuItemCard({
                 type="button"
                 onClick={() => setSelectedVariant(null)}
                 className={cn(
-                  "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                  "rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors",
                   !selectedVariant
                     ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-muted-foreground"
+                    : "bg-card-2 text-muted-foreground"
                 )}
               >
                 Normal
@@ -143,10 +145,10 @@ const MenuItemCard = memo(function MenuItemCard({
                   type="button"
                   onClick={() => setSelectedVariant(v)}
                   className={cn(
-                    "rounded-full px-2.5 py-1 text-xs font-medium transition-colors",
+                    "rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors",
                     selectedVariant?.id === v.id
                       ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
+                      : "bg-card-2 text-muted-foreground"
                   )}
                 >
                   {v.label} (+{formatRupiah(v.priceModifier)})
@@ -172,10 +174,10 @@ const MenuItemCard = memo(function MenuItemCard({
 
           {/* Price + Add button */}
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">
+            <span className="font-display text-[16px] font-bold tabular-nums">
               {formatRupiah(calcItemPrice(item, selectedVariant, service, onlinePrices) * qty)}
             </span>
-            <Button size="sm" onClick={handleAdd}>
+            <Button size="lg" onClick={handleAdd} className="font-bold">
               Tambah
             </Button>
           </div>

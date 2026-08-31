@@ -373,7 +373,7 @@ function ReceiptContent({
 
       {/* Payment status */}
       <Divider />
-      <p className={`text-center font-bold text-sm ${isPaid ? "text-green-600" : "text-red-600"}`}>
+      <p className={`text-center text-sm font-bold ${isPaid ? "text-success" : "text-destructive"}`}>
         {isPaid ? "LUNAS" : "Belum Dibayar"}
       </p>
 

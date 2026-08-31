@@ -98,12 +98,13 @@ export function SessionList({
 
   return (
     <>
-      <KasirTopBar title="Kasir">
-        <span className="text-xs text-muted-foreground truncate max-w-24">{staffName}</span>
-        <Link href="/cashregister" className="p-1">
+      <KasirTopBar title="Kasir" sub={staffName}>
+        {/* Both links point at migrated routes: /cashregister and "/" are the
+            old hub-and-spoke doors (design.md section 4). */}
+        <Link href="/kas" className="p-2.5" aria-label="Kas">
           <Landmark className="size-5 text-muted-foreground" />
         </Link>
-        <Link href="/" className="p-1">
+        <Link href="/beranda" className="p-2.5" aria-label="Beranda">
           <Home className="size-5 text-muted-foreground" />
         </Link>
       </KasirTopBar>
@@ -120,13 +121,18 @@ export function SessionList({
 
       {/* Sync banner */}
       {typeof unsyncedCount === "number" && unsyncedCount > 0 && (
-        <div className="flex items-center justify-between bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 border-b">
-          <span className="text-xs text-yellow-700 dark:text-yellow-300">
-            {unsyncedCount} transaksi belum disinkronkan
-          </span>
-          <Button size="sm" variant="outline" onClick={handleSync} disabled={syncing} className="h-7 text-xs">
-            <RefreshCw className={cn("size-3 mr-1", syncing && "animate-spin")} />
-            Sync
+        <div className="mx-3 my-2 flex items-center gap-3 rounded-2xl border border-warning/30 bg-warning-soft p-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[12.5px] font-extrabold text-warning">
+              {unsyncedCount} transaksi belum terkirim
+            </p>
+            <p className="text-[11.5px] font-semibold text-muted-foreground">
+              Tersimpan di perangkat — terkirim otomatis saat online, atau kirim sekarang.
+            </p>
+          </div>
+          <Button size="sm" variant="outline" onClick={handleSync} disabled={syncing} className="shrink-0 font-bold">
+            <RefreshCw className={cn("size-3.5 mr-1", syncing && "animate-spin")} />
+            Kirim
           </Button>
         </div>
       )}
@@ -136,8 +142,8 @@ export function SessionList({
           <>
             {/* Header */}
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold">Sesi Aktif</h2>
-              <Button size="sm" onClick={() => { setTableName("Meja 1"); setShowForm((v) => !v); }}>
+              <h2 className="font-display text-[15px] font-bold">Sesi Aktif</h2>
+              <Button size="sm" className="font-bold" onClick={() => { setTableName("Meja 1"); setShowForm((v) => !v); }}>
                 <Plus data-icon="inline-start" className="size-4" />
                 Buat Sesi
               </Button>
@@ -222,7 +228,7 @@ export function SessionList({
           </>
         ) : (
           <>
-            <h2 className="font-semibold">Riwayat</h2>
+            <h2 className="font-display text-[15px] font-bold">Riwayat</h2>
             {!paidSessions || paidSessions.length === 0 ? (
               <EmptyState message="Belum ada riwayat" icon={History} />
             ) : (

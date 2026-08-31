@@ -6,7 +6,7 @@ import { db, type ServiceEnum } from "@/lib/db";
 import { useOrderItems } from "@/hooks/use-session-store";
 import { formatRupiah } from "@/lib/format";
 import { activeItems as getActiveItems, calcSubtotal } from "@/lib/kasir-utils";
-import { KasirTopBar, BottomBar, EmptyState } from "./ui";
+import { KasirTopBar, BottomBar, DockSummary, EmptyState } from "./ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MenuItemGrid } from "./menu-item-card";
@@ -45,10 +45,10 @@ export function MenuBrowser({
 
   return (
     <>
-      <KasirTopBar title="Menu" onBack={onBack} onHome={onHome} />
+      <KasirTopBar title="Menu" sub={session?.name} onBack={onBack} onHome={onHome} />
 
       {/* Category tabs */}
-      <div className="flex gap-2 overflow-x-auto px-3 py-2 border-b scrollbar-hide">
+      <div className="flex gap-2 overflow-x-auto border-b border-border px-3 py-2.5 scrollbar-hide">
         {categories?.map((cat) => (
           <Button
             key={cat.id}
@@ -58,7 +58,7 @@ export function MenuBrowser({
               setActiveCategoryId(cat.id);
               setExpandedItemId(null);
             }}
-            className="shrink-0 h-8 text-xs"
+            className="h-9 shrink-0 rounded-full px-4 text-[12.5px] font-bold"
           >
             {cat.name}
           </Button>
@@ -71,7 +71,7 @@ export function MenuBrowser({
               setActiveCategoryId(PAKET_TAB_ID);
               setExpandedItemId(null);
             }}
-            className="shrink-0 h-8 text-xs"
+            className="h-9 shrink-0 rounded-full px-4 text-[12.5px] font-bold"
           >
             Paket
           </Button>
@@ -102,16 +102,11 @@ export function MenuBrowser({
 
       {activeItemCount > 0 && (
         <BottomBar>
-          <Button
-            size="lg"
-            onClick={onReview}
-            className="w-full justify-between"
-          >
-            <span className="text-sm font-medium">
-              Lihat Pesanan ({activeItemCount} item)
-            </span>
-            <span className="text-sm font-bold">{formatRupiah(subtotal)}</span>
-          </Button>
+          <DockSummary label={`${activeItemCount} item`} value={formatRupiah(subtotal)}>
+            <Button size="lg" onClick={onReview} className="shrink-0 font-bold">
+              Lihat Pesanan
+            </Button>
+          </DockSummary>
         </BottomBar>
       )}
     </>
