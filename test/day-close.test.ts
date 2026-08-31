@@ -47,6 +47,14 @@ describe("sumDaySales", () => {
     expect(totals).toEqual({ cashSales: 10_000, qrisSales: 0 });
   });
 
+  it("a day with a tunai sale and a GoFood sale reports only the tunai amount — counting GoFood at day close would double-book it against Income:Sales:Online", () => {
+    const totals = sumDaySales([
+      tx({ paymentMethod: "CASH", totalAmount: 100_000, service: null }),
+      tx({ paymentMethod: "QRIS", totalAmount: 45_000, service: "GoFood" }),
+    ]);
+    expect(totals).toEqual({ cashSales: 100_000, qrisSales: 0 });
+  });
+
   it("excludes ShopeeFood/GrabFood transactions regardless of payment method", () => {
     const totals = sumDaySales([
       tx({ paymentMethod: "QRIS", totalAmount: 20_000, service: "ShopeeFood" }),

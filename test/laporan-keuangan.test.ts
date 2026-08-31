@@ -25,6 +25,8 @@ let catat: CatatRepository;
 const UTAMA = "Assets:Cash:Utama";
 
 beforeAll(async () => {
+  // The fixture tops the real migration chain up to schema shape (init
+  // predates prod's db-push columns; online_settlements had no migration).
   prisma = await createTestClient(["./fixtures/kasir-source-tables.sql"]);
   acc = new AccountingRepository(prisma);
   catat = new CatatRepository(prisma);
@@ -93,6 +95,9 @@ describe("buildLaporanKeuangan", () => {
   });
 
   it("sales cross-check reports a gap when Transaction rows exist with no day-close posting", async () => {
+    // The real migration chain enforces the real FK — the fixture used to be
+    // FK-free, so this staff row is needed for processedById.
+    await prisma.staff.create({ data: { id: "staff-1", name: "Kasir", role: "CASHIER" } });
     await prisma.tableSession.create({ data: { id: "ts-1", name: "Meja 1" } });
     await prisma.transaction.create({
       data: {

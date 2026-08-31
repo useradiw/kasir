@@ -10,16 +10,44 @@
  * Postgres — same $transaction / queryRaw / findMany code path as production.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { PrismaPGlite } from "pglite-prisma-adapter";
 import { PrismaClient } from "@/generated/prisma";
 
-// The REAL consolidated Warung Books migration — not a fixture copy of it. The
-// suite therefore proves the exact SQL that ships to the database is valid
-// Postgres and complete enough to run every repository against.
-const MIGRATION_SQL = readFileSync(
-  new URL("../prisma/migrations/20260726000000_warung_books/migration.sql", import.meta.url),
+/**
+ * The REAL migration chain, in order — not a fixture copy. Applying every
+ * migration (not just warung_books) means the operational tables —
+ * transactions, order_items, table_sessions, staff, menu_items — exist too,
+ * so the cashier-flow sync logic (push-transaction, day-close reconciliation)
+ * can be integration-tested exactly like the ledger repositories could.
+ * The suite therefore proves the same SQL that ships to the database.
+ */
+const MIGRATIONS_DIR = new URL("../prisma/migrations/", import.meta.url);
+const MIGRATION_FILES = new Map(
+  readdirSync(MIGRATIONS_DIR)
+    .filter((name) => /^\d{14}_/.test(name))
+    .sort()
+    .map((name) => [
+      name,
+      readFileSync(new URL(`${name}/migration.sql`, MIGRATIONS_DIR), "utf8"),
+    ]),
+);
+
+// The rig applies: init (operational tables) → drift shim (columns prod
+// gained via db push that init predates) → warung_books (the ledger). The
+// COGS-era migrations between init and warung_books are deliberately
+// SKIPPED: four of them are unrecorded in prod's _prisma_migrations and were
+// never cleanly applicable (they re-create objects prod got via db push —
+// replaying them errors with "already exists"). Nothing in the operational
+// or ledger schema depends on them; the drift shim carries the pieces that
+// matter. See drift-shim.sql and project_migration_history_landmine.
+const INIT_SQL = MIGRATION_FILES.get("20260313081616_init");
+const WARUNG_BOOKS_SQL = MIGRATION_FILES.get("20260726000000_warung_books");
+
+// See drift-shim.sql for what prod's db-push history added without a record.
+const DRIFT_SHIM_SQL = readFileSync(
+  new URL("./drift-shim.sql", import.meta.url),
   "utf8",
 );
 
@@ -47,7 +75,9 @@ export async function closeTestClients(): Promise<void> {
 
 export async function createTestClient(extraSqlFiles: string[] = []): Promise<PrismaClient> {
   const pglite = new PGlite();
-  await pglite.exec(MIGRATION_SQL);
+  await pglite.exec(INIT_SQL);
+  await pglite.exec(DRIFT_SHIM_SQL);
+  await pglite.exec(WARUNG_BOOKS_SQL);
   // Optional extra DDL — e.g. minimal source tables (kasir_transactions, orders)
   // the sales-posting tests read from. FK-free, test-only.
   for (const rel of extraSqlFiles) {

@@ -1,21 +1,29 @@
--- kasir-source-tables.sql — minimal, FK-free stand-ins for the operational
--- kasir tables the Slice 4 sales cross-check reads (Transaction,
--- TableSession, OnlineSettlement). test/setup.ts only applies the Warung
--- Books ledger migration; these tables don't exist in pglite otherwise, and
--- creating real FKs (Staff, etc.) is unnecessary for these tests — only
--- column names/types matter, since getSaleTotals only SELECTs. Applied via
--- createTestClient's `extraSqlFiles` param.
+-- kasir-source-tables.sql — drift top-up for the OPERATIONAL kasir tables.
 --
--- Column names/types mirror prisma/schema.prisma's Transaction, TableSession
--- and OnlineSettlement models exactly (Prisma quotes identifiers, so casing
--- matters); enum values match the ServiceEnum/PaymentMethod/TransactionStatus
--- Prisma enums.
+-- test/setup.ts applies the REAL migration chain (init → drift-shim →
+-- warung_books), so transactions/table_sessions already exist here — but
+-- init predates prod's db-push evolution, and online_settlements never had a
+-- migration at all. This file is written to be IDEMPOTENT over the chain:
+--   * enums and tables use IF NOT EXISTS / duplicate guards,
+--   * columns prod gained via db push are added with ADD COLUMN IF NOT EXISTS,
+--   * init's NOT NULL ownerId on table_sessions is relaxed to match schema.
+-- The column lists mirror prisma/schema.prisma exactly (Prisma quotes
+-- identifiers, so casing matters); enum values match the ServiceEnum /
+-- PaymentMethod / TransactionStatus Prisma enums.
 
-CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'QRIS', 'SPLIT', 'PENDING');
-CREATE TYPE "TransactionStatus" AS ENUM ('PAID', 'VOIDED');
-CREATE TYPE "ServiceEnum" AS ENUM ('GoFood', 'ShopeeFood', 'GrabFood', 'Take_Away', 'Unknown');
+DO $$ BEGIN
+  CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'QRIS', 'SPLIT', 'PENDING');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
 
-CREATE TABLE "table_sessions" (
+DO $$ BEGIN
+  CREATE TYPE "TransactionStatus" AS ENUM ('PAID', 'VOIDED');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+DO $$ BEGIN
+  CREATE TYPE "ServiceEnum" AS ENUM ('GoFood', 'ShopeeFood', 'GrabFood', 'Take_Away', 'Unknown');
+EXCEPTION WHEN duplicate_object THEN null; END $$;
+
+CREATE TABLE IF NOT EXISTS "table_sessions" (
   "id" TEXT PRIMARY KEY,
   "name" TEXT NOT NULL,
   "service" "ServiceEnum",
@@ -30,7 +38,7 @@ CREATE TABLE "table_sessions" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT now()
 );
 
-CREATE TABLE "transactions" (
+CREATE TABLE IF NOT EXISTS "transactions" (
   "id" TEXT PRIMARY KEY,
   "tableSessionId" TEXT NOT NULL,
   "processedById" TEXT NOT NULL,
@@ -52,7 +60,7 @@ CREATE TABLE "transactions" (
   "cogs" INTEGER
 );
 
-CREATE TABLE "online_settlements" (
+CREATE TABLE IF NOT EXISTS "online_settlements" (
   "id" TEXT PRIMARY KEY,
   "service" "ServiceEnum" NOT NULL,
   "settlementDate" TIMESTAMP(3) NOT NULL DEFAULT now(),
@@ -63,3 +71,22 @@ CREATE TABLE "online_settlements" (
   "notes" TEXT,
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT now()
 );
+
+-- Drift columns on the init-created tables (prod gained them via db push).
+ALTER TABLE "table_sessions" ADD COLUMN IF NOT EXISTS "externalOrderId" TEXT;
+ALTER TABLE "table_sessions" ADD COLUMN IF NOT EXISTS "customerPhone" TEXT;
+ALTER TABLE "table_sessions" ADD COLUMN IF NOT EXISTS "erasedAt" TIMESTAMP(3);
+ALTER TABLE "table_sessions" ALTER COLUMN "ownerId" DROP NOT NULL;
+
+ALTER TABLE "transactions" ADD COLUMN IF NOT EXISTS "discountAmount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "transactions" ADD COLUMN IF NOT EXISTS "splitGroup" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "transactions" ADD COLUMN IF NOT EXISTS "voidedById" TEXT;
+ALTER TABLE "transactions" ADD COLUMN IF NOT EXISTS "voidedAt" TIMESTAMP(3);
+ALTER TABLE "transactions" ADD COLUMN IF NOT EXISTS "voidReason" TEXT;
+ALTER TABLE "transactions" ADD COLUMN IF NOT EXISTS "cogs" INTEGER;
+
+ALTER TABLE "staff" ADD COLUMN IF NOT EXISTS "username" TEXT;
+ALTER TABLE "staff" ADD COLUMN IF NOT EXISTS "supabaseUserId" TEXT;
+ALTER TABLE "staff" ADD COLUMN IF NOT EXISTS "salary" INTEGER;
+CREATE UNIQUE INDEX IF NOT EXISTS "staff_username_key" ON "staff"("username");
+CREATE UNIQUE INDEX IF NOT EXISTS "staff_supabaseUserId_key" ON "staff"("supabaseUserId");
