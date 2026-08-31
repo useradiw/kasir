@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import type { PrismaClient } from "@/generated/prisma";
 import { localDateKey } from "@/lib/format";
 import { sumDaySales, type DaySalesInput } from "@/lib/day-close";
 import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
@@ -42,7 +43,7 @@ export function getDateRange(period: Period, dateStr: string) {
  * its OWN inline reconciliation deliberately — it moves to the ledger in
  * Slice 3b, not here.
  */
-export async function reconcileCashDates(dates: Date[]) {
+export async function reconcileCashDates(dates: Date[], db: PrismaClient = prisma) {
   const cashByDate: Record<string, number> = {};
   const qrisByDate: Record<string, number> = {};
   const nonSalesByDate: Record<string, number> = {};
@@ -52,7 +53,7 @@ export async function reconcileCashDates(dates: Date[]) {
   const minDate = new Date(Math.min(...dates.map((d) => d.getTime())));
   const maxDate = new Date(Math.max(...dates.map((d) => d.getTime())) + 24 * 60 * 60 * 1000);
 
-  const transactions = await prisma.transaction.findMany({
+  const transactions = await db.transaction.findMany({
     where: {
       status: "PAID",
       paidAt: { gte: minDate, lt: maxDate },
@@ -90,10 +91,10 @@ export async function reconcileCashDates(dates: Date[]) {
   // unmapped — the caller then falls back to openingCash + cashSales, same
   // as pre-ledger behaviour.
   try {
-    const tunaiAccount = (await new SalesChannelRepository(prisma).list()).tunai;
+    const tunaiAccount = (await new SalesChannelRepository(db).list()).tunai;
     if (tunaiAccount) {
       const dateKeys = dates.map(localDateKey);
-      const movement = await getNonSalesCashMovementByDate(tunaiAccount, dateKeys);
+      const movement = await getNonSalesCashMovementByDate(tunaiAccount, dateKeys, db);
       Object.assign(nonSalesByDate, movement);
     }
   } catch {
@@ -101,4 +102,32 @@ export async function reconcileCashDates(dates: Date[]) {
   }
 
   return { cashByDate, qrisByDate, nonSalesByDate };
+}
+
+/**
+ * Per-register reconciliation math shared by the staff (tutup kas) and admin
+ * (Kas Harian) screens. Was copy-pasted in both action files and had already
+ * diverged — the staff copy was missing qrisIncome and nothingToPost.
+ *
+ * expectedClosing = openingCash + cashSales + nonSalesCashMovement (signed:
+ * negative for pengeluaran, positive for a transfer/modal INTO the drawer).
+ * totalExpenses keeps its old field name/shape for existing clients — it's
+ * just "money out" read off the ledger: -min(0, nonSalesCashMovement).
+ */
+export function reconcileRegisterDay(
+  r: { openingCash: number; closingCash: number | null; date: Date },
+  byDate: { cash: Record<string, number>; qris: Record<string, number>; nonSales: Record<string, number> },
+) {
+  const key = localDateKey(r.date);
+  const cashIncome = byDate.cash[key] ?? 0;
+  const qrisIncome = byDate.qris[key] ?? 0;
+  const nonSalesCashMovement = byDate.nonSales[key] ?? 0;
+  const totalExpenses = Math.max(0, -nonSalesCashMovement);
+  const expectedClosing = r.openingCash + cashIncome + nonSalesCashMovement;
+  const difference = r.closingCash !== null ? r.closingCash - expectedClosing : null;
+  // A day with no sales AND an exact cash count is not a ledger event —
+  // postDayClose deliberately returns null and writes nothing. Such a day must
+  // NOT be flagged "belum tercatat" forever, so treat it as nothing-to-post.
+  const nothingToPost = cashIncome === 0 && qrisIncome === 0 && (difference ?? 0) === 0;
+  return { cashIncome, qrisIncome, totalExpenses, expectedClosing, difference, nothingToPost };
 }

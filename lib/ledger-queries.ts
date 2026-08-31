@@ -33,11 +33,12 @@ import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
 export async function getNonSalesCashMovementByDate(
   account: string,
   dates: string[],
+  db: PrismaClient = prisma,
 ): Promise<Record<string, number>> {
   const result: Record<string, number> = {};
   if (dates.length === 0) return result;
 
-  const lines = await prisma.journalLine.findMany({
+  const lines = await db.journalLine.findMany({
     where: {
       account,
       entry: {

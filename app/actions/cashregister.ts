@@ -7,10 +7,9 @@ import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import type { Staff } from "@/generated/prisma";
 import { getSetting } from "@/lib/settings";
-import { localDateKey } from "@/lib/format";
-import { runAction } from "@/lib/action-error";
-import { reconcileCashDates } from "@/app/actions/admin/queries/_shared";
-import { postDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
+import { ActionError, runAction } from "@/lib/action-error";
+import { reconcileCashDates, reconcileRegisterDay } from "@/app/actions/admin/queries/_shared";
+import { postDayCloseForRegister } from "@/lib/day-close-posting";
 
 const DEFAULT_LOCK_HOURS = 4;
 
@@ -54,7 +53,7 @@ export async function openRegisterForStaff(formData: FormData) {
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const existing = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
-    if (existing) throw new Error("Kas hari ini sudah dibuka.");
+    if (existing) throw new ActionError("Kas hari ini sudah dibuka.");
 
     await prisma.cashRegister.create({
       data: { date: todayMidnight, openingCash, openedById: staff.id },
@@ -72,8 +71,8 @@ export async function closeRegisterForStaff(formData: FormData) {
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const register = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
-    if (!register) throw new Error("Kas hari ini belum dibuka.");
-    if (register.closingCash !== null) throw new Error("Kas hari ini sudah ditutup.");
+    if (!register) throw new ActionError("Kas hari ini belum dibuka.");
+    if (register.closingCash !== null) throw new ActionError("Kas hari ini sudah ditutup.");
 
     // Lock check (duration from settings)
     const lockHours = parseInt(await getSetting("lock_hours")) || DEFAULT_LOCK_HOURS;
@@ -82,7 +81,7 @@ export async function closeRegisterForStaff(formData: FormData) {
       const remaining = lockExpiry.getTime() - now.getTime();
       const hours = Math.floor(remaining / (60 * 60 * 1000));
       const minutes = Math.ceil((remaining % (60 * 60 * 1000)) / (60 * 1000));
-      throw new Error(`Kas masih terkunci. Bisa ditutup dalam ${hours} jam ${minutes} menit.`);
+      throw new ActionError(`Kas masih terkunci. Bisa ditutup dalam ${hours} jam ${minutes} menit.`);
     }
 
     await prisma.cashRegister.update({
@@ -143,22 +142,12 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
     allDates.push(startOfToday);
   }
 
-  // Ledger-based reconciliation — same helper admin/cash-register-queries.ts
-  // uses, so tutup kas (staff view) and the admin view never disagree.
-  // expectedClosing = openingCash + cashSales + nonSalesCashMovement.
-  // totalExpenses keeps its old field name/shape for existing clients — it's
-  // now "money out" read off the ledger: -min(0, nonSalesCashMovement).
-  const { cashByDate, nonSalesByDate } = await reconcileCashDates(allDates);
-
-  function reconcile(r: { openingCash: number; closingCash: number | null; date: Date }) {
-    const key = localDateKey(r.date);
-    const cashIncome = cashByDate[key] ?? 0;
-    const nonSalesCashMovement = nonSalesByDate[key] ?? 0;
-    const totalExpenses = Math.max(0, -nonSalesCashMovement);
-    const expectedClosing = r.openingCash + cashIncome + nonSalesCashMovement;
-    const difference = r.closingCash !== null ? r.closingCash - expectedClosing : null;
-    return { cashIncome, totalExpenses, expectedClosing, difference };
-  }
+  // Ledger-based reconciliation — the SAME shared helper the admin screen
+  // uses, so tutup kas (staff view) and Kas Harian never disagree.
+  const { cashByDate, qrisByDate, nonSalesByDate } = await reconcileCashDates(allDates);
+  const byDate = { cash: cashByDate, qris: qrisByDate, nonSales: nonSalesByDate };
+  const reconcile = (r: { openingCash: number; closingCash: number | null; date: Date }) =>
+    reconcileRegisterDay(r, byDate);
 
   const todayRecon = todayRegister ? reconcile(todayRegister) : null;
 

@@ -1,32 +1,15 @@
-import { Container } from "@/components/shared/container";
-import { requireRole } from "@/lib/admin-auth";
-import { getCashRegisterDataForStaff } from "@/app/actions/cashregister";
-import CashRegisterStaffClient from "./cashregister-client";
+import { redirect } from "next/navigation";
 
-export default async function CashRegisterPage({
+// Retired per the redesign IA (docs/redesign/SPEC.md #6): /kas is the single
+// register surface now. Old links keep working through this redirect.
+export default async function CashRegisterRedirect({
   searchParams,
 }: {
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
-  await requireRole("OWNER", "MANAGER", "CASHIER");
-
   const params = await searchParams;
-  const from = params.from ?? "";
-  const to = params.to ?? "";
-
-  const data = await getCashRegisterDataForStaff({ from, to });
-
-  return (
-    <Container id="cashregister" className="py-6">
-      <CashRegisterStaffClient
-        todayRegister={data.todayRegister}
-        todayCashIncome={data.todayCashIncome}
-        todayExpenses={data.todayExpenses}
-        todayExpectedClosing={data.todayExpectedClosing}
-        lockHours={data.lockHours}
-        registers={data.registers}
-        filters={{ from, to }}
-      />
-    </Container>
-  );
+  const qs = new URLSearchParams(
+    Object.entries(params).filter(([, v]) => v) as [string, string][],
+  ).toString();
+  redirect(`/kas${qs ? `?${qs}` : ""}`);
 }

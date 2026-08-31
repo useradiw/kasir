@@ -4,7 +4,7 @@ import { revalidateSettings } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireOwner } from "@/lib/admin-auth";
 import { getSettings, SETTING_DEFAULTS } from "@/lib/settings";
-import { runAction } from "@/lib/action-error";
+import { ActionError, runAction } from "@/lib/action-error";
 
 export async function fetchSettings() {
   await requireOwner();
@@ -23,7 +23,7 @@ export async function updateSettings(formData: FormData) {
       }
     }
 
-    if (updates.length === 0) throw new Error("Tidak ada perubahan.");
+    if (updates.length === 0) throw new ActionError("Tidak ada perubahan.");
 
     await prisma.$transaction(
       updates.map(({ key, value }) =>

@@ -2,6 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
+import { isOnlineService } from "@/lib/day-close";
+import { disbursedTotal, offlineSalesTotal, recognisedRevenue } from "@/lib/revenue";
 import { localDateKey } from "@/lib/format";
 import { getDateRange, reconcileCashDates } from "./_shared";
 import { getLedgerExpenseTotals, getLedgerPengeluaranForPeriod } from "@/lib/ledger-queries";
@@ -98,15 +100,17 @@ export async function getReportData(opts: {
     return Math.round(amount * c.pct / 100) + c.flat;
   }
 
-  const ONLINE_SERVICES = ["GoFood", "ShopeeFood", "GrabFood"];
-
   // --- Split paid transactions into offline and online ---
+  // isOnlineService is the single list of platform services (lib/day-close.ts);
+  // this file used to keep a second copy of it.
   const paidTx = transactions.filter((t) => t.status === "PAID");
-  const offlineTx = paidTx.filter((t) => !ONLINE_SERVICES.includes(t.tableSession.service as string));
-  const onlineTx = paidTx.filter((t) => ONLINE_SERVICES.includes(t.tableSession.service as string));
+  const offlineTx = paidTx.filter((t) => !isOnlineService(t.tableSession.service));
+  const onlineTx = paidTx.filter((t) => isOnlineService(t.tableSession.service));
 
   // --- Revenue summary (offline only) ---
-  const totalRevenue = offlineTx.reduce((s, t) => s + t.totalAmount, 0);
+  const totalRevenue = offlineSalesTotal(
+    offlineTx.map((t) => ({ totalAmount: t.totalAmount, service: t.tableSession.service })),
+  );
   const totalTransactions = offlineTx.length;
 
   // --- Revenue by day (or by month for yearly) — offline only ---
@@ -192,13 +196,14 @@ export async function getReportData(opts: {
       presentDaysByStaff[r.staffId] = (presentDaysByStaff[r.staffId] ?? 0) + 1;
     }
   }
+  // Staff.salary is nullable — a staff member without a salary set must
+  // contribute 0, not NaN, to the payroll rows.
   const staffSalaryBreakdown = staffList
-    .map((s) => ({
-      name: s.name,
-      dailySalary: s.salary!,
-      presentDays: presentDaysByStaff[s.id] ?? 0,
-      total: (presentDaysByStaff[s.id] ?? 0) * s.salary!,
-    }))
+    .map((s) => {
+      const dailySalary = s.salary ?? 0;
+      const presentDays = presentDaysByStaff[s.id] ?? 0;
+      return { name: s.name, dailySalary, presentDays, total: presentDays * dailySalary };
+    })
     .filter((s) => s.presentDays > 0);
   const totalSalary = staffSalaryBreakdown.reduce((s, x) => s + x.total, 0);
 
@@ -266,7 +271,12 @@ export async function getReportData(opts: {
     return item.settlement;
   });
 
-  const disbursedRevenue = uniqueSettlements.reduce((s, st) => s + st.finalAmount, 0);
+  const disbursedRevenue = disbursedTotal(
+    settlementItems.map((si) => ({
+      settlementId: si.settlementId,
+      settlement: { finalAmount: si.settlement.finalAmount },
+    })),
+  );
   const totalSettlementCommission = uniqueSettlements.reduce((s, st) => s + st.commissionAmount, 0);
   const totalDeductions = uniqueSettlements.reduce(
     (s, st) => s + st.deductions.reduce((ds, d) => ds + d.amount, 0),
@@ -307,7 +317,7 @@ export async function getReportData(opts: {
   // (cogs/grossProfit/grossMarginPct) are kept unchanged so existing
   // clients (PnLCard, export.ts) keep working.
   const totalCogs = ledgerExpenseTotals.hpp;
-  const totalRevenueCombined = totalRevenue + disbursedRevenue;
+  const totalRevenueCombined = recognisedRevenue(totalRevenue, disbursedRevenue);
   const grossProfit = totalRevenueCombined - totalCogs;
   const grossMarginPct = totalRevenueCombined > 0
     ? Math.round((grossProfit / totalRevenueCombined) * 1000) / 10

@@ -4,8 +4,8 @@ import { revalidateCashRegister } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { requireOwner, requireOwnerStrict } from "@/lib/admin-auth";
 import { z } from "zod";
-import { runAction } from "@/lib/action-error";
-import { postDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
+import { ActionError, runAction } from "@/lib/action-error";
+import { postDayCloseForRegister } from "@/lib/day-close-posting";
 import { SalesPostingRepository } from "@/lib/accounting/salesPostingRepository";
 
 const openSchema = z.object({
@@ -25,7 +25,7 @@ export async function openRegister(formData: FormData) {
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const existing = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
-    if (existing) throw new Error("Kas hari ini sudah dibuka.");
+    if (existing) throw new ActionError("Kas hari ini sudah dibuka.");
 
     await prisma.cashRegister.create({
       data: { date: todayMidnight, openingCash, openedById: staff.id },
@@ -43,8 +43,8 @@ export async function closeRegister(formData: FormData) {
     const todayMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     const register = await prisma.cashRegister.findUnique({ where: { date: todayMidnight } });
-    if (!register) throw new Error("Kas hari ini belum dibuka.");
-    if (register.closingCash !== null) throw new Error("Kas hari ini sudah ditutup.");
+    if (!register) throw new ActionError("Kas hari ini belum dibuka.");
+    if (register.closingCash !== null) throw new ActionError("Kas hari ini sudah ditutup.");
 
     await prisma.cashRegister.update({
       where: { id: register.id },

@@ -7,7 +7,7 @@ import { requireOwner } from "@/lib/admin-auth";
 import { ActionError, runAction } from "@/lib/action-error";
 import { createVoidNotification } from "@/lib/notifications";
 import { formatRupiah } from "@/lib/format";
-import { postDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
+import { postDayCloseForRegister } from "@/lib/day-close-posting";
 import { SalesPostingRepository } from "@/lib/accounting/salesPostingRepository";
 
 export async function voidTransaction(transactionId: string, reason: string) {
@@ -97,7 +97,7 @@ export async function updateTransaction(
       },
     });
 
-    if (!tx) throw new Error("Transaksi tidak ditemukan.");
+    if (!tx) throw new ActionError("Transaksi tidak ditemukan.");
 
     await prisma.$transaction(async (p) => {
       // Update session fields

@@ -13,7 +13,7 @@ import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah, formatDateTime } from "@/lib/format";
 import { openRegister, closeRegister, editRegister, deleteRegister } from "@/app/actions/admin/cash-register";
-import { postDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
+import { repostDayCloseForRegister } from "@/app/actions/admin/day-close-posting";
 import type { RoleEnum } from "@/generated/prisma";
 import { Pencil } from "lucide-react";
 
@@ -55,7 +55,7 @@ function UnpostedBadge({ hasPosting, isOwner, id }: { hasPosting: boolean | null
             variant="outline"
             disabled={isPending}
             onClick={() => run(async () => {
-              const result = await postDayCloseForRegister(id);
+              const result = await repostDayCloseForRegister(id);
               if (!result.posted) throw new Error(result.reason ?? "Gagal mencatat ke buku besar.");
               router.refresh();
             }, { successMessage: "Tercatat ke buku besar" })}

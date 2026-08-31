@@ -1,7 +1,12 @@
-export function exportCSV(
-  filename: string,
-  sections: { title: string; headers: string[]; rows: (string | number)[][] }[]
-) {
+export interface CsvSection {
+  title: string;
+  headers: string[];
+  rows: (string | number)[][];
+}
+
+/** CSV string builder with BOM and quoting — separated from exportCSV so it
+ *  can be tested in node (vitest has no Blob/document). */
+export function buildCSV(sections: CsvSection[]): string {
   const BOM = "\uFEFF";
   const lines: string[] = [];
 
@@ -22,7 +27,11 @@ export function exportCSV(
     lines.push(""); // blank line between sections
   }
 
-  const blob = new Blob([BOM + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  return BOM + lines.join("\n");
+}
+
+export function exportCSV(filename: string, sections: CsvSection[]) {
+  const blob = new Blob([buildCSV(sections)], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

@@ -2,8 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/admin-auth";
-import { localDateKey } from "@/lib/format";
-import { reconcileCashDates } from "./_shared";
+import { reconcileCashDates, reconcileRegisterDay } from "./_shared";
 
 export async function getCashRegisterData(opts: { from: string; to: string }) {
   await requireRole("OWNER", "MANAGER");
@@ -48,24 +47,11 @@ export async function getCashRegisterData(opts: { from: string; to: string }) {
     : [];
   const postedIds = new Set(postings.map((p) => p.sourceId));
 
-  // expectedClosing = openingCash + cashSales + nonSalesCashMovement (signed:
-  // negative for pengeluaran, positive for a transfer/modal INTO the drawer).
-  // totalExpenses keeps its old field name/shape for existing clients — it's
-  // now just "money out" read off the ledger: -min(0, nonSalesCashMovement).
-  function reconcile(r: { openingCash: number; closingCash: number | null; date: Date }) {
-    const key = localDateKey(r.date);
-    const cashIncome = cashByDate[key] ?? 0;
-    const qrisIncome = qrisByDate[key] ?? 0;
-    const nonSalesCashMovement = nonSalesByDate[key] ?? 0;
-    const totalExpenses = Math.max(0, -nonSalesCashMovement);
-    const expectedClosing = r.openingCash + cashIncome + nonSalesCashMovement;
-    const difference = r.closingCash !== null ? r.closingCash - expectedClosing : null;
-    // A day with no sales AND an exact cash count is not a ledger event —
-    // postDayClose deliberately returns null and writes nothing. Such a day must
-    // NOT be flagged "belum tercatat" forever, so treat it as nothing-to-post.
-    const nothingToPost = cashIncome === 0 && qrisIncome === 0 && (difference ?? 0) === 0;
-    return { cashIncome, totalExpenses, expectedClosing, difference, nothingToPost };
-  }
+  // Per-register math lives in the shared reconcileRegisterDay helper —
+  // identical to what the staff tutup-kas view computes.
+  const byDate = { cash: cashByDate, qris: qrisByDate, nonSales: nonSalesByDate };
+  const reconcile = (r: { openingCash: number; closingCash: number | null; date: Date }) =>
+    reconcileRegisterDay(r, byDate);
 
   const todayRecon = todayRegister ? reconcile(todayRegister) : null;
 

@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireOwnerStrict, requireRole, requireRoleStrict } from "@/lib/admin-auth";
 import { z } from "zod";
 import { ServiceEnum } from "@/generated/prisma";
-import { runAction } from "@/lib/action-error";
+import { ActionError, runAction } from "@/lib/action-error";
 
 // ─── Category ─────────────────────────────────────────────────────────────────
 
@@ -189,7 +189,7 @@ export async function addPackageItem(formData: FormData) {
     const nameSnapshot = formData.get("nameSnapshot") as string;
 
     if (!packageId || !menuItemId || !nameSnapshot) {
-      throw new Error("Data tidak lengkap.");
+      throw new ActionError("Data tidak lengkap.");
     }
 
     const existing = await prisma.packageItem.findFirst({
