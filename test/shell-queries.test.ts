@@ -228,6 +228,10 @@ describe("getTodayOverview / getStaffSalesToday", () => {
       qrisToday: 0,
       salesYesterday: 0,
       openRegister: null,
+      expensesToday: 0,
+      salaryToday: 0,
+      staffPresentToday: 0,
+      staffTotalToday: 0,
     });
   });
 

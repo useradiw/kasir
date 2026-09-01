@@ -12,6 +12,10 @@ import { getStaffSalesToday, getTodayOverview, getUnpostedDayCloses } from "@/li
 export default async function BerandaPage() {
   const staff = await requireAuth();
   const isOwner = staff.role === "OWNER" || staff.role === "MANAGER" || staff.role === "DEVELOPER";
+  // Narrower than isOwner above: Buku is requireOwner()-gated server-side
+  // (OWNER + DEVELOPER only), so the beranda link that leads there must not
+  // show for MANAGER even though MANAGER sees the rest of the owner branch.
+  const canOpenBuku = staff.role === "OWNER" || staff.role === "DEVELOPER";
 
   const [overview, unposted] = await Promise.all([
     isOwner ? getTodayOverview() : Promise.resolve(null),
@@ -32,8 +36,13 @@ export default async function BerandaPage() {
           {staff.name}
         </h1>
         <p className="text-[11.5px] font-semibold text-muted-foreground">
-          Toko Kencana ·{" "}
-          {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "short" })}
+          Sate Kambing Sido Mampir ·{" "}
+          {new Date().toLocaleDateString("id-ID", {
+            weekday: "long",
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+          })}
         </p>
       </div>
 
@@ -42,7 +51,7 @@ export default async function BerandaPage() {
           <>
             <BentoCard>
               <MoneyHero
-                label="Pendapatan hari ini"
+                label="Penjualan hari ini"
                 value={`Rp ${overview.salesToday.toLocaleString("id-ID")}`}
                 sub={
                   <>
@@ -60,33 +69,20 @@ export default async function BerandaPage() {
             </BentoCard>
             <div className="grid grid-cols-2 gap-2.5">
               <BentoCard>
-                <CardLabel>Kas di laci</CardLabel>
-                {overview.openRegister ? (
-                  <>
-                    <p className="font-display mt-2 text-[24px] font-bold tabular-nums">
-                      {overview.openRegister.expectedClosing.toLocaleString("id-ID")}
-                    </p>
-                    <p className="mt-1.5 text-[11.5px] font-semibold text-muted-foreground">
-                      Kas Laci · terbuka
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="mt-2 text-[14px] font-bold text-muted-foreground">Belum dibuka</p>
-                    <Link href="/kas" className="mt-1.5 inline-block text-[11.5px] font-extrabold text-primary">
-                      Buka kas →
-                    </Link>
-                  </>
-                )}
+                <CardLabel>Pengeluaran</CardLabel>
+                <p className="font-display mt-2 text-[24px] font-bold tabular-nums">
+                  {overview.expensesToday.toLocaleString("id-ID")}
+                </p>
+                <p className="mt-1.5 text-[11.5px] font-semibold text-muted-foreground">Hari ini</p>
               </BentoCard>
               <BentoCard>
-                <CardLabel>QRIS hari ini</CardLabel>
+                <CardLabel>Gaji</CardLabel>
                 <p className="font-display mt-2 text-[24px] font-bold tabular-nums">
-                  {overview.qrisToday.toLocaleString("id-ID")}
+                  {overview.salaryToday.toLocaleString("id-ID")}
                 </p>
-                <Link href="/settlement" className="mt-1.5 inline-block text-[11.5px] font-extrabold text-primary">
-                  Pencairan →
-                </Link>
+                <p className="mt-1.5 text-[11.5px] font-semibold text-muted-foreground">
+                  {overview.staffPresentToday} dari {overview.staffTotalToday} hadir
+                </p>
               </BentoCard>
             </div>
             {unposted.map((u) => (
@@ -99,24 +95,29 @@ export default async function BerandaPage() {
                 actionHref="/kas"
               />
             ))}
-            <div className="grid grid-cols-4 gap-2 rounded-2xl border border-border bg-card p-3">
-              {[
-                { ic: "💵", l: "Tutup Kas", href: "/kas" },
-                { ic: "🧾", l: "Belanja", href: "/expenses" },
-                { ic: "🔁", l: "Transfer", href: "/admin/keuangan/transfer" },
-                { ic: "📊", l: "Laporan", href: "/admin/keuangan/laporan" },
-              ].map((a) => (
+            <div className="grid grid-cols-2 gap-2.5">
+              {canOpenBuku ? (
                 <Link
-                  key={a.l}
-                  href={a.href}
-                  className="flex flex-col items-center gap-1.5 rounded-xl py-1 text-[11.5px] font-bold"
+                  href="/buku"
+                  className="rounded-2xl border border-border bg-card px-4 py-4 text-center active:scale-[0.98] transition-all duration-150"
                 >
-                  <span className="grid size-9 place-items-center rounded-xl bg-primary-soft text-[15px]">
-                    {a.ic}
-                  </span>
-                  {a.l}
+                  <p className="text-[14px] font-bold">Buku</p>
+                  <p className="mt-0.5 text-[11.5px] font-semibold text-muted-foreground">
+                    Laporan keuangan
+                  </p>
                 </Link>
-              ))}
+              ) : null}
+              <Link
+                href="/admin"
+                className={`rounded-2xl border border-border bg-card px-4 py-4 text-center active:scale-[0.98] transition-all duration-150 ${
+                  canOpenBuku ? "" : "col-span-2"
+                }`}
+              >
+                <p className="text-[14px] font-bold">Admin</p>
+                <p className="mt-0.5 text-[11.5px] font-semibold text-muted-foreground">
+                  Operasional toko
+                </p>
+              </Link>
             </div>
           </>
         ) : (

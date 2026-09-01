@@ -33,8 +33,8 @@ const jakarta = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Sate Kambing Katamso",
-  description: "Kasir Sate Kambing Katamso",
+  title: "Sate Kambing Sido Mampir",
+  description: "Kasir Sate Kambing Sido Mampir",
   robots: {
     index: false,
     follow: false,

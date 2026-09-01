@@ -102,6 +102,29 @@ export interface TodayOverview {
     expectedClosing: number;
     cashIncome: number;
   } | null;
+  /**
+   * Today's total pengeluaran. Reuses reconcileRegisterDay's totalExpenses
+   * (app/actions/admin/queries/_shared.ts), the same "money out" figure
+   * /admin/cash-register shows as todayExpenses — it is
+   * -min(0, nonSalesCashMovement) read off the buku besar, so this number
+   * agrees with /kas by construction instead of re-deriving pengeluaran from
+   * a separate Expense-table query. When no register is open/closed today
+   * (openRegisterRow null) it falls back to reconciling today's date key
+   * directly, so the card still reads correctly before the drawer opens.
+   */
+  expensesToday: number;
+  /** Sum of Staff.salary (daily rate) for staff with a PRESENT attendance
+   * record today — the same "daily rate × present days" definition used by
+   * the laporan payroll breakdown (report-queries.ts), collapsed to one day.
+   * Staff.salary is nullable; a null salary contributes 0. */
+  salaryToday: number;
+  /** How many active staff clocked PRESENT today. */
+  staffPresentToday: number;
+  /** How many active staff exist to be marked present ("3 dari 5 hadir") —
+   * the full active roster (Staff.isActive), not narrowed to salary > 0 the
+   * way report-queries.ts' payroll breakdown is, since this is a headcount
+   * of who could show up, not a list of who gets paid. */
+  staffTotalToday: number;
 }
 
 /**
@@ -127,20 +150,30 @@ export async function getTodayOverview(db: PrismaClient = prisma): Promise<Today
     tableSession: { select: { service: true } },
   } as const;
 
-  const [todayTx, yesterdayTx, openRegisterRow] = await Promise.all([
-    db.transaction.findMany({
-      where: { status: "PAID", paidAt: { gte: dayStart, lt: dayEnd } },
-      select,
-    }),
-    db.transaction.findMany({
-      where: { status: "PAID", paidAt: { gte: yesterdayStart, lt: dayStart } },
-      select,
-    }),
-    db.cashRegister.findFirst({
-      where: { date: { gte: dayStart, lt: dayEnd }, closingCash: null },
-      orderBy: { date: "desc" },
-    }),
-  ]);
+  const [todayTx, yesterdayTx, openRegisterRow, todayReconcile, presentToday, activeStaff] =
+    await Promise.all([
+      db.transaction.findMany({
+        where: { status: "PAID", paidAt: { gte: dayStart, lt: dayEnd } },
+        select,
+      }),
+      db.transaction.findMany({
+        where: { status: "PAID", paidAt: { gte: yesterdayStart, lt: dayStart } },
+        select,
+      }),
+      db.cashRegister.findFirst({
+        where: { date: { gte: dayStart, lt: dayEnd }, closingCash: null },
+        orderBy: { date: "desc" },
+      }),
+      // Same reconciliation reconcileRegisterDay draws totalExpenses from
+      // (see expensesToday below) — computed once here for today's date key
+      // so it works whether or not a register happens to be open right now.
+      reconcileCashDates([dayStart], db),
+      db.attendanceRecord.findMany({
+        where: { date: { gte: dayStart, lt: dayEnd }, status: "PRESENT" },
+        select: { staffId: true },
+      }),
+      db.staff.findMany({ where: { isActive: true }, select: { id: true, salary: true } }),
+    ]);
 
   const shape = (txs: typeof todayTx) =>
     txs.map((t) => ({ id: t.id, totalAmount: t.totalAmount, service: t.tableSession.service }));
@@ -150,10 +183,14 @@ export async function getTodayOverview(db: PrismaClient = prisma): Promise<Today
     sumDisbursedFor(shape(yesterdayTx), db),
   ]);
 
+  const byDate = {
+    cash: todayReconcile.cashByDate,
+    qris: todayReconcile.qrisByDate,
+    nonSales: todayReconcile.nonSalesByDate,
+  };
+
   let openRegister: TodayOverview["openRegister"] = null;
   if (openRegisterRow) {
-    const raw = await reconcileCashDates([openRegisterRow.date], db);
-    const byDate = { cash: raw.cashByDate, qris: raw.qrisByDate, nonSales: raw.nonSalesByDate };
     const recon = reconcileRegisterDay(openRegisterRow, byDate);
     openRegister = {
       id: openRegisterRow.id,
@@ -162,6 +199,19 @@ export async function getTodayOverview(db: PrismaClient = prisma): Promise<Today
       cashIncome: recon.cashIncome,
     };
   }
+
+  // expensesToday: the same totalExpenses formula reconcileRegisterDay uses
+  // for /kas — Math.max(0, -nonSalesCashMovement) — computed directly off
+  // today's date key so it holds even when no register row exists yet today.
+  const todayKey = localDateKey(dayStart);
+  const expensesToday = Math.max(0, -(todayReconcile.nonSalesByDate[todayKey] ?? 0));
+
+  const presentIds = new Set(presentToday.map((a) => a.staffId));
+  const staffTotalToday = activeStaff.length;
+  const staffPresentToday = activeStaff.filter((s) => presentIds.has(s.id)).length;
+  const salaryToday = activeStaff
+    .filter((s) => presentIds.has(s.id))
+    .reduce((sum, s) => sum + (s.salary ?? 0), 0);
 
   const offlineToday = shape(todayTx);
   return {
@@ -172,6 +222,10 @@ export async function getTodayOverview(db: PrismaClient = prisma): Promise<Today
     qrisToday: todayTx.reduce((sum, t) => sum + t.qrisAmount, 0),
     salesYesterday: recognisedRevenue(offlineSalesTotal(shape(yesterdayTx)), yesterdayDisbursed),
     openRegister,
+    expensesToday,
+    salaryToday,
+    staffPresentToday,
+    staffTotalToday,
   };
 }
 

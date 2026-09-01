@@ -4,8 +4,8 @@ import { requireRole } from "@/lib/admin-auth";
 import { QueryProvider } from "@/components/providers/query-provider";
 
 export const metadata: Metadata = {
-  title: "Kasir - Sate Kambing Katamso",
-  description: "Kasir Sate Kambing Katamso",
+  title: "Kasir - Sate Kambing Sido Mampir",
+  description: "Kasir Sate Kambing Sido Mampir",
 };
 
 export default async function KasirLayout({

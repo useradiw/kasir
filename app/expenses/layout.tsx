@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Pengeluaran - Sate Kambing Katamso",
-  description: "Catat Pengeluaran Sate Kambing Katamso",
+  title: "Pengeluaran - Sate Kambing Sido Mampir",
+  description: "Catat Pengeluaran Sate Kambing Sido Mampir",
 };
 
 export default async function ExpensesLayout({

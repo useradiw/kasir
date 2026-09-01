@@ -16,8 +16,8 @@ export default async function BukuSetupPage() {
 
   const actionByStep: Record<string, { action?: "seed-accounts" | "seed-categories"; href?: string }> = {
     "Isi akun default": { action: "seed-accounts" },
-    "Buat akun kas": { href: "/admin/keuangan/akun" },
-    "Petakan akun penjualan": { href: "/admin/keuangan/akun-penjualan" },
+    "Buat akun kas": { href: "/buku/akun" },
+    "Petakan akun penjualan": { href: "/buku/akun-penjualan" },
     "Isi kategori pengeluaran": { action: "seed-categories" },
   };
 

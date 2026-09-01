@@ -2,10 +2,7 @@ import { LogOut } from "lucide-react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
-import { Container } from "@/components/shared/container";
 import { LoginForm } from "@/components/login-form";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { signOut } from "@/app/actions/sign-out";
 
 export default async function Home() {
@@ -16,9 +13,11 @@ export default async function Home() {
 
   if (!user) {
     return (
-      <Container id="main" sectionStyle="bg-white dark:bg-black" className="flex h-screen justify-center items-center">
-        <LoginForm />
-      </Container>
+      <div className="dark min-h-dvh bg-background text-foreground">
+        <div className="mx-auto w-full max-w-lg px-4">
+          <LoginForm />
+        </div>
+      </div>
     );
   }
 
@@ -34,23 +33,24 @@ export default async function Home() {
   // whose Staff record is missing or inactive — show a plain sign-out screen,
   // NOT the old hub (which used to render them a fake STAFF view).
   return (
-    <Container id="main" sectionStyle="bg-white dark:bg-black" className="flex h-screen justify-center items-center">
-      <Card className="w-full max-w-sm" size="sm">
-        <CardHeader>
-          <CardTitle>Akun tidak aktif</CardTitle>
-          <CardDescription>
+    <div className="dark min-h-dvh bg-background text-foreground">
+      <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col justify-center px-4">
+        <div className="rounded-2xl border border-border bg-card p-5">
+          <h1 className="font-display text-[17px] font-bold">Akun tidak aktif</h1>
+          <p className="mt-1.5 text-[13px] text-muted-foreground">
             Akun ini sudah tidak aktif atau tidak terdaftar sebagai staff. Hubungi pemilik toko.
-          </CardDescription>
-        </CardHeader>
-        <CardFooter>
-          <form action={signOut} className="w-full">
-            <Button type="submit" variant="outline" className="w-full cursor-pointer gap-1.5">
+          </p>
+          <form action={signOut} className="mt-4">
+            <button
+              type="submit"
+              className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card-2 text-[14px] font-bold transition-all duration-150 active:scale-[0.98]"
+            >
               <LogOut className="size-4" />
               Keluar
-            </Button>
+            </button>
           </form>
-        </CardFooter>
-      </Card>
-    </Container>
+        </div>
+      </div>
+    </div>
   );
 }

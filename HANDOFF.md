@@ -1,5 +1,63 @@
 # HANDOFF
 
+## 2026-09-01 — open-items plan approved, first build running
+`docs/redesign/plan-open-items.md` is the plan of record for what remains.
+Decisions Adi made on it: (1) do NOT move `/admin/keuangan` — build each screen
+fresh under `/buku` on the new design system, delete the old folder only once
+every feature has an equivalent; (2) the login brute-force lockout is approved
+as specced (own session, backup first); (3) `/kas` Phase 3 is a rebuild plus the
+retirement of `/cashregister` and `/admin/cash-register`, which cannot be split
+because `/kas` is currently made of them; (4) retire `app/admin/page.tsx` and
+`/admin/settlement`, and make `/admin` itself the navigation index; (5)
+`/admin/suppliers` is an orphan but is KEPT for future purchasing work.
+
+**Section 7 (historical data migration) is NOT approved — do not build it.**
+It needs another planning pass. Settled so far: Warung Books is the source of
+truth for April-July 2026, kasir backfills from the handover date onward, and
+the two ranges must meet exactly by date. The boundary date is unconfirmed and
+the Warung Books schema is unread. A peer session named "Seed warungbooks/report
+to kasir DB" may hold prior work on this — check it before replanning.
+
+**Landed (staged, awaiting Adi's commit):** `/buku/akun`,
+`/buku/akun-penjualan`, `/buku/kategori`, `/buku/bulan` — section 1 steps 1-4,
+built as NEW pages beside the untouched `/admin/keuangan` ones. Server actions
+reused unchanged; every page carries its own `requireOwner()` (verified). Adds
+a `Row` primitive to `components/shell/ui.tsx`. lint + build clean, 277 tests
+pass. Adi accepted them visually. Two mockup figures were dropped because no
+query returns them: per-account balance/channel-count on Akun Kas, and
+per-category monthly totals on Kategori. Adding them needs new query functions
+and a separate decision.
+
+**⚠ Open, and it blocks step 6:** the old `/admin/keuangan` layout carried a
+MonthPicker doing TWO jobs — create a month, and set the ACTIVE month through
+`setSelectedMonth` (a cookie that `getSelectedMonth` feeds to buku-kas,
+laporan, jurnal, modal, pengeluaran). `/buku/bulan` only creates and locks.
+Nothing on `/buku` sets the active month yet, so `/buku/jurnal` (step 6) has no
+period source. Decide this before building it.
+
+**Next:** steps 5-8 — pengeluaran merge (largest), jurnal, kas, laporan.
+
+
+## 2026-08-31 — audit batch A+B (UNCOMMITTED)
+Adi audited every route as OWNER. Landed: business renamed to **Sate Kambing
+Sido Mampir**; BottomNav moved inside the `max-w-lg` column and cut to FOUR
+tabs (Beranda/Kasir/Kas/Akun — Buku left the bar, it is owner-only); `/akun`
+lost Pencairan + Kelola Staff; `/buku` h1 is now "Laporan Keuangan"; the
+`/kasir` category strip scrolls with a mouse wheel; the owner `/beranda` bento
+is now Penjualan + Pengeluaran + Gaji ("N dari M hadir") plus Buku/Admin links.
+`getTodayOverview` gained expensesToday/salaryToday/staffPresentToday/
+staffTotalToday. lint + build clean, 277 tests pass.
+Then: `/` (login) rebuilt to dark tokens per screens-auth.html mockup 1 —
+brand tile, show/hide password, error banner on `destructive-soft`; the
+error-as-data login contract is untouched. The dead `/buku` month pill is gone
+(Adi dropped the selector — laporan covers period selection).
+**Still open from that audit:** login brute-force lockout (needs ONE additive
+table — own session, backup first); the `/buku` month pill must become a
+day/week/month/year selector; the `/admin` vs `/buku` split (Phase 4 re-homing)
+is planned but unapproved; `/kas` Phase 3 rebuild (incl. a back button) and the
+Phase 5/6 reskins are untouched. `/admin/staff` ALREADY exists — Adi thought it
+did not.
+
 Branch `zcode`, last commit `9095084`.
 **The Warung Books merge is CODE-COMPLETE — all 6 slices (0-5) are committed.**
 Per-slice detail lives in the commit messages; don't re-derive it here.

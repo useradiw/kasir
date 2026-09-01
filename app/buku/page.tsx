@@ -35,14 +35,9 @@ export default async function BukuPage() {
 
   return (
     <AppShell role={staff.role}>
-      <div className="flex items-center justify-between px-4 pb-1 pt-5">
-        <div>
-          <h1 className="font-display text-[17px] font-bold">Buku</h1>
-          <p className="text-[11.5px] font-semibold text-muted-foreground">Pembukuan toko</p>
-        </div>
-        <span className="rounded-full border border-border bg-card px-3 py-2 font-display text-[12.5px] font-bold">
-          {month} ▾
-        </span>
+      <div className="px-4 pb-1 pt-5">
+        <h1 className="font-display text-[17px] font-bold leading-tight">Laporan Keuangan</h1>
+        <p className="text-[11.5px] font-semibold text-muted-foreground">Pembukuan toko</p>
       </div>
 
       <div className="flex flex-1 flex-col gap-3 px-4 pb-6 pt-3">

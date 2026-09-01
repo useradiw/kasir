@@ -13,13 +13,11 @@ export default async function AkunPage() {
 
   const links: { href: string; label: string; detail: string; roles?: RoleEnum[] }[] = [
     { href: "/profile", label: "Profil", detail: "Nama, ganti password, keluar" },
-    { href: "/settlement", label: "Pencairan Online", detail: "Catat settlement GoFood/Grab" },
     { href: "/petunjuk", label: "Petunjuk Penggunaan", detail: "Cara pakai tiap layar" },
     ...(isOwner
       ? [
           { href: "/settings", label: "Pengaturan Toko", detail: "Pajak, service, jam kunci kas" },
           { href: "/admin/backup", label: "Backup Database", detail: "Unduh salinan lengkap" },
-          { href: "/admin/staff", label: "Kelola Staff", detail: "Tambah, nonaktifkan, absensi" },
         ]
       : []),
   ];

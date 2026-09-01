@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db, type ServiceEnum } from "@/lib/db";
 import { useOrderItems } from "@/hooks/use-session-store";
@@ -34,6 +34,25 @@ export function MenuBrowser({
 
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
   const [expandedItemId, setExpandedItemId] = useState<string | null>(null);
+  const categoryStripRef = useRef<HTMLDivElement>(null);
+
+  // A mouse wheel produces vertical deltaY; the strip only scrolls
+  // horizontally by touch/drag. Translate deltaY into scrollLeft so a wheel
+  // over the strip pans it, but only when it actually overflows — otherwise
+  // let the wheel event fall through to page scroll as normal. onWheel is
+  // passive in React and cannot preventDefault, so this needs a real
+  // addEventListener with { passive: false }.
+  useEffect(() => {
+    const el = categoryStripRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
 
   // Default to first category when loaded
   const effectiveCategoryId = activeCategoryId ?? categories?.[0]?.id ?? null;
@@ -48,7 +67,10 @@ export function MenuBrowser({
       <KasirTopBar title="Menu" sub={session?.name} onBack={onBack} onHome={onHome} />
 
       {/* Category tabs */}
-      <div className="flex gap-2 overflow-x-auto border-b border-border px-3 py-2.5 scrollbar-hide">
+      <div
+        ref={categoryStripRef}
+        className="flex gap-2 overflow-x-auto border-b border-border px-3 py-2.5 scrollbar-hide"
+      >
         {categories?.map((cat) => (
           <Button
             key={cat.id}

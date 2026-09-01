@@ -20,8 +20,8 @@ export function AppShell({
     <div className="dark min-h-dvh bg-background text-foreground">
       <div className="mx-auto flex min-h-dvh w-full max-w-lg flex-col">
         <div className="flex-1">{children}</div>
+        <BottomNav role={role} hidden={!nav} />
       </div>
-      <BottomNav role={role} hidden={!nav} />
     </div>
   );
 }

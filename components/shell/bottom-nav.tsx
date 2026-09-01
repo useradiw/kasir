@@ -21,12 +21,6 @@ const ICONS: Record<string, React.ReactNode> = {
       <circle cx="12" cy="12" r="2.4" />
     </>
   ),
-  buku: (
-    <>
-      <path d="M4 19V5a2 2 0 0 1 2-2h13v18H6a2 2 0 0 1-2-2z" />
-      <path d="M8 7h7M8 11h7" />
-    </>
-  ),
   akun: (
     <>
       <circle cx="12" cy="8" r="4" />
@@ -46,8 +40,7 @@ export function BottomNav({ role, hidden }: { role: RoleEnum; hidden?: boolean }
         const active =
           pathname === t.href ||
           (t.key === "beranda" && pathname.startsWith("/beranda")) ||
-          (t.key === "kas" && pathname.startsWith("/kas")) ||
-          (t.key === "buku" && pathname.startsWith("/buku"));
+          (t.key === "kas" && pathname.startsWith("/kas"));
         return (
           <Link
             key={t.key}

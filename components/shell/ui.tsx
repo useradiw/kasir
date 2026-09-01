@@ -113,6 +113,36 @@ export function AlertRow({
   );
 }
 
+/**
+ * One list row — the `.row` pattern from the redesign mockups (screens-buku,
+ * screens-buku-forms): title + optional meta on the left, arbitrary content
+ * (tag, buttons, select) pinned right. Used by the /buku setup screens for
+ * account/category/month lists.
+ */
+export function Row({
+  title,
+  meta,
+  className,
+  children,
+}: {
+  title: React.ReactNode;
+  meta?: React.ReactNode;
+  className?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div className={cn("flex items-center gap-3 rounded-2xl border border-border bg-card p-3.5", className)}>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13.5px] font-bold leading-snug">{title}</p>
+        {meta ? (
+          <p className="mt-0.5 text-[11.5px] font-semibold leading-snug text-muted-foreground">{meta}</p>
+        ) : null}
+      </div>
+      {children}
+    </div>
+  );
+}
+
 export function Tag({
   tone = "mut",
   children,

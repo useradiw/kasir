@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 
 export const metadata: Metadata = {
-  title: "Kas Harian - Sate Kambing Katamso",
-  description: "Kas Harian Sate Kambing Katamso",
+  title: "Kas Harian - Sate Kambing Sido Mampir",
+  description: "Kas Harian Sate Kambing Sido Mampir",
 };
 
 export default async function CashRegisterLayout({

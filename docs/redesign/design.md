@@ -137,7 +137,8 @@ data (prod redacts thrown messages) — see `app/actions/login.ts`.
 
 ## 4. Navigation model
 
-1. `BottomNav` is the ONLY global navigation. Five tabs, filtered by role via
+1. `BottomNav` is the ONLY global navigation. FOUR tabs (Beranda, Kasir, Kas,
+   Akun), filtered by role via
    `tabsForRole` (`components/shell/nav-items.ts`).
 2. Role grants in `nav-items.ts` are PERMISSIONS: changing them requires the
    owner's explicit approval per role (STAFF×Kas was reverted for exactly
@@ -221,15 +222,15 @@ changes, update BOTH it and `globals.css`.
 
 | Route | Level (§5) | Phase |
 |---|---|---|
-| `/beranda` | rebuilt | 0 |
-| `/buku` | rebuilt | 0 |
+| `/beranda` | rebuilt (owner bento reworked 2026-08-31: Penjualan/Pengeluaran/Gaji + Buku & Admin links) | 0 |
+| `/buku` | rebuilt (titled "Laporan Keuangan"; dead month pill removed 2026-08-31 — laporan covers period selection) | 0 |
 | `/buku/setup` | rebuilt (functional checklist + seed actions) | 1 |
 | `/kas` | wrapped (old clients inside) | 3 |
-| `/akun` | rebuilt | 0 |
+| `/akun` | rebuilt (Pencairan + Kelola Staff moved to Admin 2026-08-31) | 0 |
 | `/kasir` | reskinned (7 views: sesi, menu, pesanan, split, bayar, QRIS, selesai) | 2 |
 | `/admin/keuangan/*` (12) | untouched | 4 |
 | `/admin` + ops (13) | untouched (nav links fixed) | 5 |
 | `/expenses`, `/settlement`, `/profile`, `/settings`, `/petunjuk` | untouched | 6 |
-| `/` (login + fallback) | partial (login errors fixed; visual rebuild pending) | 7 |
+| `/` (login + fallback) | rebuilt (dark login + inactive-account fallback, 2026-08-31) | 7 |
 | `/auth/*` | untouched | 7 |
 | error.tsx / global-error.tsx / not-found.tsx | untouched | 6 |

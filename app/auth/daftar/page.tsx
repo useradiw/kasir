@@ -50,7 +50,7 @@ export default function Daftar() {
         <Container id="main" sectionStyle="bg-white dark:bg-black" className="flex h-screen justify-center items-center">
             <Card className="w-full max-w-sm shadow" size="sm">
                 <CardHeader className="border-b">
-                    <CardTitle className="font-bold text-xl">Kasir - Sate Kambing Katamso</CardTitle>
+                    <CardTitle className="font-bold text-xl">Kasir - Sate Kambing Sido Mampir</CardTitle>
                     <CardDescription>
                         Daftar dengan email dan password.
                     </CardDescription>
