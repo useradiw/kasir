@@ -32,7 +32,6 @@ model MenuItem {
   packageItems PackageItem[]
   orderItems   OrderItem[]
   onlinePrices MenuItemOnlinePrice[]
-  recipes      Recipe[]
 
   @@map("menu_items")
 }
@@ -46,7 +45,6 @@ model MenuVariant {
   orderItems    OrderItem[]
   packageItems  PackageItem[]
   onlinePrices  MenuItemOnlinePrice[]
-  recipes       Recipe[]
 
   @@map("menu_variants")
 }
@@ -147,7 +145,6 @@ model Transaction {
   tableSession   TableSession      @relation(fields: [tableSessionId], references: [id])
   processedBy    Staff             @relation("ProcessedTransactions", fields: [processedById], references: [id])
   voidedBy       Staff?            @relation("VoidedTransactions", fields: [voidedById], references: [id], onDelete: SetNull)
-  cogs           Int?
   settlementItem SettlementItem?
 
   @@map("transactions")
@@ -200,11 +197,8 @@ model Staff {
   openedRegisters     CashRegister[]     @relation("OpenedRegisters")
   closedRegisters     CashRegister[]     @relation("ClosedRegisters")
   editedRegisters     CashRegister[]     @relation("EditedRegisters")
-  expenses            Expense[]
   notifications       Notification[]
-  kasPakHarEntries    KasPakHar[]
   onlineSettlements   OnlineSettlement[] @relation("SettledOnlineOrders")
-  stockOpnames        StockOpname[]
 
   @@map("staff")
 }
@@ -301,296 +295,8 @@ model Supplier {
   isActive              Boolean   @default(true)
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
-  expenses              Expense[]
-  purchases             IngredientPurchase[]
-  defaultForIngredients Ingredient[] @relation("DefaultSupplier")
 
   @@map("suppliers")
-}
-
-// ─────────────────────────────────────────────────────────────
-// DORMANT — retained for data, not used
-// COGS / bahan baku subsystem, stripped from the code in Slice 1
-// (Warung Books merge, 2026-07-28). The tables and their rows are
-// intact in production and are still covered by backup/restore.
-// Do NOT delete these models: removing them would generate a DROP
-// migration against production data.
-// ─────────────────────────────────────────────────────────────
-
-// --- INGREDIENTS (replaces ExpenseTemplate as the authoritative item master) ---
-
-model Ingredient {
-  id                String             @id @default(uuid())
-  name              String             @unique
-  category          IngredientCategory @default(BAHAN)
-  unit              String             @default("pcs") @map("baseUnit")
-  currentStock      Float              @default(0)
-  unitCost          Float              @default(0) @map("averageUnitCost")
-  lastUnitCost      Float?
-  lastPurchasedAt   DateTime?
-  lowStockAlert     Float?
-  isActive          Boolean            @default(true)
-  notes             String?
-  defaultSupplierId String?
-  defaultSupplier   Supplier?          @relation("DefaultSupplier", fields: [defaultSupplierId], references: [id], onDelete: SetNull)
-  tags              String[]           @default([])
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-
-  purchases         IngredientPurchase[]
-  recipeIngredients RecipeIngredient[]
-  ingredientLogs    IngredientLog[]
-  expenseItems      ExpenseItem[]
-  opnameLines       StockOpnameLine[]
-  producedRecipe    IngredientRecipe?      @relation("ProducedRecipe")
-  componentOf       IngredientRecipeItem[] @relation("RecipeComponent")
-
-  @@map("ingredients")
-}
-
-model IngredientPurchase {
-  id            String                  @id @default(uuid())
-  ingredientId  String
-  ingredient    Ingredient              @relation(fields: [ingredientId], references: [id])
-  supplierId    String?
-  supplier      Supplier?               @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  expenseItemId String?                 @unique
-  expenseItem   ExpenseItem?            @relation(fields: [expenseItemId], references: [id], onDelete: SetNull)
-  source        IngredientPurchaseSource
-
-  packLabel         String?
-  packQty           Float
-  baseQty           Float
-  totalCost         Int
-  unitCost          Float
-  avgUnitCostAfter  Float
-  stockAfter        Float
-
-  purchasedAt   DateTime  @default(now())
-  recordedById  String?
-  notes         String?
-
-  @@index([ingredientId, purchasedAt])
-  @@map("ingredient_purchases")
-}
-
-// --- INGREDIENT RECIPES (a material assembled from other ingredients) ---
-
-model IngredientRecipe {
-  id           String     @id @default(uuid())
-  ingredientId String     @unique
-  ingredient   Ingredient @relation("ProducedRecipe", fields: [ingredientId], references: [id], onDelete: Cascade)
-  yieldQty     Float      @default(1)
-  notes        String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  items        IngredientRecipeItem[]
-
-  @@map("ingredient_recipes")
-}
-
-model IngredientRecipeItem {
-  id           String           @id @default(uuid())
-  recipeId     String
-  recipe       IngredientRecipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  ingredientId String
-  ingredient   Ingredient       @relation("RecipeComponent", fields: [ingredientId], references: [id])
-  quantity     Float
-
-  @@map("ingredient_recipe_items")
-}
-
-// --- STOCK OPNAME ---
-
-model StockOpname {
-  id            String            @id @default(uuid())
-  performedAt   DateTime          @default(now())
-  performedById String?
-  performedBy   Staff?            @relation(fields: [performedById], references: [id], onDelete: SetNull)
-  notes         String?
-  lines         StockOpnameLine[]
-
-  @@index([performedAt])
-  @@map("stock_opnames")
-}
-
-model StockOpnameLine {
-  id           String      @id @default(uuid())
-  opnameId     String
-  opname       StockOpname @relation(fields: [opnameId], references: [id], onDelete: Cascade)
-  ingredientId String
-  ingredient   Ingredient  @relation(fields: [ingredientId], references: [id])
-  systemQty    Float
-  countedQty   Float
-  delta        Float
-  noteReason   String?
-
-  @@map("stock_opname_lines")
-}
-
-// --- RECIPES ---
-
-model Recipe {
-  id          String             @id @default(uuid())
-  menuItemId  String
-  variantId   String?
-  notes       String?
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  menuItem    MenuItem           @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
-  variant     MenuVariant?       @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  ingredients RecipeIngredient[]
-
-  @@unique([menuItemId, variantId])
-  @@map("recipes")
-}
-
-model RecipeIngredient {
-  id           String           @id @default(uuid())
-  recipeId     String
-  templateId   String?          // legacy FK → ExpenseTemplate (kept until migration 2)
-  customName   String?
-  customUnit   String?
-  quantity     Float
-  ingredientId String?          // new FK → Ingredient
-  recipe       Recipe           @relation(fields: [recipeId], references: [id], onDelete: Cascade)
-  template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  ingredient   Ingredient?      @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
-
-  @@map("recipe_ingredients")
-}
-
-// --- INGREDIENT STOCK LEDGER ---
-
-model IngredientLog {
-  id           String            @id @default(uuid())
-  templateId   String?           // legacy FK → ExpenseTemplate (nullable after migration 1)
-  template     ExpenseTemplate?  @relation(fields: [templateId], references: [id], onDelete: Cascade)
-  ingredientId String?           // new FK → Ingredient
-  ingredient   Ingredient?       @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
-  type         StockMovementType
-  quantity     Float
-  unitCost     Float
-  referenceId  String?
-  note         String?
-  createdAt    DateTime          @default(now())
-
-  @@index([ingredientId, createdAt])
-  @@index([templateId, createdAt])
-  @@map("ingredient_logs")
-}
-
-// ─────────────────────────────────────────────────────────────
-// DORMANT — retained for data, not used
-// Flat-money expense/Kas Pak Har subsystem, stripped from the code in
-// Slice 3b (Warung Books merge, 2026-07-28). Pengeluaran and Kas Pak Har
-// are now recorded through the double-entry ledger (LedgerAccount /
-// JournalEntry / JournalLine below). The tables and their rows are
-// intact in production and are still covered by backup/restore.
-// Do NOT delete these models: removing them would generate a DROP
-// migration against production data.
-// ─────────────────────────────────────────────────────────────
-
-model Expense {
-  id               String        @id @default(uuid())
-  description      String?
-  recordedAt       DateTime      @default(now())
-  createdAt        DateTime      @default(now())
-  staffId          String?
-  supplierId       String?
-  deductFromCash   Boolean       @default(true)
-  countToKasPakHar Boolean       @default(false)
-  staff            Staff?        @relation(fields: [staffId], references: [id])
-  supplier         Supplier?     @relation(fields: [supplierId], references: [id], onDelete: SetNull)
-  items            ExpenseItem[]
-  kasPakHarEntries KasPakHar[]
-
-  @@map("expenses")
-}
-
-model ExpenseItem {
-  id           String           @id @default(uuid())
-  expenseId    String
-  expense      Expense          @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  description  String
-  amount       Float
-  cost         Int
-  lineTotal    Int?             // exact total paid; old rows (null) fall back to amount * cost
-  unit         String?
-  templateId   String?          // legacy FK → ExpenseTemplate (kept until migration 2)
-  template     ExpenseTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  ingredientId String?          // new FK → Ingredient
-  ingredient   Ingredient?      @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
-  purchase     IngredientPurchase?
-
-  @@map("expense_items")
-}
-
-model ExpenseTemplate {
-  id                String             @id @default(uuid())
-  name              String             @unique
-  defaultUnit       String?
-  defaultCost       Int?
-  isActive          Boolean            @default(true)
-  currentStock      Float              @default(0)
-  lowStockAlert     Float?
-  createdAt         DateTime           @default(now())
-  expenseItems      ExpenseItem[]
-  recipeIngredients RecipeIngredient[]
-  ingredientLogs    IngredientLog[]
-
-  @@map("expense_templates")
-}
-
-model KasPakHar {
-  id          String        @id @default(uuid())
-  date        DateTime      @default(now())
-  type        KasPakHarType
-  amount      Int
-  description String?
-  expenseId   String?
-  expense     Expense?      @relation(fields: [expenseId], references: [id], onDelete: SetNull)
-  createdById String?
-  createdBy   Staff?        @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt   DateTime      @default(now())
-
-  @@map("kas_pak_har")
-}
-
-// --- ENUMS ---
-
-// ─────────────────────────────────────────────────────────────
-// DORMANT — retained for data, not used
-// COGS / bahan baku subsystem, stripped from the code in Slice 1
-// (Warung Books merge, 2026-07-28). See the model block above.
-// ─────────────────────────────────────────────────────────────
-
-enum IngredientCategory {
-  BAHAN
-  KEMASAN
-  PERLENGKAPAN
-  LAINNYA
-}
-
-enum IngredientPurchaseSource {
-  EXPENSE
-  ADJUSTMENT
-  OPNAME_GAIN
-  ASSEMBLY
-}
-
-enum StockMovementType {
-  PURCHASE
-  SALE
-  ADJUSTMENT
-  WASTE
-  ASSEMBLY
-}
-
-enum KasPakHarType {
-  DEPOSIT
-  WITHDRAWAL
-  EXPENSE_DEDUCTION
 }
 
 enum ServiceEnum {

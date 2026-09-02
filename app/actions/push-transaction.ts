@@ -98,7 +98,6 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
     }
 
     // ── Upsert transaction ─────────────────────────────────────────────────
-    const cogs: number | null = null;
     await tx.transaction.upsert({
       where: { id: transaction.id },
       create: {
@@ -117,7 +116,6 @@ export async function pushTransaction(payload: TransactionPayload): Promise<void
         status: transaction.status,
         paidAt: new Date(transaction.paidAt),
         createdAt: new Date(transaction.createdAt),
-        cogs,
       },
       update: {
         status: transaction.status,

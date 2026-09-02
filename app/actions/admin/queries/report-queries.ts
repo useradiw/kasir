@@ -367,9 +367,6 @@ export async function getReportData(opts: {
       status: t.status as string,
       paidAt: t.paidAt.toISOString(),
       processedBy: t.processedBy?.name ?? null,
-      // Historical only — Transaction.cogs stopped being written in Slice 1
-      // (dormant column); old rows may still hold real per-sale values.
-      cogs: t.cogs ?? null,
     })),
     voidedCount: transactions.filter((t) => t.status === "VOIDED").length,
   };

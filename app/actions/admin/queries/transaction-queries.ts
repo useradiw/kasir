@@ -119,13 +119,6 @@ export async function getTransactionDetail(transactionId: string) {
 
   if (!tx) return null;
 
-  // Fetch ingredient usage logs for COGS breakdown
-  const cogsLogs = await prisma.ingredientLog.findMany({
-    where: { referenceId: tx.id, type: "SALE" },
-    include: { template: { select: { name: true, defaultUnit: true } } },
-    orderBy: { createdAt: "asc" },
-  });
-
   return {
     id: tx.id,
     subtotal: tx.subtotal,
@@ -143,8 +136,6 @@ export async function getTransactionDetail(transactionId: string) {
     voidedBy: tx.voidedBy?.name ?? null,
     voidedAt: tx.voidedAt?.toISOString() ?? null,
     voidReason: tx.voidReason ?? null,
-    cogs: tx.cogs ?? null,
-    grossProfit: tx.cogs !== null ? tx.totalAmount - tx.cogs : null,
     settlement: tx.settlementItem ? {
       id: tx.settlementItem.settlement.id,
       settlementDate: tx.settlementItem.settlement.settlementDate.toISOString(),
@@ -171,13 +162,6 @@ export async function getTransactionDetail(transactionId: string) {
       price: oi.price,
       note: oi.note,
       status: oi.status as string,
-    })),
-    cogsBreakdown: cogsLogs.map((log) => ({
-      ingredientName: log.template?.name ?? "—",
-      unit: log.template?.defaultUnit ?? "",
-      quantity: Math.abs(log.quantity),
-      unitCost: log.unitCost,
-      totalCost: Math.round(Math.abs(log.quantity) * log.unitCost),
     })),
   };
 }

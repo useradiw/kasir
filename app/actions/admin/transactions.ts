@@ -28,7 +28,6 @@ export async function voidTransaction(transactionId: string, reason: string) {
           voidedById: staff.id,
           voidedAt: new Date(),
           voidReason: reason.trim(),
-          cogs: null,
         },
       });
     });

@@ -17,15 +17,11 @@ const IMPORT_ORDER = [
   "staff",
   "categories",
   "suppliers",
-  "ingredients",
-  "expenseTemplates",
   "menuItems",
   "packages",
   "menuVariants",
   "packageItems",
   "menuItemOnlinePrices",
-  "recipes",
-  "recipeIngredients",
   "tableSessions",
   "orderItems",
   "transactions",
@@ -33,17 +29,8 @@ const IMPORT_ORDER = [
   "settlementItems",
   "settlementDeductions",
   "cashRegisters",
-  "expenses",
-  "expenseItems",
-  "ingredientPurchases",
-  "ingredientRecipes",
-  "ingredientRecipeItems",
-  "kasPakHar",
   "attendanceRecords",
   "notifications",
-  "ingredientLogs",
-  "stockOpnames",
-  "stockOpnameLines",
   // --- Warung Books ledger. Parents before children: ledgerAccounts (self-FK
   // parentId is deferred to a second pass) -> journalEntries -> journalLines.
   // ledgerPostings last; it holds plain ids, no FKs. ---
@@ -221,70 +208,6 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
       });
       break;
 
-    case "ingredients": {
-      // Accept both old keys (baseUnit, averageUnitCost) and new keys (unit, unitCost)
-      // so that backups created before the rename can still be restored.
-      // Old backups may also carry `unitClass` and `ingredientPacks` — those keys
-      // are simply ignored here; they don't crash because we never read them.
-      const unit = ((row.unit ?? row.baseUnit) as string) ?? "pcs";
-      const tags = Array.isArray(row.tags) ? (row.tags as string[]) : [];
-      const restoredUnitCost = ((row.unitCost ?? row.averageUnitCost) as number) ?? 0;
-      await prisma.ingredient.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:                row.id as string,
-          name:              row.name as string,
-          category:          (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
-          unit,
-          currentStock:      row.currentStock as number ?? 0,
-          unitCost:          restoredUnitCost,
-          lastUnitCost:      row.lastUnitCost as number | null ?? undefined,
-          lastPurchasedAt:   toDate(row.lastPurchasedAt),
-          lowStockAlert:     row.lowStockAlert as number | null ?? undefined,
-          isActive:          row.isActive as boolean ?? true,
-          notes:             row.notes as string | null ?? undefined,
-          defaultSupplierId: row.defaultSupplierId as string | null ?? undefined,
-          tags,
-          createdAt:         toDate(row.createdAt) ?? undefined,
-        },
-        update: {
-          name:              row.name as string,
-          category:          (row.category as "BAHAN" | "KEMASAN" | "PERLENGKAPAN" | "LAINNYA") ?? "BAHAN",
-          unit,
-          currentStock:      row.currentStock as number ?? 0,
-          unitCost:          restoredUnitCost,
-          lastUnitCost:      row.lastUnitCost as number | null ?? undefined,
-          lastPurchasedAt:   toDate(row.lastPurchasedAt),
-          lowStockAlert:     row.lowStockAlert as number | null ?? undefined,
-          isActive:          row.isActive as boolean ?? true,
-          notes:             row.notes as string | null ?? undefined,
-          defaultSupplierId: row.defaultSupplierId as string | null ?? undefined,
-          tags,
-        },
-      });
-      break;
-    }
-
-    case "expenseTemplates":
-      await prisma.expenseTemplate.upsert({
-        where: { id: row.id as string },
-        create: {
-          id: row.id as string,
-          name: row.name as string,
-          defaultUnit: row.defaultUnit as string | null ?? undefined,
-          defaultCost: row.defaultCost as number | null ?? undefined,
-          isActive: row.isActive as boolean ?? true,
-          createdAt: toDate(row.createdAt) ?? undefined,
-        },
-        update: {
-          name: row.name as string,
-          defaultUnit: row.defaultUnit as string | null ?? undefined,
-          defaultCost: row.defaultCost as number | null ?? undefined,
-          isActive: row.isActive as boolean ?? true,
-        },
-      });
-      break;
-
     case "menuItems":
       await prisma.menuItem.upsert({
         where: { id: row.id as string },
@@ -356,40 +279,6 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           price: row.price as number,
         },
         update: { price: row.price as number },
-      });
-      break;
-
-    case "recipes":
-      await prisma.recipe.upsert({
-        where: { id: row.id as string },
-        create: {
-          id: row.id as string,
-          menuItemId: row.menuItemId as string,
-          variantId: row.variantId as string | null ?? undefined,
-          notes: row.notes as string | null ?? undefined,
-          createdAt: toDate(row.createdAt) ?? undefined,
-        },
-        update: { notes: row.notes as string | null ?? undefined },
-      });
-      break;
-
-    case "recipeIngredients":
-      await prisma.recipeIngredient.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:           row.id as string,
-          recipeId:     row.recipeId as string,
-          templateId:   row.templateId as string | null ?? undefined,
-          ingredientId: row.ingredientId as string | null ?? undefined,
-          customName:   row.customName as string | null ?? undefined,
-          customUnit:   row.customUnit as string | null ?? undefined,
-          quantity:     row.quantity as number,
-        },
-        update: {
-          quantity:   row.quantity as number,
-          customName: row.customName as string | null ?? undefined,
-          customUnit: row.customUnit as string | null ?? undefined,
-        },
       });
       break;
 
@@ -550,122 +439,6 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
       });
       break;
 
-    case "expenses":
-      await prisma.expense.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:              row.id as string,
-          description:     row.description as string | null ?? undefined,
-          recordedAt:      toDate(row.recordedAt) ?? undefined,
-          createdAt:       toDate(row.createdAt) ?? undefined,
-          staffId:         row.staffId as string | null ?? undefined,
-          supplierId:      row.supplierId as string | null ?? undefined,
-          deductFromCash:  row.deductFromCash as boolean ?? true,
-          countToKasPakHar: row.countToKasPakHar as boolean ?? false,
-        },
-        update: {
-          description:     row.description as string | null ?? undefined,
-          supplierId:      row.supplierId as string | null ?? undefined,
-          deductFromCash:  row.deductFromCash as boolean ?? true,
-          countToKasPakHar: row.countToKasPakHar as boolean ?? false,
-        },
-      });
-      break;
-
-    case "expenseItems":
-      await prisma.expenseItem.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:           row.id as string,
-          expenseId:    row.expenseId as string,
-          description:  row.description as string,
-          amount:       row.amount as number,
-          cost:         row.cost as number,
-          unit:         row.unit as string | null ?? undefined,
-          templateId:   row.templateId as string | null ?? undefined,
-          ingredientId: row.ingredientId as string | null ?? undefined,
-        },
-        update: {
-          description:  row.description as string,
-          amount:       row.amount as number,
-          cost:         row.cost as number,
-          unit:         row.unit as string | null ?? undefined,
-          ingredientId: row.ingredientId as string | null ?? undefined,
-        },
-      });
-      break;
-
-    case "ingredientPurchases":
-      await prisma.ingredientPurchase.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:               row.id as string,
-          ingredientId:     row.ingredientId as string,
-          supplierId:       row.supplierId as string | null ?? undefined,
-          expenseItemId:    row.expenseItemId as string | null ?? undefined,
-          source:           row.source as "EXPENSE" | "ADJUSTMENT" | "OPNAME_GAIN" | "ASSEMBLY",
-          packLabel:        row.packLabel as string | null ?? undefined,
-          packQty:          row.packQty as number,
-          baseQty:          row.baseQty as number,
-          totalCost:        row.totalCost as number,
-          unitCost:         row.unitCost as number,
-          avgUnitCostAfter: row.avgUnitCostAfter as number,
-          stockAfter:       row.stockAfter as number,
-          purchasedAt:      toDate(row.purchasedAt) ?? new Date(),
-          recordedById:     row.recordedById as string | null ?? undefined,
-          notes:            row.notes as string | null ?? undefined,
-        },
-        update: {},
-      });
-      break;
-
-    case "ingredientRecipes":
-      await prisma.ingredientRecipe.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:           row.id as string,
-          ingredientId: row.ingredientId as string,
-          yieldQty:     row.yieldQty as number ?? 1,
-          notes:        row.notes as string | null ?? undefined,
-          createdAt:    toDate(row.createdAt) ?? undefined,
-        },
-        update: {
-          yieldQty: row.yieldQty as number ?? 1,
-          notes:    row.notes as string | null ?? undefined,
-        },
-      });
-      break;
-
-    case "ingredientRecipeItems":
-      await prisma.ingredientRecipeItem.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:           row.id as string,
-          recipeId:     row.recipeId as string,
-          ingredientId: row.ingredientId as string,
-          quantity:     row.quantity as number,
-        },
-        update: { quantity: row.quantity as number },
-      });
-      break;
-
-    case "kasPakHar":
-      await prisma.kasPakHar.upsert({
-        where: { id: row.id as string },
-        create: {
-          id: row.id as string,
-          date: toDate(row.date) ?? undefined,
-          type: row.type as "DEPOSIT" | "WITHDRAWAL" | "EXPENSE_DEDUCTION",
-          amount: row.amount as number,
-          description: row.description as string | null ?? undefined,
-          expenseId: row.expenseId as string | null ?? undefined,
-          createdById: row.createdById as string | null ?? undefined,
-          createdAt: toDate(row.createdAt) ?? undefined,
-        },
-        update: { amount: row.amount as number, description: row.description as string | null ?? undefined },
-      });
-      break;
-
     case "attendanceRecords":
       await prisma.attendanceRecord.upsert({
         where: { id: row.id as string },
@@ -694,53 +467,6 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           createdAt: toDate(row.createdAt) ?? undefined,
         },
         update: { readAt: toDate(row.readAt) },
-      });
-      break;
-
-    case "ingredientLogs":
-      await prisma.ingredientLog.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:           row.id as string,
-          templateId:   row.templateId as string | null ?? undefined,
-          ingredientId: row.ingredientId as string | null ?? undefined,
-          type:         row.type as "PURCHASE" | "SALE" | "ADJUSTMENT" | "WASTE" | "ASSEMBLY",
-          quantity:     row.quantity as number,
-          unitCost:     row.unitCost as number,
-          referenceId:  (row.referenceId as string | null) ?? null,
-          note:         (row.note as string | null) ?? null,
-          createdAt:    toDate(row.createdAt) ?? new Date(),
-        },
-        update: {},
-      });
-      break;
-
-    case "stockOpnames":
-      await prisma.stockOpname.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:            row.id as string,
-          performedAt:   toDate(row.performedAt) ?? new Date(),
-          performedById: row.performedById as string | null ?? undefined,
-          notes:         row.notes as string | null ?? undefined,
-        },
-        update: { notes: row.notes as string | null ?? undefined },
-      });
-      break;
-
-    case "stockOpnameLines":
-      await prisma.stockOpnameLine.upsert({
-        where: { id: row.id as string },
-        create: {
-          id:           row.id as string,
-          opnameId:     row.opnameId as string,
-          ingredientId: row.ingredientId as string,
-          systemQty:    row.systemQty as number,
-          countedQty:   row.countedQty as number,
-          delta:        row.delta as number,
-          noteReason:   row.noteReason as string | null ?? undefined,
-        },
-        update: {},
       });
       break;
 

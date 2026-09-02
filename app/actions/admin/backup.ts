@@ -17,29 +17,16 @@ const ALL_TABLES = [
   "menuItemOnlinePrices",
   "staff",
   "suppliers",
-  "ingredients",
-  "expenses",
-  "expenseItems",
-  "expenseTemplates",
   "tableSessions",
   "orderItems",
   "transactions",
   "cashRegisters",
-  "recipes",
-  "recipeIngredients",
-  "kasPakHar",
   "attendanceRecords",
   "notifications",
   "settings",
   "onlineSettlements",
   "settlementItems",
   "settlementDeductions",
-  "ingredientPurchases",
-  "ingredientLogs",
-  "ingredientRecipes",
-  "ingredientRecipeItems",
-  "stockOpnames",
-  "stockOpnameLines",
   // --- Warung Books ledger ---
   "ledgerAccounts",
   "expenseCategories",
@@ -90,18 +77,6 @@ export async function exportDatabase(tables: string[]) {
       case "suppliers":
         result.suppliers = await prisma.supplier.findMany();
         break;
-      case "ingredients":
-        result.ingredients = await prisma.ingredient.findMany();
-        break;
-      case "expenses":
-        result.expenses = await prisma.expense.findMany();
-        break;
-      case "expenseItems":
-        result.expenseItems = await prisma.expenseItem.findMany();
-        break;
-      case "expenseTemplates":
-        result.expenseTemplates = await prisma.expenseTemplate.findMany();
-        break;
       case "tableSessions":
         result.tableSessions = await prisma.tableSession.findMany();
         break;
@@ -113,15 +88,6 @@ export async function exportDatabase(tables: string[]) {
         break;
       case "cashRegisters":
         result.cashRegisters = await prisma.cashRegister.findMany();
-        break;
-      case "recipes":
-        result.recipes = await prisma.recipe.findMany();
-        break;
-      case "recipeIngredients":
-        result.recipeIngredients = await prisma.recipeIngredient.findMany();
-        break;
-      case "kasPakHar":
-        result.kasPakHar = await prisma.kasPakHar.findMany();
         break;
       case "attendanceRecords":
         result.attendanceRecords = await prisma.attendanceRecord.findMany();
@@ -141,25 +107,6 @@ export async function exportDatabase(tables: string[]) {
       case "settlementDeductions":
         result.settlementDeductions = await prisma.settlementDeduction.findMany();
         break;
-      case "ingredientPurchases":
-        result.ingredientPurchases = await prisma.ingredientPurchase.findMany({ orderBy: { purchasedAt: "asc" } });
-        break;
-      case "ingredientLogs":
-        result.ingredientLogs = await prisma.ingredientLog.findMany({ orderBy: { createdAt: "asc" } });
-        break;
-      case "ingredientRecipes":
-        result.ingredientRecipes = await prisma.ingredientRecipe.findMany();
-        break;
-      case "ingredientRecipeItems":
-        result.ingredientRecipeItems = await prisma.ingredientRecipeItem.findMany();
-        break;
-      case "stockOpnames":
-        result.stockOpnames = await prisma.stockOpname.findMany({ orderBy: { performedAt: "asc" } });
-        break;
-      case "stockOpnameLines":
-        result.stockOpnameLines = await prisma.stockOpnameLine.findMany();
-        break;
-
       // --- Warung Books ledger ---
       case "ledgerAccounts":
         result.ledgerAccounts = await prisma.ledgerAccount.findMany();

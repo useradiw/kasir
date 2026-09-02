@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
-import { formatRupiah, formatRpPerUnit, formatDateTime, formatPaymentMethod, formatTransactionShortId } from "@/lib/format";
+import { formatRupiah, formatDateTime, formatPaymentMethod, formatTransactionShortId } from "@/lib/format";
 import type { StoreInfo } from "@/lib/settings";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateTransaction } from "@/app/actions/admin/transactions";
@@ -546,46 +546,6 @@ export default function TransactionDetailClient({
               </div>
             </CardContent>
           </Card>
-
-          {/* COGS Breakdown */}
-          {data.cogs !== null && data.cogs > 0 && data.status === "PAID" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">HPP (Harga Pokok Penjualan)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {data.cogsBreakdown.length > 0 && (
-                  <div className="divide-y divide-foreground/5 text-sm">
-                    {data.cogsBreakdown.map((b, i) => (
-                      <div key={i} className="flex justify-between py-1.5 gap-2">
-                        <span className="text-muted-foreground">
-                          {b.ingredientName}
-                          <span className="ml-1 text-xs">
-                            ({b.quantity % 1 === 0 ? b.quantity.toFixed(0) : b.quantity.toFixed(2)} {b.unit} × {formatRpPerUnit(b.unitCost)})
-                          </span>
-                        </span>
-                        <span className="font-medium shrink-0">{formatRupiah(b.totalCost)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="border-t pt-2 space-y-1 text-sm">
-                  <div className="flex justify-between font-medium">
-                    <span>Total HPP</span>
-                    <span className="text-destructive">{formatRupiah(data.cogs)}</span>
-                  </div>
-                  {data.grossProfit !== null && (
-                    <div className="flex justify-between font-bold">
-                      <span>Laba Kotor</span>
-                      <span className={data.grossProfit >= 0 ? "text-green-600 dark:text-green-400" : "text-destructive"}>
-                        {formatRupiah(data.grossProfit)}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Charges */}
           <Card>
