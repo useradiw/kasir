@@ -21,7 +21,9 @@ let now: Date;
 const clock = () => now;
 
 beforeAll(async () => {
-  prisma = await createTestClient(["../prisma/sql/2026-09-login-attempts.sql"]);
+  // login_attempts is part of the init migration since 2026-09-02, so the
+  // rig creates it; no extra DDL needed here.
+  prisma = await createTestClient();
 });
 
 afterEach(async () => {
