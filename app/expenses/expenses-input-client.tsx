@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/shared/ui";
-import { PengeluaranForm } from "@/app/admin/keuangan/_components/pengeluaran-form";
+import { PengeluaranForm } from "@/app/admin/(ops)/keuangan/_components/pengeluaran-form";
 import { recordPengeluaranAsStaff } from "@/app/actions/admin/keuangan";
 
 type CashAccount = { name: string; label: string };

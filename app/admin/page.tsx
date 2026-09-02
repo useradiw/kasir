@@ -1,64 +1,93 @@
-import { Container } from "@/components/shared/container";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminPageHeader } from "@/components/admin/ui";
-import { getDashboardData } from "@/app/actions/admin/queries";
+import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
 import { requireRole } from "@/lib/admin-auth";
-import { formatRupiah, formatDateTime } from "@/lib/format";
+import { RoleEnum } from "@/generated/prisma";
 
-export default async function AdminDashboard() {
-  await requireRole("OWNER", "MANAGER", "CASHIER");
-  const data = await getDashboardData();
+/**
+ * /admin — the admin navigation index (redesign plan, section 4). Replaces
+ * the old stat-card dashboard (deleted: it duplicated the /beranda bento)
+ * and the layout dropdown (deleted: dead end for a MANAGER on a phone).
+ */
 
-  const stats = [
-    { label: "Pendapatan Hari Ini", value: formatRupiah(data.todayRevenue) },
-    { label: "Transaksi Hari Ini", value: data.todayCount.toString() },
-    { label: "Staff Aktif", value: data.activeStaff.toString() },
-    { label: "Menu Tersedia", value: data.menuItems.toString() },
-  ];
+type AdminLink = { href: string; label: string; detail: string; ownerOnly?: boolean };
+type AdminGroup = { title: string; links: AdminLink[] };
+
+const groupsBase: AdminGroup[] = [
+  {
+    title: "Staff",
+    links: [
+      { href: "/admin/staff", label: "Kelola Staff", detail: "Tambah, edit, nonaktifkan staff" },
+      { href: "/admin/sessions", label: "Sesi Login", detail: "Sesi aktif dan riwayat login" },
+      { href: "/admin/attendance", label: "Absensi", detail: "Jam masuk dan pulang staff" },
+    ],
+  },
+  {
+    title: "Menu",
+    links: [
+      { href: "/admin/inventory", label: "Inventori Menu", detail: "Ketersediaan item menu" },
+      { href: "/admin/menu-performance", label: "Performa Menu", detail: "Menu terlaris dan lambat", ownerOnly: true },
+      { href: "/admin/suppliers", label: "Supplier", detail: "Data pemasok bahan baku" },
+    ],
+  },
+  {
+    title: "Penjualan",
+    links: [
+      { href: "/admin/reports", label: "Laporan", detail: "Penjualan dan operasional" },
+      { href: "/admin/transactions", label: "Transaksi", detail: "Riwayat semua transaksi" },
+      { href: "/settlement", label: "Pencairan Online", detail: "Pencairan dana platform online" },
+    ],
+  },
+  {
+    title: "Sistem",
+    links: [
+      { href: "/admin/notifications", label: "Notifikasi", detail: "Pengaturan notifikasi staff", ownerOnly: true },
+      { href: "/admin/backup", label: "Backup DB", detail: "Unduh salinan lengkap", ownerOnly: true },
+      { href: "/settings", label: "Pengaturan Toko", detail: "Pajak, service, jam kunci kas", ownerOnly: true },
+    ],
+  },
+];
+
+export default async function AdminPage() {
+  const staff = await requireRole("OWNER", "MANAGER");
+  const isOwner = staff.role === "OWNER" || (staff.role as RoleEnum) === "DEVELOPER";
+
+  const groups = groupsBase
+    .map((group) => ({
+      ...group,
+      links: group.links.filter((l) => !l.ownerOnly || isOwner),
+    }))
+    .filter((group) => group.links.length > 0);
 
   return (
-    <Container id="admin-dashboard" sectionStyle="" className="py-6 space-y-6">
-      <AdminPageHeader title="Dashboard" />
-
-      <div className="grid grid-cols-2 gap-3">
-        {stats.map((s) => (
-          <Card key={s.label}>
-            <CardHeader>
-              <CardTitle className="text-sm text-muted-foreground font-normal">
-                {s.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold tabular-nums">{s.value}</p>
-            </CardContent>
-          </Card>
-        ))}
+    <AppShell role={staff.role}>
+      <div className="px-4 pb-1 pt-6">
+        <h1 className="font-display text-[17px] font-bold">Admin</h1>
+        <p className="text-[11.5px] font-semibold text-muted-foreground">
+          {staff.name} · {staff.role}
+        </p>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Transaksi Terbaru</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.recentTransactions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Belum ada transaksi.</p>
-          ) : (
-            <div className="divide-y divide-foreground/5">
-            {data.recentTransactions.map((t) => (
-              <div key={t.id} className="flex items-center justify-between py-2.5">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{t.sessionName}</p>
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {t.paymentMethod.replace(/_/g, " ")} · {formatDateTime(t.paidAt)}
-                  </p>
+      <div className="flex flex-1 flex-col gap-5 px-4 pb-6 pt-3">
+        {groups.map((group) => (
+          <div key={group.title} className="flex flex-col gap-2.5">
+            <p className="px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {group.title}
+            </p>
+            {group.links.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="flex items-center rounded-2xl border border-border bg-card px-4 py-4 active:scale-[0.99] transition-all duration-150"
+              >
+                <div>
+                  <p className="text-[14px] font-bold">{l.label}</p>
+                  <p className="mt-0.5 text-[11.5px] font-semibold text-muted-foreground">{l.detail}</p>
                 </div>
-                <span className="text-sm font-medium ml-3 shrink-0">{formatRupiah(t.totalAmount)}</span>
-              </div>
+                <span className="ml-auto text-muted-foreground">→</span>
+              </Link>
             ))}
           </div>
-          )}
-        </CardContent>
-      </Card>
-    </Container>
+        ))}
+      </div>
+    </AppShell>
   );
 }
