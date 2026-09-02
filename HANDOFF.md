@@ -100,17 +100,19 @@ route table checked), the dropdown became a back link, `dev-nav.tsx` and
 `/admin/settlement` are deleted, and `/akun` gained an Admin entry.
 
 **Still open, in rough order:**
-1. **Delete `app/admin/(ops)/keuangan/`** — `/buku` now covers all eight screens,
-   so the old folder has no reason to exist. `app/expenses` imports
-   `keuangan/_components/pengeluaran-form`, so retire `/expenses` to a redirect
-   at `/buku/belanja` in the same commit.
-2. **The UAT** (`project_warungbooks_uat.md`). Still the acceptance gate: no
-   money has ever been posted by the real UI. The seeded shop and the dev
-   accounts now make it runnable.
-3. **Section 7** (historical data migration) — NOT approved, needs rewriting for
-   a blank database.
-4. Phase 5/6 reskins: the `(ops)` children are still light-themed against the
-   dark app.
+1. **The UAT** (`project_warungbooks_uat.md`). The acceptance gate: no money has
+   ever been posted by the real UI. The seeded shop and the dev accounts now make
+   it runnable. Its checklist still names the deleted `/admin/keuangan/*` routes
+   and needs rewriting to the `/buku` ones.
+2. Phase 5/6 reskins: the ten `app/admin/(ops)/` children are still light-themed
+   against the dark app.
+
+**No historical data migration.** Scrapped by Adi 2026-09-02 and deleted from the
+plan. The books start at the cutover date: count the real cash, bank and Kas Pak
+Har balances and enter them through Saldo Awal
+(`/buku/pengeluaran?jenis=saldo-awal`). The April-July Warung Books entries and
+kasir's own pre-cutover rows stay in their old projects and will never appear in
+this app. Do not re-propose importing them.
 
 **Verify with:** `npm run lint`, `npm test`, and
 `node --max-old-space-size=8192 node_modules/typescript/lib/tsc.js --noEmit`
