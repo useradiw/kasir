@@ -179,7 +179,7 @@ export default async function PetunjukPage() {
 
             <SubHeading id="kas-harian-buka">Membuka kas</SubHeading>
             <Steps>
-              <li>Buka <Link href="/cashregister" className="text-primary hover:underline">Kas Harian</Link> dari menu utama.</li>
+              <li>Buka <Link href="/kas" className="text-primary hover:underline">Kas</Link> dari menu utama.</li>
               <li>Ketuk <strong>Buka Kas</strong>.</li>
               <li>Isi jumlah uang per denominasi yang ada di laci kas.</li>
               <li>Ketuk <strong>Simpan</strong> — total saldo awal akan tercatat.</li>

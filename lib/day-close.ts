@@ -19,6 +19,11 @@ export interface DaySalesInput {
 export interface DaySalesTotals {
   cashSales: number;
   qrisSales: number;
+  /** Count of transactions that contributed cash to the drawer — CASH, or
+   *  SPLIT with a positive cashAmount leg. Online-service transactions are
+   *  skipped exactly like the cashSales/qrisSales rule above, so this count
+   *  and cashSales always describe the same set of transactions. */
+  cashTxnCount: number;
 }
 
 /** Online-platform services whose revenue is recognized at settlement
@@ -37,6 +42,7 @@ export function isOnlineService(service: string | null): boolean {
 export function sumDaySales(txs: DaySalesInput[]): DaySalesTotals {
   let cashSales = 0;
   let qrisSales = 0;
+  let cashTxnCount = 0;
 
   for (const tx of txs) {
     // Online-platform sales (GoFood/ShopeeFood/GrabFood) post at settlement
@@ -46,15 +52,17 @@ export function sumDaySales(txs: DaySalesInput[]): DaySalesTotals {
 
     if (tx.paymentMethod === "CASH") {
       cashSales += tx.totalAmount;
+      cashTxnCount += 1;
     } else if (tx.paymentMethod === "QRIS") {
       qrisSales += tx.totalAmount;
     } else if (tx.paymentMethod === "SPLIT") {
       cashSales += tx.cashAmount;
       qrisSales += tx.qrisAmount;
+      if (tx.cashAmount > 0) cashTxnCount += 1;
     }
     // Any other/unknown payment method (e.g. "PENDING") is deliberately
     // ignored — we never guess which leg unrecognized money belongs to.
   }
 
-  return { cashSales, qrisSales };
+  return { cashSales, qrisSales, cashTxnCount };
 }

@@ -8,8 +8,31 @@ import { z } from "zod";
 import type { Staff } from "@/generated/prisma";
 import { getSetting } from "@/lib/settings";
 import { ActionError, runAction } from "@/lib/action-error";
-import { reconcileCashDates, reconcileRegisterDay } from "@/app/actions/admin/queries/_shared";
+import {
+  reconcileCashDates,
+  reconcileRegisterDay,
+  resolveRegisterPostings,
+} from "@/app/actions/admin/queries/_shared";
 import { postDayCloseForRegister } from "@/lib/day-close-posting";
+import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
+
+/** Resolves the "tunai" sales channel's kas account to a display label —
+ *  same fallback getLedgerPengeluaranForPeriod uses (label || last segment
+ *  of the account name). Degrades to null, never throws, when unmapped. */
+async function resolveCashAccountLabel(): Promise<string | null> {
+  try {
+    const tunaiAccount = (await new SalesChannelRepository(prisma).list()).tunai;
+    if (!tunaiAccount) return null;
+    const account = await prisma.ledgerAccount.findUnique({
+      where: { name: tunaiAccount },
+      select: { label: true, name: true },
+    });
+    if (!account) return null;
+    return account.label || account.name.split(":").pop() || null;
+  } catch {
+    return null;
+  }
+}
 
 const DEFAULT_LOCK_HOURS = 4;
 
@@ -117,23 +140,15 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
     }
   }
 
-  const [todayRegister, registers] = await Promise.all([
-    prisma.cashRegister.findUnique({
-      where: { date: startOfToday },
-      include: {
-        openedBy: { select: { name: true } },
-        closedBy: { select: { name: true } },
-      },
-    }),
-    prisma.cashRegister.findMany({
-      where,
-      orderBy: { date: "desc" },
-      take: 50,
-      include: {
-        openedBy: { select: { name: true } },
-        closedBy: { select: { name: true } },
-      },
-    }),
+  const include = {
+    openedBy: { select: { name: true } },
+    closedBy: { select: { name: true } },
+  };
+
+  const [todayRegister, registers, cashAccountLabel] = await Promise.all([
+    prisma.cashRegister.findUnique({ where: { date: startOfToday }, include }),
+    prisma.cashRegister.findMany({ where, orderBy: { date: "desc" }, take: 50, include }),
+    resolveCashAccountLabel(),
   ]);
 
   // Reconciliation (same logic as admin query)
@@ -144,14 +159,29 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
 
   // Ledger-based reconciliation — the SAME shared helper the admin screen
   // uses, so tutup kas (staff view) and Kas Harian never disagree.
-  const { cashByDate, qrisByDate, nonSalesByDate } = await reconcileCashDates(allDates);
-  const byDate = { cash: cashByDate, qris: qrisByDate, nonSales: nonSalesByDate };
+  const { cashByDate, qrisByDate, cashTxnCountByDate, nonSalesByDate, movementsByDate } =
+    await reconcileCashDates(allDates);
+  const byDate = {
+    cash: cashByDate,
+    qris: qrisByDate,
+    nonSales: nonSalesByDate,
+    cashTxnCount: cashTxnCountByDate,
+    movements: movementsByDate,
+  };
   const reconcile = (r: { openingCash: number; closingCash: number | null; date: Date }) =>
     reconcileRegisterDay(r, byDate);
 
   const todayRecon = todayRegister ? reconcile(todayRegister) : null;
 
+  // Which closed registers already have a day-close (shift-close) posting —
+  // same shared lookup the owner query uses (task A3/A4).
+  const registerIds = registers.map((r) => r.id);
+  if (todayRegister) registerIds.push(todayRegister.id);
+  const postings = await resolveRegisterPostings(registerIds);
+  const todayPosting = todayRegister ? postings.get(todayRegister.id) : undefined;
+
   return {
+    cashAccountLabel,
     todayRegister: todayRegister
       ? {
           id: todayRegister.id,
@@ -162,25 +192,40 @@ export async function getCashRegisterDataForStaff(opts: { from: string; to: stri
           createdAt: todayRegister.createdAt.toISOString(),
           openedByName: todayRegister.openedBy?.name ?? null,
           closedByName: todayRegister.closedBy?.name ?? null,
+          hasPosting:
+            todayRegister.closingCash !== null
+              ? (todayPosting?.posted ?? false) || (todayRecon?.nothingToPost ?? false)
+              : null,
+          journalNumber: todayPosting?.journalNumber ?? null,
         }
       : null,
     todayCashIncome: todayRecon?.cashIncome ?? 0,
     todayExpenses: todayRecon?.totalExpenses ?? 0,
     todayExpectedClosing: todayRecon?.expectedClosing ?? 0,
+    todayQrisIncome: todayRecon?.qrisIncome ?? 0,
+    todayCashTxnCount: todayRecon?.cashTxnCount ?? 0,
+    todayMovements: todayRecon?.movements ?? [],
     lockHours,
     registers: registers.map((r) => {
       const recon = reconcile(r);
+      const posting = postings.get(r.id);
       return {
         id: r.id,
         date: r.date.toISOString(),
         openingCash: r.openingCash,
         closingCash: r.closingCash,
         cashIncome: recon.cashIncome,
+        qrisIncome: recon.qrisIncome,
         totalExpenses: recon.totalExpenses,
         expectedClosing: recon.expectedClosing,
         difference: recon.difference,
+        cashTxnCount: recon.cashTxnCount,
+        movements: recon.movements,
+        createdAt: r.createdAt.toISOString(),
         openedByName: r.openedBy?.name ?? null,
         closedByName: r.closedBy?.name ?? null,
+        hasPosting: r.closingCash !== null ? (posting?.posted ?? false) || recon.nothingToPost : null,
+        journalNumber: posting?.journalNumber ?? null,
       };
     }),
   };

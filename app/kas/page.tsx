@@ -2,14 +2,15 @@ import { AppShell } from "@/components/shell/app-shell";
 import { requireRole } from "@/lib/admin-auth";
 import { getCashRegisterDataForStaff } from "@/app/actions/cashregister";
 import { getCashRegisterData } from "@/app/actions/admin/queries";
-import CashRegisterStaffClient from "@/app/cashregister/cashregister-client";
-import CashRegisterAdminClient from "@/app/admin/cash-register/cash-register-client";
+import { KasOwner } from "@/components/kas/kas-owner";
+import { KasCashier } from "@/components/kas/kas-cashier";
 
 /**
- * /kas — the single register surface for every role (SPEC #6). Owner/manager
- * get the admin view (edit/delete/recovery); cashier/staff get the shift view
- * with the lock countdown. Both render inside the unified shell so the old
- * twin pages (/cashregister, /admin/cash-register) could retire to redirects.
+ * /kas — the single register surface for every role (SPEC #6), Phase 3
+ * (docs/redesign/plan-open-items.md section 3): the real screen from
+ * screens-kas.html, built in components/kas/*, split by role. This page
+ * stays the single data fetcher — getCashRegisterData (owner/manager) and
+ * getCashRegisterDataForStaff (cashier) — untouched as query entry points.
  */
 export default async function KasPage({
   searchParams,
@@ -21,54 +22,47 @@ export default async function KasPage({
   const params = await searchParams;
   const from = params.from ?? "";
   const to = params.to ?? "";
+  const filters = { from, to };
 
   const isManager = staff.role === "OWNER" || staff.role === "MANAGER" || staff.role === "DEVELOPER";
 
   if (isManager) {
-    const data = await getCashRegisterData({ from, to });
+    const data = await getCashRegisterData(filters);
     return (
       <AppShell role={staff.role}>
-        <div className="px-4 py-5">
-          <h1 className="font-display text-[17px] font-bold">Kas</h1>
-          <p className="sub text-[11.5px] font-semibold text-muted-foreground">
-            Kas harian — seluruh register
-          </p>
-        </div>
-        <div className="px-4 pb-6">
-          <CashRegisterAdminClient
-            staffRole={staff.role}
-            todayRegister={data.todayRegister}
-            todayCashIncome={data.todayCashIncome}
-            todayExpenses={data.todayExpenses}
-            todayExpectedClosing={data.todayExpectedClosing}
-            registers={data.registers}
-            filters={{ from, to }}
-          />
-        </div>
-      </AppShell>
-    );
-  }
-
-  const data = await getCashRegisterDataForStaff({ from, to });
-  return (
-    <AppShell role={staff.role}>
-      <div className="px-4 py-5">
-        <h1 className="font-display text-[17px] font-bold">Kas</h1>
-        <p className="text-[11.5px] font-semibold text-muted-foreground">
-          Kas harian — shift kamu
-        </p>
-      </div>
-      <div className="px-4 pb-6">
-        <CashRegisterStaffClient
+        <KasOwner
+          staffRole={staff.role}
+          cashAccountLabel={data.cashAccountLabel}
           todayRegister={data.todayRegister}
           todayCashIncome={data.todayCashIncome}
           todayExpenses={data.todayExpenses}
           todayExpectedClosing={data.todayExpectedClosing}
-          lockHours={data.lockHours}
+          todayQrisIncome={data.todayQrisIncome}
+          todayCashTxnCount={data.todayCashTxnCount}
+          todayMovements={data.todayMovements}
           registers={data.registers}
-          filters={{ from, to }}
+          filters={filters}
         />
-      </div>
+      </AppShell>
+    );
+  }
+
+  const data = await getCashRegisterDataForStaff(filters);
+  return (
+    <AppShell role={staff.role}>
+      <KasCashier
+        cashAccountLabel={data.cashAccountLabel}
+        todayRegister={data.todayRegister}
+        todayCashIncome={data.todayCashIncome}
+        todayExpenses={data.todayExpenses}
+        todayExpectedClosing={data.todayExpectedClosing}
+        todayQrisIncome={data.todayQrisIncome}
+        todayCashTxnCount={data.todayCashTxnCount}
+        todayMovements={data.todayMovements}
+        lockHours={data.lockHours}
+        registers={data.registers}
+        filters={filters}
+      />
     </AppShell>
   );
 }

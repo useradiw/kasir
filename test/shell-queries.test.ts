@@ -19,6 +19,10 @@ import {
   setupSteps,
   type BukuSetupStatus,
 } from "@/lib/shell-queries";
+import { reconcileCashDates, reconcileRegisterDay } from "@/app/actions/admin/queries/_shared";
+import { getNonSalesCashMovementByDate, getNonSalesCashMovementLines } from "@/lib/ledger-queries";
+import { AccountingRepository } from "@/lib/accounting/accountingRepository";
+import { localDateKey } from "@/lib/format";
 import { createTestClient, resetDb } from "./setup";
 
 let prisma: PrismaClient;
@@ -289,5 +293,233 @@ describe("getTodayOverview / getStaffSalesToday", () => {
       salesToday: 0,
       txnsToday: 0,
     });
+  });
+});
+
+// ─── Kas totals invariant (plan-open-items.md section 3, part D) ───────────
+//
+// The invariant that has broken three times elsewhere: every column of
+// figures must sum to the total shown against it. Here that means
+// kas awal + penjualan tunai + masuk − keluar === expectedClosing, and the
+// A1 movement lines must sum EXACTLY to the net getNonSalesCashMovementByDate
+// reports — the guard that the Kas screen's movements list and its
+// reconciliation number can never drift apart.
+
+const TUNAI = "Assets:Cash:KasLaci";
+
+async function seedTunaiChannel(db: PrismaClient) {
+  await db.ledgerAccount.create({
+    data: { code: TUNAI, name: TUNAI, label: "Kas Laci", type: "ASSET" },
+  });
+  await db.salesChannelAccount.create({ data: { channel: "tunai", account: TUNAI } });
+}
+
+async function mkStaff(db: PrismaClient) {
+  return db.staff.create({
+    data: { name: "Dina", username: `dina-${Date.now()}-${Math.random()}`, role: "CASHIER" },
+  });
+}
+
+async function mkSale(
+  db: PrismaClient,
+  staffId: string,
+  date: Date,
+  opts: {
+    total: number;
+    method: "CASH" | "QRIS" | "SPLIT";
+    cashAmount?: number;
+    qrisAmount?: number;
+    service?: string | null;
+  },
+) {
+  const session = await db.tableSession.create({
+    data: { name: opts.service ?? "Meja 1", service: opts.service ?? undefined },
+  });
+  return db.transaction.create({
+    data: {
+      tableSessionId: session.id,
+      processedById: staffId,
+      subtotal: opts.total,
+      totalAmount: opts.total,
+      cashAmount: opts.cashAmount ?? (opts.method === "CASH" ? opts.total : 0),
+      qrisAmount: opts.qrisAmount ?? (opts.method === "QRIS" ? opts.total : 0),
+      paymentMethod: opts.method,
+      status: "PAID",
+      paidAt: date,
+    },
+  });
+}
+
+describe("Kas totals invariant", () => {
+  it("day shape 1 — sales + pengeluaran: kas awal + tunai + masuk - keluar === expectedClosing, and closingCash - expectedClosing === difference", async () => {
+    await seedTunaiChannel(prisma);
+    const staff = await mkStaff(prisma);
+    const date = new Date(2026, 7, 10, 14, 0, 0);
+
+    await mkSale(prisma, staff.id, date, { total: 200_000, method: "CASH" });
+    await mkSale(prisma, staff.id, date, { total: 50_000, method: "SPLIT", cashAmount: 20_000, qrisAmount: 30_000 });
+
+    const acc = new AccountingRepository(prisma);
+    await acc.postEntry({
+      date: "2026-08-10",
+      narration: "Beli gas",
+      lines: [
+        { account: "Expenses:OpEx:Gas", amount: 35_000n },
+        { account: TUNAI, amount: -35_000n },
+      ],
+    });
+
+    const register = await prisma.cashRegister.create({
+      data: { date: new Date(2026, 7, 10), openingCash: 100_000, closingCash: 285_000 },
+    });
+
+    const { cashByDate, qrisByDate, cashTxnCountByDate, nonSalesByDate, movementsByDate } =
+      await reconcileCashDates([register.date], prisma);
+    const recon = reconcileRegisterDay(register, {
+      cash: cashByDate,
+      qris: qrisByDate,
+      nonSales: nonSalesByDate,
+      cashTxnCount: cashTxnCountByDate,
+      movements: movementsByDate,
+    });
+
+    const key = localDateKey(register.date);
+    expect(register.openingCash + recon.cashIncome + (nonSalesByDate[key] ?? 0)).toBe(recon.expectedClosing);
+    expect(recon.expectedClosing).toBe(100_000 + 220_000 - 35_000);
+    expect((register.closingCash as number) - recon.expectedClosing).toBe(recon.difference);
+    expect(recon.difference).toBe(0);
+  });
+
+  it("day shape 2 — an incoming transfer raises expectedClosing without touching cashIncome, and a short count reports a negative difference", async () => {
+    await seedTunaiChannel(prisma);
+
+    const acc = new AccountingRepository(prisma);
+    await acc.postEntry({
+      date: "2026-08-11",
+      narration: "Transfer modal masuk",
+      lines: [
+        { account: TUNAI, amount: 500_000n },
+        { account: "Equity:Modal", amount: -500_000n },
+      ],
+    });
+
+    const register = await prisma.cashRegister.create({
+      data: { date: new Date(2026, 7, 11), openingCash: 100_000, closingCash: 590_000 },
+    });
+
+    const { cashByDate, qrisByDate, cashTxnCountByDate, nonSalesByDate, movementsByDate } =
+      await reconcileCashDates([register.date], prisma);
+    const recon = reconcileRegisterDay(register, {
+      cash: cashByDate,
+      qris: qrisByDate,
+      nonSales: nonSalesByDate,
+      cashTxnCount: cashTxnCountByDate,
+      movements: movementsByDate,
+    });
+
+    const key = localDateKey(register.date);
+    expect(register.openingCash + recon.cashIncome + (nonSalesByDate[key] ?? 0)).toBe(recon.expectedClosing);
+    expect(recon.cashIncome).toBe(0);
+    expect(recon.expectedClosing).toBe(600_000);
+    expect((register.closingCash as number) - recon.expectedClosing).toBe(recon.difference);
+    expect(recon.difference).toBe(-10_000);
+  });
+
+  it("day shape 3 — a zero day (no sales, no movement, exact count): kas awal alone equals expectedClosing, difference is zero", async () => {
+    await seedTunaiChannel(prisma);
+    const register = await prisma.cashRegister.create({
+      data: { date: new Date(2026, 7, 12), openingCash: 150_000, closingCash: 150_000 },
+    });
+
+    const { cashByDate, qrisByDate, cashTxnCountByDate, nonSalesByDate, movementsByDate } =
+      await reconcileCashDates([register.date], prisma);
+    const recon = reconcileRegisterDay(register, {
+      cash: cashByDate,
+      qris: qrisByDate,
+      nonSales: nonSalesByDate,
+      cashTxnCount: cashTxnCountByDate,
+      movements: movementsByDate,
+    });
+
+    const key = localDateKey(register.date);
+    expect(register.openingCash + recon.cashIncome + (nonSalesByDate[key] ?? 0)).toBe(recon.expectedClosing);
+    expect(recon.expectedClosing).toBe(150_000);
+    expect((register.closingCash as number) - recon.expectedClosing).toBe(recon.difference);
+    expect(recon.difference).toBe(0);
+    expect(recon.nothingToPost).toBe(true);
+  });
+
+  it("the A1 movement lines sum EXACTLY to the net getNonSalesCashMovementByDate reports for the same date", async () => {
+    await seedTunaiChannel(prisma);
+    const acc = new AccountingRepository(prisma);
+
+    await acc.postEntry({
+      date: "2026-08-13",
+      narration: "Transfer ke Bank BCA",
+      lines: [
+        { account: TUNAI, amount: -150_000n },
+        { account: "Assets:Cash:BankBCA", amount: 150_000n },
+      ],
+    });
+    await acc.postEntry({
+      date: "2026-08-13",
+      narration: "Pengeluaran gas",
+      lines: [
+        { account: "Expenses:OpEx:Gas", amount: 35_000n },
+        { account: TUNAI, amount: -35_000n },
+      ],
+    });
+    await acc.postEntry({
+      date: "2026-08-13",
+      narration: "Modal masuk",
+      lines: [
+        { account: TUNAI, amount: 500_000n },
+        { account: "Equity:Modal", amount: -500_000n },
+      ],
+    });
+
+    const dateKeys = ["2026-08-13"];
+    const [net, lines] = await Promise.all([
+      getNonSalesCashMovementByDate(TUNAI, dateKeys, prisma),
+      getNonSalesCashMovementLines(TUNAI, dateKeys, prisma),
+    ]);
+
+    const linesSum = (lines["2026-08-13"] ?? []).reduce((sum, l) => sum + l.amount, 0);
+    expect(linesSum).toBe(net["2026-08-13"]);
+    expect(linesSum).toBe(-150_000 - 35_000 + 500_000);
+    expect(lines["2026-08-13"]).toHaveLength(3);
+  });
+
+  it("cashTxnCount counts CASH and cash-bearing SPLIT transactions and excludes online-service ones", async () => {
+    await seedTunaiChannel(prisma);
+    const staff = await mkStaff(prisma);
+    const date = new Date(2026, 7, 14, 12, 0, 0);
+
+    await mkSale(prisma, staff.id, date, { total: 50_000, method: "CASH" });
+    await mkSale(prisma, staff.id, date, { total: 60_000, method: "CASH" });
+    await mkSale(prisma, staff.id, date, { total: 40_000, method: "SPLIT", cashAmount: 10_000, qrisAmount: 30_000 });
+    // No cash leg — must not count.
+    await mkSale(prisma, staff.id, date, { total: 25_000, method: "SPLIT", cashAmount: 0, qrisAmount: 25_000 });
+    // Pure QRIS — must not count.
+    await mkSale(prisma, staff.id, date, { total: 15_000, method: "QRIS" });
+    // Online-service CASH-labeled — must be excluded entirely, same as its amount.
+    await mkSale(prisma, staff.id, date, { total: 99_000, method: "CASH", service: "GoFood" });
+
+    const register = await prisma.cashRegister.create({
+      data: { date: new Date(2026, 7, 14), openingCash: 0, closingCash: null },
+    });
+
+    const { cashByDate, qrisByDate, cashTxnCountByDate, nonSalesByDate, movementsByDate } =
+      await reconcileCashDates([register.date], prisma);
+    const recon = reconcileRegisterDay(register, {
+      cash: cashByDate,
+      qris: qrisByDate,
+      nonSales: nonSalesByDate,
+      cashTxnCount: cashTxnCountByDate,
+      movements: movementsByDate,
+    });
+
+    expect(recon.cashTxnCount).toBe(3);
+    expect(recon.cashIncome).toBe(50_000 + 60_000 + 10_000);
   });
 });

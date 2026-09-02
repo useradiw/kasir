@@ -7,8 +7,7 @@ export function revalidateInventory() {
 
 /** Revalidate all pages that display cash register data. */
 export function revalidateCashRegister() {
-  revalidatePath("/cashregister");
-  revalidatePath("/admin/cash-register");
+  revalidatePath("/kas");
 }
 
 /** Revalidate all pages that display transaction data. */
@@ -37,8 +36,7 @@ export function revalidateAttendance() {
 export function revalidateSettings() {
   revalidatePath("/settings");
   revalidatePath("/kasir");
-  revalidatePath("/cashregister");
-  revalidatePath("/admin/cash-register");
+  revalidatePath("/kas");
 }
 
 /** Revalidate profile pages. */

@@ -13,9 +13,31 @@ import { prisma } from "@/lib/prisma";
 import type { PrismaClient } from "@/generated/prisma";
 import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
 
+/** One journal-line-level cash movement, as returned by
+ *  getNonSalesCashMovementLines — the line-level counterpart of
+ *  getNonSalesCashMovementByDate's per-date net. */
+export type CashMovementLine = {
+  dateKey: string;
+  narration: string;
+  amount: number;
+  sourceType: string | null;
+  entryNumber: number | null;
+  entryId: string;
+  /** entry.postedAt (ISO string), null for an entry that never reached POSTED
+   *  (a VOID row that was voided pre-POST, in principle) — the Kas screen's
+   *  movements list uses this for the "<time> · <sourceType>" meta line. */
+  postedAt: string | null;
+};
+
 /**
- * Signed net movement on `account`, per "YYYY-MM-DD" date in `dates`, from
+ * Line-level version of getNonSalesCashMovementByDate: the individual
+ * journal lines behind the net, per "YYYY-MM-DD" date in `dates`, from
  * everything EXCEPT the shift-close (day-close) entries.
+ *
+ * Uses the EXACT same where-filter as getNonSalesCashMovementByDate —
+ * including the NULL-safety and POSTED/VOID netting invariant documented
+ * below — because getNonSalesCashMovementByDate is now a reduction over this
+ * function's output. The filter lives here, in exactly one place.
  *
  * - Includes both POSTED and VOID lines: a voided entry and its reversal net
  *   to zero (see AccountingRepository.loadBook's documented invariant) —
@@ -30,12 +52,12 @@ import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
  *   `IS DISTINCT FROM 'shift-close'` semantics: NULL sourceType always
  *   qualifies, and non-null sourceType qualifies unless it IS "shift-close".
  */
-export async function getNonSalesCashMovementByDate(
+export async function getNonSalesCashMovementLines(
   account: string,
   dates: string[],
   db: PrismaClient = prisma,
-): Promise<Record<string, number>> {
-  const result: Record<string, number> = {};
+): Promise<Record<string, CashMovementLine[]>> {
+  const result: Record<string, CashMovementLine[]> = {};
   if (dates.length === 0) return result;
 
   const lines = await db.journalLine.findMany({
@@ -47,14 +69,48 @@ export async function getNonSalesCashMovementByDate(
         OR: [{ sourceType: null }, { sourceType: { not: "shift-close" } }],
       },
     },
-    select: { amount: true, entry: { select: { date: true } } },
+    select: {
+      amount: true,
+      entry: {
+        select: { id: true, date: true, narration: true, sourceType: true, number: true, postedAt: true },
+      },
+    },
   });
 
   for (const line of lines) {
     const key = line.entry.date;
-    result[key] = (result[key] ?? 0) + Number(line.amount);
+    const bucket = result[key] ?? (result[key] = []);
+    bucket.push({
+      dateKey: key,
+      narration: line.entry.narration,
+      amount: Number(line.amount),
+      sourceType: line.entry.sourceType,
+      entryNumber: line.entry.number,
+      entryId: line.entry.id,
+      postedAt: line.entry.postedAt ? line.entry.postedAt.toISOString() : null,
+    });
   }
 
+  return result;
+}
+
+/**
+ * Signed net movement on `account`, per "YYYY-MM-DD" date in `dates`, from
+ * everything EXCEPT the shift-close (day-close) entries. A reduction over
+ * getNonSalesCashMovementLines — see that function for the filter this
+ * shares with the line-level view (kept in exactly one place on purpose, so
+ * the movements list and this net can never drift from each other).
+ */
+export async function getNonSalesCashMovementByDate(
+  account: string,
+  dates: string[],
+  db: PrismaClient = prisma,
+): Promise<Record<string, number>> {
+  const linesByDate = await getNonSalesCashMovementLines(account, dates, db);
+  const result: Record<string, number> = {};
+  for (const [key, lines] of Object.entries(linesByDate)) {
+    result[key] = lines.reduce((sum, l) => sum + l.amount, 0);
+  }
   return result;
 }
 
@@ -114,6 +170,46 @@ export async function getLedgerExpenseTotals(
   }
 
   return { hpp, opex, byAccount, byDate };
+}
+
+/**
+ * getCashAccountBalances — the ONE new query approved for the /buku
+ * pengeluaran rebuild (docs/redesign/plan-open-items.md section 1, build
+ * order 5, task C). Current balance of every `Assets:Cash:*` ledger account,
+ * optionally bounded by `dateTo`.
+ *
+ * - Includes both POSTED and VOID entries, same invariant documented on
+ *   getNonSalesCashMovementByDate above: a voided entry and its reversal net
+ *   to zero, so excluding VOID would strand the reversal leg and produce a
+ *   wrong balance.
+ * - Not wired into any page yet, and there is no server-action wrapper for
+ *   it — it exists with its test only. Wiring the "Kas Laci setelah
+ *   transfer" figure from screens-buku-forms.html mockup 2 is a later step.
+ *
+ * `db` defaults to the production-pointing singleton, same rationale as the
+ * other functions in this file — tests inject the pglite test client so the
+ * suite never touches DATABASE_URL (production).
+ */
+export async function getCashAccountBalances(
+  opts: { dateTo?: string } = {},
+  db: PrismaClient = prisma,
+): Promise<Record<string, number>> {
+  const lines = await db.journalLine.findMany({
+    where: {
+      account: { startsWith: "Assets:Cash:" },
+      entry: {
+        state: { in: ["POSTED", "VOID"] },
+        ...(opts.dateTo ? { date: { lte: opts.dateTo } } : {}),
+      },
+    },
+    select: { account: true, amount: true },
+  });
+
+  const balances: Record<string, number> = {};
+  for (const line of lines) {
+    balances[line.account] = (balances[line.account] ?? 0) + Number(line.amount);
+  }
+  return balances;
 }
 
 /**

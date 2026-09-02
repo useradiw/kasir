@@ -99,7 +99,7 @@ export function SessionList({
   return (
     <>
       <KasirTopBar title="Kasir" sub={staffName}>
-        {/* Both links point at migrated routes: /cashregister and "/" are the
+        {/* Both links point at migrated routes: /kas and "/" replaced the
             old hub-and-spoke doors (design.md section 4). */}
         <Link href="/kas" className="p-2.5" aria-label="Kas">
           <Landmark className="size-5 text-muted-foreground" />
