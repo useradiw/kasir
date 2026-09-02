@@ -58,8 +58,11 @@ export default async function BukuSetupPage() {
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="text-xs font-semibold leading-relaxed text-muted-foreground">
             Urutan wajib: akun dulu, lalu akun kas, lalu pemetaan kanal, lalu
-            kategori. Setelah semuanya selesai, buat bulan pertama di pemilih
-            bulan pada halaman Buku, hitung uang riil, dan catat lewat{" "}
+            kategori. Setelah semuanya selesai, buat bulan pertama di{" "}
+            <Link href="/buku/bulan" className="font-bold text-primary">
+              Bulan
+            </Link>
+            , hitung uang riil, dan catat lewat{" "}
             <Link href="/buku/pengeluaran?jenis=saldo-awal" className="font-bold text-primary">
               Saldo Awal
             </Link>

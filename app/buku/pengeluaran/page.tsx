@@ -6,7 +6,8 @@ import { listPengeluaran, listCategories, listCashAccounts, listCatat } from "@/
 import { getSelectedMonth, monthRange } from "@/lib/keuangan-month";
 import { recordPengeluaran } from "@/app/actions/admin/keuangan";
 import type { CatatSourceType } from "@/lib/accounting/catatRepository";
-import { EntryForm, JENIS_VALUES, PILL_LABEL, VARIANT_TITLE, type Jenis } from "./entry-form";
+import { EntryForm } from "./entry-form";
+import { JENIS_VALUES, PILL_LABEL, VARIANT_TITLE, type Jenis } from "./variants";
 import { EntryList } from "./entry-list";
 
 export const dynamic = "force-dynamic";

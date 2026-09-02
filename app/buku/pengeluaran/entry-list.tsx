@@ -7,7 +7,7 @@ import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah } from "@/lib/format";
 import { sumJumlah } from "./totals";
-import type { Jenis } from "./entry-form";
+import type { Jenis } from "./variants";
 import { voidPengeluaran, voidCatat } from "@/app/actions/admin/keuangan";
 import type { CatatSourceType } from "@/lib/accounting/catatRepository";
 

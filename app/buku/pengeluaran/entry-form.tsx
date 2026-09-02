@@ -11,6 +11,10 @@ import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { formatRupiah } from "@/lib/format";
 import { Field, todayISO } from "./form-ui";
+import { VARIANT_TITLE, PILL_LABEL, JENIS_VALUES, type Jenis } from "./variants";
+
+export { VARIANT_TITLE, PILL_LABEL, JENIS_VALUES };
+export type { Jenis };
 import { computeLineJumlah, sumJumlah } from "./totals";
 import type { PengeluaranData } from "@/lib/keuangan-schema";
 import {
@@ -19,29 +23,6 @@ import {
   recordPrive,
   recordSaldoAwal,
 } from "@/app/actions/admin/keuangan";
-
-export type Jenis = "belanja" | "transfer" | "modal" | "prive" | "saldo-awal";
-
-export const JENIS_VALUES: Jenis[] = ["belanja", "transfer", "modal", "prive", "saldo-awal"];
-
-/** Title shown in the topbar h1 (SPEC #13) — the single source both
- *  app/buku/pengeluaran/page.tsx and app/buku/belanja/page.tsx read from. */
-export const VARIANT_TITLE: Record<Jenis, string> = {
-  belanja: "Catat Pengeluaran",
-  transfer: "Transfer Kas",
-  modal: "Setoran Modal",
-  prive: "Prive (Ambil Pribadi)",
-  "saldo-awal": "Saldo Awal",
-};
-
-/** Short label for the segmented pill row. */
-export const PILL_LABEL: Record<Jenis, string> = {
-  belanja: "Belanja",
-  transfer: "Transfer",
-  modal: "Modal",
-  prive: "Prive",
-  "saldo-awal": "Saldo Awal",
-};
 
 const SUBMIT_LABEL: Record<Jenis, string> = {
   belanja: "Simpan Pengeluaran",
