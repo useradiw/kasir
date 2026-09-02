@@ -60,7 +60,7 @@ export default async function BukuSetupPage() {
             Urutan wajib: akun dulu, lalu akun kas, lalu pemetaan kanal, lalu
             kategori. Setelah semuanya selesai, buat bulan pertama di pemilih
             bulan pada halaman Buku, hitung uang riil, dan catat lewat{" "}
-            <Link href="/admin/keuangan/saldo-awal" className="font-bold text-primary">
+            <Link href="/buku/pengeluaran?jenis=saldo-awal" className="font-bold text-primary">
               Saldo Awal
             </Link>
             . Tidak ada apa pun yang tercatat ke buku besar sebelum langkah 3

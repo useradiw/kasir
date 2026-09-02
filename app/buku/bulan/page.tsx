@@ -2,6 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { requireOwner } from "@/lib/admin-auth";
 import { listMonths } from "@/app/actions/admin/queries";
+import { getSelectedMonth } from "@/lib/keuangan-month";
 import { BulanClient } from "./bulan-client";
 
 export const dynamic = "force-dynamic";
@@ -15,10 +16,16 @@ export const dynamic = "force-dynamic";
  * page itself — there is no equivalent layout under /buku, and
  * screens-buku.html mockup 3 shows "+ Baru" on this exact screen, so the
  * capability is kept here rather than dropped.
+ *
+ * The old MonthPicker did a SECOND job the create form does not: it set the
+ * ACTIVE month (the `wb_month` cookie that getSelectedMonth feeds to jurnal,
+ * buku-kas, laporan, modal and pengeluaran). That setter lives here too now,
+ * as a per-month action in the list rather than a dropdown in a layout —
+ * otherwise nothing under /buku could change the period those screens read.
  */
 export default async function BukuBulanPage() {
   const staff = await requireOwner();
-  const months = await listMonths();
+  const [months, selected] = await Promise.all([listMonths(), getSelectedMonth()]);
 
   return (
     <AppShell role={staff.role}>
@@ -27,10 +34,10 @@ export default async function BukuBulanPage() {
           ← Buku
         </Link>
         <h1 className="font-display mt-2 text-[17px] font-bold">Bulan</h1>
-        <p className="text-[11.5px] font-semibold text-muted-foreground">Tutup buku & kunci periode</p>
+        <p className="text-[11.5px] font-semibold text-muted-foreground">Bulan aktif, tutup buku & kunci periode</p>
       </div>
       <div className="flex flex-1 flex-col gap-3 px-4 pb-6 pt-3">
-        <BulanClient months={months} />
+        <BulanClient months={months} selected={selected} />
       </div>
     </AppShell>
   );

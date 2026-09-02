@@ -100,7 +100,7 @@ export default async function BukuPage() {
             { ic: "📊", l: "Laporan", href: "/admin/keuangan/laporan" },
             { ic: "📜", l: "Jurnal", href: "/admin/keuangan" },
             { ic: "💰", l: "Buku Kas", href: "/admin/keuangan/buku-kas" },
-            { ic: "🧾", l: "Belanja", href: "/admin/keuangan/pengeluaran" },
+            { ic: "🧾", l: "Belanja", href: "/buku/pengeluaran" },
           ].map((a) => (
             <Link
               key={a.l}

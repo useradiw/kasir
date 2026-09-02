@@ -56,7 +56,7 @@ export function ValidasiTab({ laporan }: { laporan: LaporanKeuangan }) {
                   Selisih ini biasanya berarti ada hari yang belum ditutup kasnya — kasir
                   mencatat penjualan ke buku besar hanya saat tutup kas, jadi hari yang belum
                   ditutup tidak akan pernah masuk ke Laba Rugi meskipun transaksinya sudah ada.
-                  Cek /admin/cash-register untuk hari yang belum ditutup.
+                  Cek /kas untuk hari yang belum ditutup.
                 </p>
               )}
             </div>

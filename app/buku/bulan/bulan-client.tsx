@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { AlertRow, BentoCard, CardLabel, Row, Tag } from "@/components/shell/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
-import { lockMonth, unlockMonth, createMonth } from "@/app/actions/admin/keuangan";
+import { lockMonth, unlockMonth, createMonth, setSelectedMonth } from "@/app/actions/admin/keuangan";
 
 type Month = { month: string; locked: boolean };
 
@@ -73,10 +73,22 @@ function NewMonthForm() {
   );
 }
 
-function MonthCard({ m }: { m: Month }) {
+function MonthCard({ m, active }: { m: Month; active: boolean }) {
   const router = useRouter();
   const { isPending, run, error } = useAdminAction();
   const confirm = useConfirm();
+
+  // Sets the wb_month cookie every other Keuangan screen reads. No confirm:
+  // it changes what you are looking at, nothing in the ledger.
+  function pakai() {
+    run(
+      async () => {
+        await setSelectedMonth({ month: m.month });
+        router.refresh();
+      },
+      { successMessage: `Bulan aktif: ${formatMonth(m.month)}` },
+    );
+  }
   // Only offered after a plain lock attempt fails validation — never shown
   // up front, so forcing is always a deliberate second step.
   const [offerForce, setOfferForce] = useState(false);
@@ -144,18 +156,38 @@ function MonthCard({ m }: { m: Month }) {
                 Kunci Paksa
               </Button>
             )}
+            {!active && (
+              <Button size="xs" variant="outline" disabled={isPending} onClick={pakai}>
+                Jadikan Aktif
+              </Button>
+            )}
           </span>
         </>
       }
     >
-      <Tag tone={m.locked ? "bad" : "acc"}>{m.locked ? "🔒 Terkunci" : "Berjalan"}</Tag>
+      <span className="flex flex-wrap justify-end gap-1.5">
+        {active ? <Tag tone="ok">Aktif</Tag> : null}
+        <Tag tone={m.locked ? "bad" : "acc"}>{m.locked ? "🔒 Terkunci" : "Berjalan"}</Tag>
+      </span>
     </Row>
   );
 }
 
-export function BulanClient({ months }: { months: Month[] }) {
+export function BulanClient({ months, selected }: { months: Month[]; selected: string }) {
+  const selectedExists = months.some((m) => m.month === selected);
+
   return (
     <>
+      <AlertRow
+        tone={selectedExists ? "info" : "warn"}
+        title={`Bulan aktif: ${formatMonth(selected)}`}
+        detail={
+          selectedExists
+            ? "Jurnal, buku kas, laporan dan pengeluaran menampilkan bulan ini."
+            : "Bulan ini belum dibuat. Buat dulu supaya entri bisa diposting di sana."
+        }
+      />
+
       <p className="text-[11.5px] font-semibold leading-relaxed text-muted-foreground">
         Tutup buku mengunci sebuah bulan akuntansi supaya tidak ada entri baru yang bisa diposting
         atau dibatalkan (void) di bulan itu. Gunakan setelah laporan bulan tersebut sudah final.
@@ -168,7 +200,7 @@ export function BulanClient({ months }: { months: Month[] }) {
       ) : (
         <div className="flex flex-col gap-2.5">
           {months.map((m) => (
-            <MonthCard key={m.month} m={m} />
+            <MonthCard key={m.month} m={m} active={m.month === selected} />
           ))}
         </div>
       )}
