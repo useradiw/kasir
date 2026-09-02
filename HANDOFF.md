@@ -88,14 +88,35 @@ can finally verify screens visually — nothing on this branch ever has been.
 **Authorised 2026-09-01:** `/buku/belanja` is `requireAuth()`, not
 `requireOwner()`. Do not "fix" it.
 
-**Still open:** the whole app is unverified against a real login; the shop needs
-seeding (menu, categories, staff, settings) before it can be used; section 7 of
-`docs/redesign/plan-open-items.md` (historical data migration) is NOT approved
-and now needs rewriting for a blank database — menu, staff and settings must be
-imported too, not just the ledger. Warung Books stays the source of truth for
-April-July 2026. Section 4 (retire `app/admin/page.tsx` and `/admin/settlement`,
-make `/admin` the grouped index) and the deletion of `app/admin/keuangan/` are
-also still open.
+**Landed since:** the first browser pass this branch ever had, signed in as the
+seeded DEVELOPER. It found two real bugs that every gate had missed:
+`/buku/pengeluaran` crashed on every request (a Server Component read a
+non-function export from a `"use client"` module and got a client reference, not
+the array — constants now live in `variants.ts`), and the zero-state notice on
+laporan and buku kas told a fully configured owner to go and configure the book.
+Both fixed and verified. Also section 4: `/admin` is now a grouped dark index,
+its children moved into the route group `app/admin/(ops)/` (URLs unchanged, build
+route table checked), the dropdown became a back link, `dev-nav.tsx` and
+`/admin/settlement` are deleted, and `/akun` gained an Admin entry.
+
+**Still open, in rough order:**
+1. **Delete `app/admin/(ops)/keuangan/`** — `/buku` now covers all eight screens,
+   so the old folder has no reason to exist. `app/expenses` imports
+   `keuangan/_components/pengeluaran-form`, so retire `/expenses` to a redirect
+   at `/buku/belanja` in the same commit.
+2. **The UAT** (`project_warungbooks_uat.md`). Still the acceptance gate: no
+   money has ever been posted by the real UI. The seeded shop and the dev
+   accounts now make it runnable.
+3. **Section 7** (historical data migration) — NOT approved, needs rewriting for
+   a blank database.
+4. Phase 5/6 reskins: the `(ops)` children are still light-themed against the
+   dark app.
+
+**Verify with:** `npm run lint`, `npm test`, and
+`node --max-old-space-size=8192 node_modules/typescript/lib/tsc.js --noEmit`
+(plain `npx tsc` OOMs here). While the dev server runs, `npm run build` fails in
+`prisma generate` with EPERM on the query-engine DLL — use `npx next build`, or
+stop the server first.
 
 ## ☠ DATABASE — read before any DB command
 - **`.env` is PRODUCTION** (Supabase `oyvgyhuzvxepteldlghn`). There is NO dev DB.
