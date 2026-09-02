@@ -55,45 +55,47 @@ button and the CSV download have never executed. UAT material.
 
 **Next:** steps 6-8 — jurnal, kas (`/buku/kas`), laporan. Then the deletion commit.
 
-## 2026-09-02 — three commits landed; a BLANK DB is coming
+## 2026-09-02 — NEW BLANK DATABASE, schema cleaned
 
-`docs/redesign/plan-open-items.md` is the plan of record. Committed on
-`feat/warungbooks`, in this order:
-- `aed6554` login brute-force lockout (per-username, 5 tries / 15 min).
-- `8577ed5` the real `/kas` screen; `/cashregister` and `/admin/cash-register`
-  DELETED. `reconcileCashDates` was extended, not duplicated.
-- `35deeae` `/buku/pengeluaran`, `belanja`, `jurnal`, `kas`, `laporan`, plus the
-  active-month setter on `/buku/bulan`.
-Gates at that point: tsc, lint, build clean; 328 tests pass + 1 skipped.
-NOTHING has been visually verified — Claude has no login.
+**The database is now the fresh Supabase project `ktcaaasmrryoxinsutzt`.** Both
+`.env` (DATABASE_URL/DIRECT_URL) and `.env.local` (auth URL + keys) point at it;
+the old `oyvgyhuzvxepteldlghn` lines are commented out in both. It holds 29
+tables and no data.
 
-**⛔ BEFORE DEPLOYING `aed6554`:** `checkLock` does not swallow errors, so the
-code fails EVERY login until `login_attempts` exists. Apply
-`prisma/sql/2026-09-login-attempts.sql` via `prisma db execute`, then
-`prisma migrate resolve --applied 20260901000000_login_attempts`.
+**The migration landmine is GONE.** The old 8-migration chain described a
+database that no longer exists and was deleted. `prisma/migrations/` now holds
+exactly one init, generated with `migrate diff --from-empty`, applied with
+`migrate deploy`. From here: one migration per schema change, normally. NEVER
+`db push` — it silently drops columns to make the database match.
+
+Committed on `feat/warungbooks`: `aed6554` login lockout · `8577ed5` the real
+`/kas` screen (both old routes deleted) · `35deeae` the five `/buku` screens ·
+`64f551e` schema cleanup · `3dac62a` + `da...` the init migration and its lock
+file · `6224074` the dev-accounts script.
+
+**Schema cleanup:** dropped 13 models (the COGS subsystem and the pre-ledger
+Expense/KasPakHar tables), 4 enums, and `Transaction.cogs` (its only writer
+wrote a literal null). `Supplier` is KEPT — unwired, reserved for future
+purchasing. The transaction-detail HPP card went with them; it had rendered an
+empty breakdown since Slice 1.
+
+**⏳ NEXT — Adi runs this, not Claude:**
+`$env:DEV_SEED_PASSWORD="<pick one>"; node scripts/dev-accounts.mjs create`
+creates one account per role, all marked `dev.` / `[DEV] `. `disable`, `enable`,
+`delete` and `list` are the other commands. Once `dev.developer` exists, Claude
+can finally verify screens visually — nothing on this branch ever has been.
 
 **Authorised 2026-09-01:** `/buku/belanja` is `requireAuth()`, not
-`requireOwner()` — the only page under `/buku` that is. Do not "fix" it.
+`requireOwner()`. Do not "fix" it.
 
-**⚠ NEXT, and it changes everything below:** Adi is repointing `DATABASE_URL`
-to a NEW BLANK database so the app starts clean. When that lands, the whole
-"migration history is incomplete" landmine goes away, and the job becomes:
-reconcile the migration chain so `migrate deploy` from zero reproduces
-`schema.prisma` exactly, then drop the dormant junk models. KEEP `Supplier`
-(Adi's decision, reserved for future purchasing work). Open question Adi must
-answer first: is the blank DB in the SAME Supabase project (so `Staff.supabaseUserId`
-still resolves and everyone can still log in) or a new one (every staff account
-must be recreated)?
-
-**Section 7 (historical data migration) is still NOT approved** and now needs
-rewriting for the blank DB: with nothing carried over, menu, staff and settings
-must be imported too, not just the ledger. Warung Books stays the source of
-truth for April-July 2026. A peer session named "Seed warungbooks/report to
-kasir DB" may hold prior work — check it before replanning.
-
-**Remaining plan work:** section 4 (retire `app/admin/page.tsx` and
-`/admin/settlement`, make `/admin` the grouped index) and the deletion of
-`app/admin/keuangan/` now that `/buku` covers it.
+**Still open:** the whole app is unverified against a real login; the shop needs
+seeding (menu, categories, staff, settings) before it can be used; section 7 of
+`docs/redesign/plan-open-items.md` (historical data migration) is NOT approved
+and now needs rewriting for a blank database — menu, staff and settings must be
+imported too, not just the ledger. Warung Books stays the source of truth for
+April-July 2026. Section 4 (retire `app/admin/page.tsx` and `/admin/settlement`,
+make `/admin` the grouped index) and the deletion of `app/admin/keuangan/` are
+also still open.
 
 ## ☠ DATABASE — read before any DB command
 - **`.env` is PRODUCTION** (Supabase `oyvgyhuzvxepteldlghn`). There is NO dev DB.
