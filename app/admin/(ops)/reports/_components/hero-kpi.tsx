@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { MoneyHero } from "@/components/shell/ui";
 import { formatRupiah } from "@/lib/format";
 
 export function HeroKpi({
@@ -13,15 +13,16 @@ export function HeroKpi({
   average: number;
 }) {
   return (
-    <Card>
-      <CardContent className="py-2 space-y-1">
-        <p className="text-sm text-muted-foreground">Pendapatan</p>
-        <p className="text-3xl font-bold tabular-nums">{formatRupiah(total)}</p>
-        <p className="text-sm text-muted-foreground tabular-nums">
+    <MoneyHero
+      label="Pendapatan"
+      value={formatRupiah(total)}
+      sub={
+        <span className="tabular-nums">
           {count} transaksi
           {count > 0 && <> · rata {formatRupiah(average)}</>}
-        </p>
-      </CardContent>
-    </Card>
+        </span>
+      }
+      className="rounded-2xl border border-border bg-card p-4 shadow-sm"
+    />
   );
 }

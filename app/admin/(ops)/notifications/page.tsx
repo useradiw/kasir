@@ -1,4 +1,5 @@
-import { Container } from "@/components/shared/container";
+import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
 import { requireOwner } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import NotificationsClient from "./notifications-client";
@@ -12,7 +13,7 @@ export default async function NotificationsAdminPage({
 }: {
   searchParams: Promise<{ type?: string; read?: string; recipient?: string }>;
 }) {
-  await requireOwner();
+  const staff = await requireOwner();
   const params = await searchParams;
 
   const typeFilter: TypeFilter =
@@ -29,7 +30,7 @@ export default async function NotificationsAdminPage({
   if (readFilter === "READ") where.readAt = { not: null };
   if (recipientFilter !== "ALL") where.recipientId = recipientFilter;
 
-  const [notifications, staffList] = await Promise.all([
+  const [notifications, staffList, unreadCount] = await Promise.all([
     prisma.notification.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -41,6 +42,7 @@ export default async function NotificationsAdminPage({
       orderBy: { name: "asc" },
       select: { id: true, name: true, role: true },
     }),
+    prisma.notification.count({ where: { readAt: null } }),
   ]);
 
   const rows = notifications.map((n) => ({
@@ -56,12 +58,24 @@ export default async function NotificationsAdminPage({
   }));
 
   return (
-    <Container id="notifications" sectionStyle="" className="py-6">
-      <NotificationsClient
-        notifications={rows}
-        staffList={staffList}
-        filters={{ type: typeFilter, read: readFilter, recipient: recipientFilter }}
-      />
-    </Container>
+    <AppShell role={staff.role}>
+      <div className="px-4 pb-1 pt-6">
+        <Link href="/admin" className="text-[12.5px] font-bold text-muted-foreground">
+          ← Admin
+        </Link>
+        <h1 className="font-display mt-2 text-[17px] font-bold">Notifikasi</h1>
+        <p className="text-[11.5px] font-semibold text-muted-foreground">
+          {unreadCount} belum dibaca
+        </p>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 px-4 pb-6 pt-3">
+        <NotificationsClient
+          notifications={rows}
+          staffList={staffList}
+          filters={{ type: typeFilter, read: readFilter, recipient: recipientFilter }}
+        />
+      </div>
+    </AppShell>
   );
 }

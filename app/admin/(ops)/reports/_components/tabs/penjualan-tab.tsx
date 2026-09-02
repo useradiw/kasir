@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { formatRupiah } from "@/lib/format";
 import { PaymentMethodBars } from "../charts/payment-method-bars";
 import { useChartColors } from "../charts/use-chart-colors";
@@ -9,38 +9,32 @@ import type { ReportData } from "@/app/actions/admin/queries";
 
 export function PenjualanTab({ data }: { data: ReportData }) {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Metode Pembayaran</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <div className="flex flex-col gap-3">
+      <BentoCard>
+        <CardLabel>Metode Pembayaran</CardLabel>
+        <div className="mt-3">
           <PaymentMethodBars data={data.paymentMethods} />
-        </CardContent>
-      </Card>
+        </div>
+      </BentoCard>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Item Terlaris</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.topItems.length > 0 ? (
-            <div className="divide-y divide-foreground/5">
-              {data.topItems.map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-2">
-                  <span className="text-sm truncate pr-3">{item.name}</span>
-                  <div className="text-right text-sm shrink-0 tabular-nums">
-                    <span className="text-muted-foreground">{item.qty}×</span>
-                    <span className="ml-2 font-medium">{formatRupiah(item.revenue)}</span>
-                  </div>
+      <BentoCard>
+        <CardLabel>Item Terlaris</CardLabel>
+        {data.topItems.length > 0 ? (
+          <div className="mt-1 divide-y divide-border">
+            {data.topItems.map((item, i) => (
+              <div key={i} className="flex items-center justify-between py-2">
+                <span className="truncate pr-3 text-[12.5px] font-semibold">{item.name}</span>
+                <div className="shrink-0 text-right text-[12.5px] tabular-nums">
+                  <span className="text-muted-foreground">{item.qty}×</span>
+                  <span className="ml-2 font-bold">{formatRupiah(item.revenue)}</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="py-8 text-center text-[12.5px] font-semibold text-muted-foreground">Tidak ada data.</p>
+        )}
+      </BentoCard>
 
       <ChannelsCard channels={data.serviceChannels} />
     </div>
@@ -54,47 +48,43 @@ function ChannelsCard({
 }) {
   const colors = useChartColors(Math.max(channels.length, 1));
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Channel Layanan</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {channels.length > 0 ? (
-          <div className="space-y-2">
-            {channels.map((ch, i) => (
+    <BentoCard>
+      <CardLabel>Channel Layanan</CardLabel>
+      {channels.length > 0 ? (
+        <div className="mt-2 flex flex-col gap-2">
+          {channels.map((ch, i) => (
+            <div
+              key={i}
+              className="flex items-stretch gap-3 rounded-xl border border-border bg-card-2 p-3"
+            >
               <div
-                key={i}
-                className="flex items-stretch gap-3 rounded-lg border border-border bg-input/20 p-3"
-              >
-                <div
-                  className="w-1 shrink-0 rounded-full"
-                  style={{ backgroundColor: colors[i % colors.length] }}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium truncate">
-                      {SERVICE_LABEL[ch.service] ?? ch.service}
-                    </span>
-                    <span className="text-sm font-medium tabular-nums">
-                      {formatRupiah(ch.netAmount)}
+                className="w-1 shrink-0 rounded-full"
+                style={{ backgroundColor: colors[i % colors.length] }}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate text-[12.5px] font-bold">
+                    {SERVICE_LABEL[ch.service] ?? ch.service}
+                  </span>
+                  <span className="text-[12.5px] font-bold tabular-nums">
+                    {formatRupiah(ch.netAmount)}
+                  </span>
+                </div>
+                {ch.commission > 0 && (
+                  <div className="mt-0.5 flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
+                    <span>Kotor: {formatRupiah(ch.amount)}</span>
+                    <span className="text-destructive">
+                      −{formatRupiah(ch.commission)} komisi
                     </span>
                   </div>
-                  {ch.commission > 0 && (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground mt-0.5 tabular-nums">
-                      <span>Kotor: {formatRupiah(ch.amount)}</span>
-                      <span className="text-destructive">
-                        −{formatRupiah(ch.commission)} komisi
-                      </span>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>
-        )}
-      </CardContent>
-    </Card>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="py-8 text-center text-[12.5px] font-semibold text-muted-foreground">Tidak ada data.</p>
+      )}
+    </BentoCard>
   );
 }

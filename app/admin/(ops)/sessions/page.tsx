@@ -1,6 +1,8 @@
-import { Container } from "@/components/shared/container";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { RoleBadge, StatusBadge, AdminPageHeader } from "@/components/admin/ui";
+import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
+import { Row, Tag } from "@/components/shell/ui";
+import { RoleBadge } from "@/components/shared/badge";
+import { NotificationBellServer } from "@/components/shared/notification-bell-server";
 import { getSessionsData } from "@/app/actions/admin/queries";
 import { requireRole } from "@/lib/admin-auth";
 import { formatDateTime } from "@/lib/format";
@@ -8,7 +10,7 @@ import { formatDateTime } from "@/lib/format";
 const ACTIVE_THRESHOLD_MINUTES = 30;
 
 export default async function SessionsPage() {
-  await requireRole("OWNER", "MANAGER");
+  const staff = await requireRole("OWNER", "MANAGER");
   const { users, error } = await getSessionsData();
 
   // Server component renders once per request — Date.now() is intentional.
@@ -30,51 +32,54 @@ export default async function SessionsPage() {
     });
 
   return (
-    <Container id="admin-sessions" sectionStyle="" className="py-6 space-y-6">
-      <AdminPageHeader title="Sesi Login" />
-
-      {error && (
-        <div className="rounded-lg bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          Gagal memuat data pengguna: {error}
-        </div>
-      )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Pengguna Supabase ({rows.length})</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <p className="text-xs text-muted-foreground mb-4">
-            &ldquo;Aktif&rdquo; = login dalam {ACTIVE_THRESHOLD_MINUTES} menit terakhir.
+    <AppShell role={staff.role}>
+      <div className="flex items-start justify-between px-4 pb-1 pt-6">
+        <div>
+          <Link href="/admin" className="text-[12.5px] font-bold text-muted-foreground">
+            ← Admin
+          </Link>
+          <h1 className="font-display mt-2 text-[17px] font-bold">Sesi Login</h1>
+          <p className="text-[11.5px] font-semibold text-muted-foreground">
+            {rows.length} pengguna Supabase · aktif = login {ACTIVE_THRESHOLD_MINUTES} menit terakhir
           </p>
+        </div>
+        <NotificationBellServer staffId={staff.id} />
+      </div>
 
-          {rows.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada pengguna.</p>
-          ) : (
-            <div className="space-y-2">
-              {rows.map((r) => (
-                <div key={r.id} className="flex items-start justify-between rounded-lg border border-foreground/10 p-3 gap-3">
-                  <div className="min-w-0 space-y-1">
-                    <p className="font-mono text-xs truncate">{r.email}</p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-sm">
-                        {r.staffName ?? (
-                          <span className="italic text-muted-foreground text-xs">Tidak terhubung</span>
-                        )}
-                      </span>
-                      {r.staffRole && <RoleBadge role={r.staffRole} />}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Login: {r.lastSignIn ? formatDateTime(r.lastSignIn, "medium") : "—"}
-                    </p>
-                  </div>
-                  <StatusBadge active={r.isRecent} />
+      <div className="flex flex-1 flex-col gap-3 px-4 pb-6 pt-3">
+        {error ? (
+          <div className="rounded-2xl border border-destructive/35 bg-destructive-soft p-3.5 text-[12.5px] font-semibold text-destructive">
+            Gagal memuat data pengguna: {error}
+          </div>
+        ) : null}
+
+        {rows.length === 0 ? (
+          <p className="py-6 text-center text-[12.5px] font-semibold text-muted-foreground">
+            Tidak ada pengguna.
+          </p>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {rows.map((r) => (
+              <Row
+                key={r.id}
+                title={r.staffName ?? <span className="italic text-muted-foreground">Tidak terhubung</span>}
+                meta={
+                  <>
+                    <span className="font-mono">{r.email}</span>
+                    <br />
+                    Login: {r.lastSignIn ? formatDateTime(r.lastSignIn, "medium") : "—"}
+                  </>
+                }
+              >
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  {r.staffRole ? <RoleBadge role={r.staffRole} /> : null}
+                  <Tag tone={r.isRecent ? "ok" : "mut"}>{r.isRecent ? "Aktif" : "Tidak aktif"}</Tag>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </Container>
+              </Row>
+            ))}
+          </div>
+        )}
+      </div>
+    </AppShell>
   );
 }

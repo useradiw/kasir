@@ -14,7 +14,7 @@ export function RevenueBar({
 }) {
   const colors = useChartColors(1);
   if (data.length === 0) {
-    return <p className="text-sm text-muted-foreground py-8 text-center">Tidak ada data.</p>;
+    return <p className="py-8 text-center text-[12.5px] font-semibold text-muted-foreground">Tidak ada data.</p>;
   }
   const fmt = (val: string) => xAxisFormatter(period, val);
   return (

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Container } from "@/components/shared/container";
+import { AppShell } from "@/components/shell/app-shell";
 import { getTransactionDetail } from "@/app/actions/admin/queries";
 import { requireRole } from "@/lib/admin-auth";
 import { getStoreInfo } from "@/lib/settings";
@@ -20,8 +20,10 @@ export default async function TransactionDetailPage({
   if (!data) redirect("/admin/transactions");
 
   return (
-    <Container id="admin-transaction-detail" sectionStyle="" className="py-6">
-      <TransactionDetailClient data={data} isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"} storeInfo={storeInfo} />
-    </Container>
+    <AppShell role={staff.role}>
+      <div className="flex flex-1 flex-col gap-3 px-4 pb-6 pt-6">
+        <TransactionDetailClient data={data} isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"} storeInfo={storeInfo} />
+      </div>
+    </AppShell>
   );
 }

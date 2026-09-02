@@ -1,17 +1,15 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { formatRupiah } from "@/lib/format";
 import type { ReportData } from "@/app/actions/admin/queries";
 
 export function PnLCard({ data }: { data: ReportData }) {
   const showCogs = data.cogs > 0;
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm">Profitabilitas</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-0">
+    <BentoCard className="flex flex-col gap-0.5">
+      <CardLabel>Profitabilitas</CardLabel>
+      <div className="mt-1 flex flex-col">
         <PnLRow label="Pendapatan" value={data.revenue.total} />
         {showCogs && <PnLRow label="HPP (dari pengeluaran bahan baku)" value={-data.cogs} negative />}
         {showCogs && (
@@ -47,8 +45,8 @@ export function PnLCard({ data }: { data: ReportData }) {
             note="Perkiraan dari gaji harian x hari hadir — bukan dari buku besar, jadi TIDAK dikurangkan dari laba bersih di atas. Catat gaji sebagai pengeluaran agar ikut terhitung."
           />
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </BentoCard>
   );
 }
 
@@ -81,16 +79,16 @@ function PnLRow({
         : "text-primary"
       : "";
   return (
-    <div className={divider ? "border-t border-foreground/10 mt-1" : ""}>
+    <div className={divider ? "mt-1 border-t border-border" : ""}>
       <div className="flex items-center justify-between py-2">
-        <span className={`text-sm ${emphasis ? "font-medium" : ""}`}>{label}</span>
-        <span className={`tabular-nums ${large ? "text-lg font-bold" : emphasis ? "font-medium" : "text-sm"} ${colorClass}`}>
+        <span className={`text-[12.5px] ${emphasis ? "font-bold" : "font-semibold"}`}>{label}</span>
+        <span className={`tabular-nums ${large ? "font-display text-[17px] font-bold" : emphasis ? "text-[13px] font-bold" : "text-[12.5px] font-semibold"} ${colorClass}`}>
           {sign}
           {formatRupiah(abs)}
-          {extra && <span className="ml-2 text-xs text-muted-foreground font-normal">{extra}</span>}
+          {extra && <span className="ml-2 text-[11px] font-normal text-muted-foreground">{extra}</span>}
         </span>
       </div>
-      {note && <p className="text-xs text-muted-foreground -mt-1.5 pb-2">{note}</p>}
+      {note && <p className="-mt-1.5 pb-2 text-[11px] text-muted-foreground">{note}</p>}
     </div>
   );
 }

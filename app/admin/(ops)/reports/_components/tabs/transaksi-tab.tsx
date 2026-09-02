@@ -1,59 +1,53 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BentoCard, CardLabel, Tag } from "@/components/shell/ui";
 import { formatRupiah } from "@/lib/format";
 import { METHOD_LABEL } from "../../_utils/export";
 import type { ReportData } from "@/app/actions/admin/queries";
 
 export function TransaksiTab({ data }: { data: ReportData }) {
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">
-            Detail Transaksi{" "}
-            <span className="text-muted-foreground font-normal">
-              ({data.transactions.length})
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {data.transactions.length > 0 ? (
-            <div className="divide-y divide-foreground/5">
-              {data.transactions.map((t) => (
-                <div key={t.id} className="flex items-start justify-between gap-2 py-2">
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{t.sessionName}</p>
-                    <p className="text-xs text-muted-foreground tabular-nums">
-                      {new Date(t.paidAt).toLocaleString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        day: "numeric",
-                        month: "short",
-                      })}
-                      {t.processedBy && <> · {t.processedBy}</>}
-                    </p>
-                  </div>
-                  <div className="text-right shrink-0 space-y-0.5">
-                    <p className="text-sm font-medium tabular-nums">
-                      {formatRupiah(t.totalAmount)}
-                    </p>
-                    <span className="inline-block rounded-full px-2 py-0.5 text-xs bg-primary/10 text-primary">
-                      {METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod}
-                    </span>
-                  </div>
+    <div className="flex flex-col gap-3">
+      <BentoCard>
+        <CardLabel>
+          Detail Transaksi{" "}
+          <span className="font-normal normal-case tracking-normal text-muted-foreground">
+            ({data.transactions.length})
+          </span>
+        </CardLabel>
+        {data.transactions.length > 0 ? (
+          <div className="mt-1 divide-y divide-border">
+            {data.transactions.map((t) => (
+              <div key={t.id} className="flex items-start justify-between gap-2 py-2">
+                <div className="min-w-0">
+                  <p className="truncate text-[12.5px] font-bold">{t.sessionName}</p>
+                  <p className="text-[11px] text-muted-foreground tabular-nums">
+                    {new Date(t.paidAt).toLocaleString("id-ID", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      day: "numeric",
+                      month: "short",
+                    })}
+                    {t.processedBy && <> · {t.processedBy}</>}
+                  </p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              Tidak ada transaksi.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+                <div className="shrink-0 space-y-0.5 text-right">
+                  <p className="text-[12.5px] font-bold tabular-nums">
+                    {formatRupiah(t.totalAmount)}
+                  </p>
+                  <Tag tone="acc">{METHOD_LABEL[t.paymentMethod] ?? t.paymentMethod}</Tag>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="py-4 text-center text-[12.5px] font-semibold text-muted-foreground">
+            Tidak ada transaksi.
+          </p>
+        )}
+      </BentoCard>
       {data.voidedCount > 0 && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-center text-[11px] text-muted-foreground">
           {data.voidedCount} transaksi void tidak termasuk dalam perhitungan.
         </p>
       )}

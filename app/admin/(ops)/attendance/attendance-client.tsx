@@ -4,9 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ErrorBanner, RoleBadge, AdminPageHeader } from "@/components/admin/ui";
+import { BentoCard, CardLabel, Row } from "@/components/shell/ui";
+import { RoleBadge } from "@/components/shared/badge";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { markAttendance, bulkMarkAttendance } from "@/app/actions/admin/attendance";
 
@@ -54,98 +53,83 @@ export default function AttendanceClient({
   }
 
   return (
-    <div className="space-y-6">
-      <AdminPageHeader title="Absensi Staff" />
+    <>
+      {error ? (
+        <div className="rounded-2xl border border-destructive/35 bg-destructive-soft p-3.5 text-[12.5px] font-semibold text-destructive">
+          {error}
+        </div>
+      ) : null}
 
-      <ErrorBanner error={error} />
+      <BentoCard>
+        <CardLabel>Tanggal</CardLabel>
+        <div className="mt-2 flex flex-wrap items-end gap-2.5">
+          <Input
+            type="date"
+            value={localDate}
+            onChange={(e) => setLocalDate(e.target.value)}
+            className="w-40 border-border bg-card-2"
+          />
+          <Button size="sm" onClick={navigate}>Lihat</Button>
+          <Button size="sm" variant="ghost" onClick={goToday}>Hari Ini</Button>
+        </div>
+      </BentoCard>
 
-      {/* Date picker */}
-      <Card>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-3 items-end">
-            <div className="grid gap-1">
-              <Label>Tanggal</Label>
-              <Input type="date" value={localDate} onChange={(e) => setLocalDate(e.target.value)} className="w-40" />
-            </div>
-            <Button onClick={navigate} size="sm">Lihat</Button>
-            <Button variant="ghost" size="sm" onClick={goToday}>Hari Ini</Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Summary */}
-      <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold">{summary.total}</p>
-            <p className="text-xs text-muted-foreground">Total</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold text-primary">{summary.present}</p>
-            <p className="text-xs text-muted-foreground">Hadir</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold text-destructive">{summary.absent}</p>
-            <p className="text-xs text-muted-foreground">Tidak Hadir</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4 text-center">
-            <p className="text-2xl font-bold text-muted-foreground">{summary.unmarked}</p>
-            <p className="text-xs text-muted-foreground">Belum</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-4 gap-2.5">
+        <BentoCard className="text-center">
+          <p className="font-display text-[20px] font-bold tabular-nums">{summary.total}</p>
+          <p className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">Total</p>
+        </BentoCard>
+        <BentoCard className="text-center">
+          <p className="font-display text-[20px] font-bold tabular-nums text-primary">{summary.present}</p>
+          <p className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">Hadir</p>
+        </BentoCard>
+        <BentoCard className="text-center">
+          <p className="font-display text-[20px] font-bold tabular-nums text-destructive">{summary.absent}</p>
+          <p className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">Tidak Hadir</p>
+        </BentoCard>
+        <BentoCard className="text-center">
+          <p className="font-display text-[20px] font-bold tabular-nums text-muted-foreground">{summary.unmarked}</p>
+          <p className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">Belum</p>
+        </BentoCard>
       </div>
 
-      {/* Staff list */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Daftar Staff</CardTitle>
-            <Button size="sm" variant="outline" disabled={isPending} onClick={handleMarkAll}>
-              Tandai Semua Hadir
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {staffAttendance.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Tidak ada staff aktif.</p>
-          ) : (
-            <div className="divide-y divide-foreground/5">
-              {staffAttendance.map((s) => (
-                <div key={s.staffId} className="flex items-center justify-between py-2.5 gap-3">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-sm font-medium truncate">{s.staffName}</span>
-                    <RoleBadge role={s.role} />
-                  </div>
-                  <div className="flex gap-1.5 shrink-0">
-                    <Button
-                      size="xs"
-                      variant={s.status === "PRESENT" ? "default" : "outline"}
-                      disabled={isPending}
-                      onClick={() => run(() => markAttendance(s.staffId, date, "PRESENT"))}
-                    >
-                      Hadir
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant={s.status === "ABSENT" ? "destructive" : "outline"}
-                      disabled={isPending}
-                      onClick={() => run(() => markAttendance(s.staffId, date, "ABSENT"))}
-                    >
-                      Tidak Hadir
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      <div className="flex items-center justify-between px-1">
+        <CardLabel>Daftar Staff ({staffAttendance.length})</CardLabel>
+        <Button size="sm" variant="outline" disabled={isPending} onClick={handleMarkAll}>
+          Tandai Semua Hadir
+        </Button>
+      </div>
+
+      {staffAttendance.length === 0 ? (
+        <p className="py-6 text-center text-[12.5px] font-semibold text-muted-foreground">
+          Tidak ada staff aktif.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {staffAttendance.map((s) => (
+            <Row key={s.staffId} title={s.staffName} meta={<RoleBadge role={s.role} />}>
+              <div className="flex shrink-0 gap-1.5">
+                <Button
+                  size="sm"
+                  variant={s.status === "PRESENT" ? "default" : "outline"}
+                  disabled={isPending}
+                  onClick={() => run(() => markAttendance(s.staffId, date, "PRESENT"))}
+                >
+                  Hadir
+                </Button>
+                <Button
+                  size="sm"
+                  variant={s.status === "ABSENT" ? "destructive" : "outline"}
+                  disabled={isPending}
+                  onClick={() => run(() => markAttendance(s.staffId, date, "ABSENT"))}
+                >
+                  Tidak Hadir
+                </Button>
+              </div>
+            </Row>
+          ))}
+        </div>
+      )}
+    </>
   );
 }

@@ -3,9 +3,8 @@
 import { useState, useSyncExternalStore } from "react";
 import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { ErrorBanner } from "@/components/admin/ui";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { exportDatabase } from "@/app/actions/admin/backup";
 
@@ -119,15 +118,17 @@ export default function BackupClient() {
   }
 
   return (
-    <div className="space-y-6">
-      <ErrorBanner error={error} />
+    <>
+      {error ? (
+        <div className="rounded-2xl border border-destructive/35 bg-destructive-soft p-3.5 text-[12.5px] font-semibold text-destructive">
+          {error}
+        </div>
+      ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Pilih Tabel</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
+      <BentoCard className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <CardLabel>Pilih Tabel</CardLabel>
+          <div className="flex gap-1.5">
             <Button variant="ghost" size="sm" onClick={selectAll}>
               Pilih Semua
             </Button>
@@ -135,50 +136,48 @@ export default function BackupClient() {
               Hapus Semua
             </Button>
           </div>
+        </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            {TABLE_OPTIONS.map((t) => (
-              <label key={t.key} className="flex items-center gap-2 text-sm cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={selected.has(t.key)}
-                  onChange={() => toggleTable(t.key)}
-                  className="rounded"
-                />
-                {t.label}
-              </label>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+        <div className="grid grid-cols-2 gap-2">
+          {TABLE_OPTIONS.map((t) => (
+            <label key={t.key} className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
+              <input
+                type="checkbox"
+                checked={selected.has(t.key)}
+                onChange={() => toggleTable(t.key)}
+                className="rounded accent-primary"
+              />
+              {t.label}
+            </label>
+          ))}
+        </div>
+      </BentoCard>
 
-      <Card>
-        <CardContent className="pt-4 space-y-3">
-          <Button
-            onClick={handleExport}
-            disabled={isPending || selected.size === 0}
-            className="w-full"
-          >
-            {isPending ? (
-              <>
-                <Spinner />
-                Mengekspor...
-              </>
-            ) : (
-              <>
-                <Download className="size-4" />
-                Export Data ({selected.size} tabel)
-              </>
-            )}
-          </Button>
-
-          {lastBackup && (
-            <p className="text-xs text-muted-foreground text-center">
-              Backup terakhir: {lastBackup}
-            </p>
+      <BentoCard className="flex flex-col gap-3">
+        <Button
+          onClick={handleExport}
+          disabled={isPending || selected.size === 0}
+          className="w-full"
+        >
+          {isPending ? (
+            <>
+              <Spinner />
+              Mengekspor...
+            </>
+          ) : (
+            <>
+              <Download className="size-4" />
+              Export Data ({selected.size} tabel)
+            </>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </Button>
+
+        {lastBackup && (
+          <p className="text-center text-[11.5px] font-semibold text-muted-foreground">
+            Backup terakhir: {lastBackup}
+          </p>
+        )}
+      </BentoCard>
+    </>
   );
 }

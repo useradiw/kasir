@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cn } from "@/lib/utils";
-import { AdminPageHeader } from "@/components/admin/ui";
+import { Button } from "@/components/ui/button";
 import BackupClient from "./backup-client";
 import RestoreClient from "./restore-client";
 
@@ -15,28 +14,22 @@ export default function BackupTabsClient() {
   const [tab, setTab] = useState<"export" | "import">("export");
 
   return (
-    <div className="space-y-6">
-      <AdminPageHeader title="Backup Database" />
-
-      <div className="flex gap-2 border-b border-foreground/10">
+    <>
+      <div className="flex gap-1.5">
         {TABS.map((t) => (
-          <button
+          <Button
             key={t.key}
             type="button"
+            size="sm"
+            variant={tab === t.key ? "default" : "outline"}
             onClick={() => setTab(t.key)}
-            className={cn(
-              "px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50",
-              tab === t.key
-                ? "border-foreground text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       {tab === "export" ? <BackupClient /> : <RestoreClient />}
-    </div>
+    </>
   );
 }

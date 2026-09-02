@@ -4,8 +4,10 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminSelect, ErrorBanner, AdminPageHeader, RoleBadge, StatusBadge } from "@/components/admin/ui";
+import { AdminSelect } from "@/components/admin/ui";
+import { RoleBadge } from "@/components/shared/badge";
+import { BentoCard, Tag } from "@/components/shell/ui";
+import { cn } from "@/lib/utils";
 import { formatRupiah } from "@/lib/format";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
@@ -35,7 +37,7 @@ type StaffRow = {
 const ROLES = ["OWNER", "MANAGER", "CASHIER", "STAFF", "DEVELOPER"] as const;
 
 export default function StaffClient({ staffList, isOwner }: { staffList: StaffRow[]; isOwner: boolean }) {
-  const { isPending, run, error } = useAdminAction();
+  const { isPending, run, error, setError } = useAdminAction();
   const confirm = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -52,50 +54,57 @@ export default function StaffClient({ staffList, isOwner }: { staffList: StaffRo
   }, []);
 
   return (
-    <div className="space-y-6">
-      <AdminPageHeader title="Manajemen Staff">
-        {isOwner && (
-          <>
-            <Button onClick={copyRegisterLink} size="sm" variant="outline" className="gap-1.5">
-              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
-              {copied ? "Tersalin!" : "Link Daftar"}
-            </Button>
-            <Button onClick={() => setShowAdd((v) => !v)} size="sm">
-              {showAdd ? "Batal" : "+ Tambah Staff"}
-            </Button>
-          </>
-        )}
-      </AdminPageHeader>
+    <>
+      {isOwner && (
+        <div className="flex justify-end gap-2">
+          <Button onClick={copyRegisterLink} size="sm" variant="outline" className="gap-1.5">
+            {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            {copied ? "Tersalin!" : "Link Daftar"}
+          </Button>
+          <Button
+            onClick={() => {
+              setShowAdd((v) => !v);
+              setError(null);
+            }}
+            size="sm"
+          >
+            {showAdd ? "Batal" : "+ Tambah Staff"}
+          </Button>
+        </div>
+      )}
 
-      <ErrorBanner error={error} />
+      {error ? (
+        <div className="rounded-2xl border border-destructive/35 bg-destructive-soft p-3.5 text-[12.5px] font-semibold text-destructive">
+          {error}
+        </div>
+      ) : null}
 
-      {/* Add form */}
       {showAdd && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Tambah Staff Baru</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form
-              action={(fd) =>
-                run(async () => {
+        <BentoCard>
+          <form
+            action={(fd) =>
+              run(
+                async () => {
                   await addStaff(fd);
                   setShowAdd(false);
-                })
-              }
-              className="flex flex-wrap gap-3 items-end"
-            >
+                },
+                { successMessage: "Staff ditambahkan" },
+              )
+            }
+            className="flex flex-col gap-3"
+          >
+            <div className="flex flex-wrap items-end gap-3">
               <div className="grid gap-1">
                 <Label htmlFor="add-username">Username</Label>
-                <Input id="add-username" name="username" required placeholder="username" />
+                <Input id="add-username" name="username" required placeholder="username" className="w-36 border-border bg-card-2" />
               </div>
               <div className="grid gap-1">
                 <Label htmlFor="add-name">Nama</Label>
-                <Input id="add-name" name="name" required placeholder="Nama staff" />
+                <Input id="add-name" name="name" required placeholder="Nama staff" className="w-40 border-border bg-card-2" />
               </div>
               <div className="grid gap-1">
                 <Label htmlFor="add-role">Role</Label>
-                <AdminSelect id="add-role" name="role" required>
+                <AdminSelect id="add-role" name="role" required className="border-border bg-card-2">
                   {ROLES.map((r) => (
                     <option key={r} value={r}>{r}</option>
                   ))}
@@ -103,166 +112,183 @@ export default function StaffClient({ staffList, isOwner }: { staffList: StaffRo
               </div>
               <div className="grid gap-1">
                 <Label htmlFor="add-salary">Gaji (Rp)</Label>
-                <Input id="add-salary" name="salary" type="number" min={0} placeholder="0" className="w-32" />
+                <Input id="add-salary" name="salary" type="number" min={0} placeholder="0" className="w-32 border-border bg-card-2" />
               </div>
-              <Button type="submit" disabled={isPending} size="sm">
-                Simpan
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+            </div>
+            <div className="flex gap-2">
+              <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+              <Button type="button" size="sm" variant="ghost" onClick={() => setShowAdd(false)}>Batal</Button>
+            </div>
+          </form>
+        </BentoCard>
       )}
 
-      {/* Staff list */}
-      <Card>
-        <CardContent className="pt-4">
-          {staffList.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Belum ada staff.</p>
-          ) : (
-            <div className="space-y-3">
-              {staffList.map((s) => (
-                <div key={s.id} className="rounded-lg border border-foreground/10 p-3 space-y-3">
-                  {/* Header row */}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="font-medium">{s.name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {s.username ? `@${s.username}` : <span className="italic">Belum ada username</span>} · {s.supabaseEmail ?? <span className="italic">Belum terhubung</span>}
-                        {isOwner && s.salary != null && <> · Gaji: {formatRupiah(s.salary)}</>}
-                      </p>
+      {staffList.length === 0 ? (
+        <p className="py-6 text-center text-[12.5px] font-semibold text-muted-foreground">
+          Belum ada staff.
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {staffList.map((s) =>
+            editId === s.id ? (
+              <BentoCard key={s.id}>
+                <form
+                  action={(fd) =>
+                    run(
+                      async () => {
+                        await updateStaff(s.id, fd);
+                        setEditId(null);
+                      },
+                      { successMessage: "Staff diperbarui" },
+                    )
+                  }
+                  className="flex flex-col gap-3"
+                >
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="grid gap-1">
+                      <Label>Username</Label>
+                      <Input name="username" defaultValue={s.username ?? ""} required className="w-36 border-border bg-card-2" />
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0 flex-wrap justify-end">
-                      <RoleBadge role={s.role} />
-                      <StatusBadge
-                        active={s.isActive}
-                        onClick={() => run(() => toggleStaffActive(s.id, s.isActive))}
-                        disabled={isPending}
-                      />
+                    <div className="grid gap-1">
+                      <Label>Nama</Label>
+                      <Input name="name" defaultValue={s.name} required className="w-40 border-border bg-card-2" />
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>Role</Label>
+                      <AdminSelect name="role" defaultValue={s.role} className="border-border bg-card-2">
+                        {ROLES.map((r) => (
+                          <option key={r} value={r}>{r}</option>
+                        ))}
+                      </AdminSelect>
+                    </div>
+                    <div className="grid gap-1">
+                      <Label>Gaji (Rp)</Label>
+                      <Input name="salary" type="number" min={0} defaultValue={s.salary ?? ""} className="w-32 border-border bg-card-2" />
                     </div>
                   </div>
-
-                  {/* Action buttons */}
-                  {isOwner && (
-                    <div className="flex gap-1 flex-wrap">
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        onClick={() => setEditId(editId === s.id ? null : s.id)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        size="xs"
-                        variant="outline"
-                        onClick={() => {
-                          setLinkId(linkId === s.id ? null : s.id);
-                          setLinkEmail("");
-                        }}
-                      >
-                        {s.supabaseEmail ? "Ganti Akun" : "Hubungkan"}
-                      </Button>
-                      {s.supabaseEmail && (
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          onClick={() => run(() => unlinkSupabaseUser(s.id))}
-                          disabled={isPending}
-                        >
-                          Putuskan
-                        </Button>
+                  <div className="flex gap-2">
+                    <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
+                  </div>
+                </form>
+              </BentoCard>
+            ) : (
+              <BentoCard key={s.id} className="flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[13.5px] font-bold leading-snug">{s.name}</p>
+                    <p className="mt-0.5 text-[11.5px] font-semibold leading-snug text-muted-foreground">
+                      {s.username ? `@${s.username}` : <span className="italic">Belum ada username</span>}
+                      {" · "}
+                      {s.supabaseEmail ?? <span className="italic">Belum terhubung</span>}
+                      {isOwner && s.salary != null && (
+                        <>
+                          {" · Gaji: "}
+                          <span className="tabular-nums">{formatRupiah(s.salary)}</span>
+                        </>
                       )}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                    <RoleBadge role={s.role} />
+                    {isOwner ? (
                       <Button
-                        size="xs"
-                        variant="destructive"
-                        onClick={async () => {
-                          const ok = await confirm({
-                            title: `Hapus staff "${s.name}"?`,
-                            description: "Aksi ini tidak bisa dibatalkan.",
-                            destructive: true,
-                            confirmLabel: "Hapus",
-                          });
-                          if (ok) run(() => deleteStaff(s.id));
-                        }}
+                        size="sm"
+                        variant="ghost"
+                        className={cn(
+                          "h-auto rounded-full px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide",
+                          s.isActive ? "bg-success-soft text-success hover:bg-success-soft" : "bg-card-2 text-muted-foreground border border-border",
+                        )}
                         disabled={isPending}
+                        onClick={() => run(() => toggleStaffActive(s.id, s.isActive))}
                       >
-                        Hapus
+                        {s.isActive ? "Aktif" : "Nonaktif"}
                       </Button>
-                    </div>
-                  )}
-
-                  {/* Inline edit form */}
-                  {editId === s.id && (
-                    <div className="border-t border-foreground/10 pt-3">
-                      <form
-                        action={(fd) =>
-                          run(async () => {
-                            await updateStaff(s.id, fd);
-                            setEditId(null);
-                          })
-                        }
-                        className="flex flex-wrap gap-3 items-end"
-                      >
-                        <div className="grid gap-1">
-                          <Label>Username</Label>
-                          <Input name="username" defaultValue={s.username ?? ""} required />
-                        </div>
-                        <div className="grid gap-1">
-                          <Label>Nama</Label>
-                          <Input name="name" defaultValue={s.name} required />
-                        </div>
-                        <div className="grid gap-1">
-                          <Label>Role</Label>
-                          <AdminSelect name="role" defaultValue={s.role}>
-                            {ROLES.map((r) => (
-                              <option key={r} value={r}>{r}</option>
-                            ))}
-                          </AdminSelect>
-                        </div>
-                        <div className="grid gap-1">
-                          <Label>Gaji (Rp)</Label>
-                          <Input name="salary" type="number" min={0} defaultValue={s.salary ?? ""} className="w-32" />
-                        </div>
-                        <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-                      </form>
-                    </div>
-                  )}
-
-                  {/* Inline link Supabase form */}
-                  {linkId === s.id && (
-                    <div className="border-t border-foreground/10 pt-3">
-                      <div className="flex flex-wrap gap-3 items-end">
-                        <div className="grid gap-1">
-                          <Label>Email Supabase</Label>
-                          <Input
-                            type="email"
-                            placeholder="email@contoh.com"
-                            value={linkEmail}
-                            onChange={(e) => setLinkEmail(e.target.value)}
-                          />
-                        </div>
-                        <Button
-                          size="sm"
-                          disabled={isPending || !linkEmail}
-                          onClick={() =>
-                            run(async () => {
-                              await linkSupabaseUser(s.id, linkEmail);
-                              setLinkId(null);
-                            })
-                          }
-                        >
-                          Hubungkan
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setLinkId(null)}>Batal</Button>
-                      </div>
-                    </div>
-                  )}
+                    ) : (
+                      <Tag tone={s.isActive ? "ok" : "mut"}>{s.isActive ? "Aktif" : "Nonaktif"}</Tag>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                {isOwner && (
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button size="sm" variant="outline" onClick={() => setEditId(editId === s.id ? null : s.id)}>
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setLinkId(linkId === s.id ? null : s.id);
+                        setLinkEmail("");
+                      }}
+                    >
+                      {s.supabaseEmail ? "Ganti Akun" : "Hubungkan"}
+                    </Button>
+                    {s.supabaseEmail && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        disabled={isPending}
+                        onClick={() => run(() => unlinkSupabaseUser(s.id), { successMessage: "Akun diputuskan" })}
+                      >
+                        Putuskan
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      disabled={isPending}
+                      onClick={async () => {
+                        const ok = await confirm({
+                          title: `Hapus staff "${s.name}"?`,
+                          description: "Aksi ini tidak bisa dibatalkan.",
+                          destructive: true,
+                          confirmLabel: "Hapus",
+                        });
+                        if (ok) run(() => deleteStaff(s.id), { successMessage: "Staff dihapus" });
+                      }}
+                    >
+                      Hapus
+                    </Button>
+                  </div>
+                )}
+
+                {linkId === s.id && (
+                  <div className="flex flex-wrap items-end gap-3 border-t border-border pt-3">
+                    <div className="grid min-w-40 flex-1 gap-1">
+                      <Label>Email Supabase</Label>
+                      <Input
+                        type="email"
+                        placeholder="email@contoh.com"
+                        value={linkEmail}
+                        onChange={(e) => setLinkEmail(e.target.value)}
+                        className="border-border bg-card-2"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={isPending || !linkEmail}
+                      onClick={() =>
+                        run(
+                          async () => {
+                            await linkSupabaseUser(s.id, linkEmail);
+                            setLinkId(null);
+                          },
+                          { successMessage: "Akun terhubung" },
+                        )
+                      }
+                    >
+                      Hubungkan
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setLinkId(null)}>Batal</Button>
+                  </div>
+                )}
+              </BentoCard>
+            ),
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      )}
+    </>
   );
 }

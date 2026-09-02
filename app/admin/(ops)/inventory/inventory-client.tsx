@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminSelect, ErrorBanner, StatusBadge, AdminPageHeader } from "@/components/admin/ui";
+import { AdminSelect } from "@/components/admin/ui";
+import { BentoCard, Tag } from "@/components/shell/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { formatRupiah } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import {
   addCategory, updateCategory, deleteCategory,
   addMenuItem, updateMenuItem, deleteMenuItem, toggleMenuItemVisibility,
@@ -61,417 +62,416 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
   }
 
   return (
-    <div className="space-y-6">
-      <AdminPageHeader title="Inventori Menu" />
-
-      <ErrorBanner error={error} />
+    <>
+      {error ? (
+        <div className="rounded-2xl border border-destructive/35 bg-destructive-soft p-3.5 text-[12.5px] font-semibold text-destructive">
+          {error}
+        </div>
+      ) : null}
 
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-foreground/10 pb-0 overflow-x-auto -mx-3 px-3 scrollbar-hide">
+      <div className="scrollbar-hide -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1">
         {TABS.map((t) => (
-          <button
+          <Button
             key={t.key}
             type="button"
+            size="sm"
+            variant={tab === t.key ? "default" : "outline"}
+            className="shrink-0"
             onClick={() => switchTab(t.key)}
-            className={`whitespace-nowrap shrink-0 px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 ${
-              tab === t.key
-                ? "border-foreground text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
           >
             {t.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* ─── CATEGORIES ─── */}
       {tab === "categories" && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <BentoCard className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <CardTitle>Kategori</CardTitle>
             <Button size="sm" onClick={() => setShowAdd((v) => !v)}>
               {showAdd ? "Batal" : "+ Tambah"}
             </Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {showAdd && (
-              <form action={(fd) => run(async () => { await addCategory(fd); setShowAdd(false); })}
-                className="flex flex-wrap gap-3 items-end pb-3 border-b border-foreground/10">
-                <div className="grid gap-1"><Label>Nama</Label><Input name="name" required placeholder="Nama kategori" /></div>
-                <div className="grid gap-1"><Label>Sort Order</Label><Input name="sortOrder" type="number" defaultValue={0} className="w-24" /></div>
-                <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-              </form>
-            )}
+          </div>
 
-            {categories.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Belum ada kategori.</p>
-            ) : (
-              <div className="divide-y divide-foreground/5">
-                {categories.map((c) => (
-                  <div key={c.id}>
-                    <div className="flex items-center justify-between py-2.5 gap-2">
-                      <div className="min-w-0">
-                        <span className="text-sm font-medium">{c.name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground">#{c.sortOrder}</span>
-                      </div>
-                      {isOwner && (
-                        <div className="flex gap-1 shrink-0">
-                          <Button size="xs" variant="outline" onClick={() => setEditId(editId === c.id ? null : c.id)}>Edit</Button>
-                          <Button size="xs" variant="destructive" disabled={isPending}
-                            onClick={async () => { if (await confirm({ title: `Hapus kategori "${c.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteCategory(c.id)); }}>Hapus</Button>
-                        </div>
-                      )}
+          {showAdd && (
+            <form action={(fd) => run(async () => { await addCategory(fd); setShowAdd(false); })}
+              className="flex flex-wrap items-end gap-3 border-b border-border pb-3">
+              <div className="grid gap-1"><Label>Nama</Label><Input name="name" required placeholder="Nama kategori" className="border-border bg-card-2" /></div>
+              <div className="grid gap-1"><Label>Sort Order</Label><Input name="sortOrder" type="number" defaultValue={0} className="w-24 border-border bg-card-2" /></div>
+              <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+            </form>
+          )}
+
+          {categories.length === 0 ? (
+            <p className="py-4 text-center text-[12.5px] font-semibold text-muted-foreground">Belum ada kategori.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {categories.map((c) => (
+                <div key={c.id}>
+                  <div className="flex items-center justify-between gap-2 py-2.5">
+                    <div className="min-w-0">
+                      <span className="text-[13.5px] font-bold">{c.name}</span>
+                      <span className="ml-2 text-[11.5px] text-muted-foreground tabular-nums">#{c.sortOrder}</span>
                     </div>
-                    {isOwner && editId === c.id && (
-                      <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
-                        <form action={(fd) => run(async () => { await updateCategory(c.id, fd); setEditId(null); })}
-                          className="flex flex-wrap gap-3 items-end">
-                          <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={c.name} required /></div>
-                          <div className="grid gap-1"><Label>Sort</Label><Input name="sortOrder" type="number" defaultValue={c.sortOrder} className="w-24" /></div>
-                          <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-                        </form>
+                    {isOwner && (
+                      <div className="flex shrink-0 gap-1.5">
+                        <Button size="sm" variant="outline" onClick={() => setEditId(editId === c.id ? null : c.id)}>Edit</Button>
+                        <Button size="sm" variant="destructive" disabled={isPending}
+                          onClick={async () => { if (await confirm({ title: `Hapus kategori "${c.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteCategory(c.id)); }}>Hapus</Button>
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  {isOwner && editId === c.id && (
+                    <div className="mb-2 rounded-xl bg-card-2 px-3 py-3">
+                      <form action={(fd) => run(async () => { await updateCategory(c.id, fd); setEditId(null); })}
+                        className="flex flex-wrap items-end gap-3">
+                        <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={c.name} required className="border-border bg-card" /></div>
+                        <div className="grid gap-1"><Label>Sort</Label><Input name="sortOrder" type="number" defaultValue={c.sortOrder} className="w-24 border-border bg-card" /></div>
+                        <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </BentoCard>
       )}
 
       {/* ─── MENU ITEMS ─── */}
       {tab === "items" && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <BentoCard className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <CardTitle>Menu Items</CardTitle>
             <Button size="sm" onClick={() => setShowAdd((v) => !v)}>{showAdd ? "Batal" : "+ Tambah"}</Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {showAdd && (
-              <form action={(fd) => run(async () => { await addMenuItem(fd); setShowAdd(false); })}
-                className="flex flex-wrap gap-3 items-end pb-3 border-b border-foreground/10">
-                <div className="grid gap-1"><Label>Nama</Label><Input name="name" required placeholder="Nama menu" /></div>
-                <div className="grid gap-1">
-                  <Label>Kategori</Label>
-                  <AdminSelect name="categoryId" required>
-                    <option value="">Pilih kategori</option>
-                    {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </AdminSelect>
-                </div>
-                <div className="grid gap-1"><Label>Harga (Rp)</Label><Input name="price" type="number" min={0} required className="w-32" /></div>
-                <input type="hidden" name="isHidden" value="false" />
-                <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-              </form>
-            )}
+          </div>
 
-            {menuItems.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Belum ada menu item.</p>
-            ) : (
-              <div className="divide-y divide-foreground/5">
-                {menuItems.map((m, idx) => (
-                  <div key={m.id}>
-                    {(idx === 0 || menuItems[idx - 1].categoryName !== m.categoryName) && (
-                      <p className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {m.categoryName}
-                      </p>
-                    )}
-                    <div className="flex items-start justify-between py-2.5 gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">{m.name}</p>
-                        <p className="text-xs text-muted-foreground tabular-nums">{m.categoryName} · {formatRupiah(m.price)}</p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 flex-wrap justify-end">
-                        {isOwner ? (
-                          <>
-                            <StatusBadge
-                              active={!m.isHidden}
-                              activeLabel="Tampil"
-                              inactiveLabel="Disembunyikan"
-                              onClick={() => run(() => toggleMenuItemVisibility(m.id, m.isHidden))}
-                              disabled={isPending}
-                            />
-                            <Button size="xs" variant="outline" onClick={() => setEditId(editId === m.id ? null : m.id)}>Edit</Button>
-                            <Button size="xs" variant="destructive" disabled={isPending}
-                              onClick={async () => { if (await confirm({ title: `Hapus "${m.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteMenuItem(m.id)); }}>Hapus</Button>
-                          </>
-                        ) : (
-                          <StatusBadge active={!m.isHidden} activeLabel="Tampil" inactiveLabel="Disembunyikan" />
-                        )}
-                      </div>
-                    </div>
-                    {isOwner && editId === m.id && (
-                      <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
-                        <form action={(fd) => run(async () => { await updateMenuItem(m.id, fd); setEditId(null); })}
-                          className="flex flex-wrap gap-3 items-end">
-                          <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={m.name} required /></div>
-                          <div className="grid gap-1">
-                            <Label>Kategori</Label>
-                            <AdminSelect name="categoryId" defaultValue={m.categoryId}>
-                              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </AdminSelect>
-                          </div>
-                          <div className="grid gap-1"><Label>Harga</Label><Input name="price" type="number" defaultValue={m.price} min={0} className="w-32" /></div>
-                          <div className="grid gap-1">
-                            <Label>Tampilkan?</Label>
-                            <AdminSelect name="isHidden" defaultValue={m.isHidden ? "true" : "false"}>
-                              <option value="false">Ya</option>
-                              <option value="true">Tidak</option>
-                            </AdminSelect>
-                          </div>
-                          <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-                        </form>
-                      </div>
-                    )}
-                  </div>
-                ))}
+          {showAdd && (
+            <form action={(fd) => run(async () => { await addMenuItem(fd); setShowAdd(false); })}
+              className="flex flex-wrap items-end gap-3 border-b border-border pb-3">
+              <div className="grid gap-1"><Label>Nama</Label><Input name="name" required placeholder="Nama menu" className="border-border bg-card-2" /></div>
+              <div className="grid gap-1">
+                <Label>Kategori</Label>
+                <AdminSelect name="categoryId" required className="border-border bg-card-2">
+                  <option value="">Pilih kategori</option>
+                  {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </AdminSelect>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="grid gap-1"><Label>Harga (Rp)</Label><Input name="price" type="number" min={0} required className="w-32 border-border bg-card-2" /></div>
+              <input type="hidden" name="isHidden" value="false" />
+              <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+            </form>
+          )}
+
+          {menuItems.length === 0 ? (
+            <p className="py-4 text-center text-[12.5px] font-semibold text-muted-foreground">Belum ada menu item.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {menuItems.map((m, idx) => (
+                <div key={m.id}>
+                  {(idx === 0 || menuItems[idx - 1].categoryName !== m.categoryName) && (
+                    <p className="pb-1 pt-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {m.categoryName}
+                    </p>
+                  )}
+                  <div className="flex items-start justify-between gap-2 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-[13.5px] font-bold">{m.name}</p>
+                      <p className="text-[11.5px] text-muted-foreground tabular-nums">{m.categoryName} · {formatRupiah(m.price)}</p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                      {isOwner ? (
+                        <>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className={cn(
+                              "h-auto rounded-full px-2.5 py-1.5 text-[10px] font-extrabold uppercase tracking-wide",
+                              !m.isHidden ? "bg-success-soft text-success hover:bg-success-soft" : "bg-card-2 text-muted-foreground border border-border",
+                            )}
+                            disabled={isPending}
+                            onClick={() => run(() => toggleMenuItemVisibility(m.id, m.isHidden))}
+                          >
+                            {m.isHidden ? "Disembunyikan" : "Tampil"}
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => setEditId(editId === m.id ? null : m.id)}>Edit</Button>
+                          <Button size="sm" variant="destructive" disabled={isPending}
+                            onClick={async () => { if (await confirm({ title: `Hapus "${m.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteMenuItem(m.id)); }}>Hapus</Button>
+                        </>
+                      ) : (
+                        <Tag tone={m.isHidden ? "mut" : "ok"}>{m.isHidden ? "Disembunyikan" : "Tampil"}</Tag>
+                      )}
+                    </div>
+                  </div>
+                  {isOwner && editId === m.id && (
+                    <div className="mb-2 rounded-xl bg-card-2 px-3 py-3">
+                      <form action={(fd) => run(async () => { await updateMenuItem(m.id, fd); setEditId(null); })}
+                        className="flex flex-wrap items-end gap-3">
+                        <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={m.name} required className="border-border bg-card" /></div>
+                        <div className="grid gap-1">
+                          <Label>Kategori</Label>
+                          <AdminSelect name="categoryId" defaultValue={m.categoryId} className="border-border bg-card">
+                            {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                          </AdminSelect>
+                        </div>
+                        <div className="grid gap-1"><Label>Harga</Label><Input name="price" type="number" defaultValue={m.price} min={0} className="w-32 border-border bg-card" /></div>
+                        <div className="grid gap-1">
+                          <Label>Tampilkan?</Label>
+                          <AdminSelect name="isHidden" defaultValue={m.isHidden ? "true" : "false"} className="border-border bg-card">
+                            <option value="false">Ya</option>
+                            <option value="true">Tidak</option>
+                          </AdminSelect>
+                        </div>
+                        <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </BentoCard>
       )}
 
       {/* ─── VARIANTS ─── */}
       {tab === "variants" && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <BentoCard className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <CardTitle>Varian Menu</CardTitle>
             <Button size="sm" onClick={() => setShowAdd((v) => !v)}>{showAdd ? "Batal" : "+ Tambah"}</Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {showAdd && (
-              <form action={(fd) => run(async () => { await addVariant(fd); setShowAdd(false); })}
-                className="flex flex-wrap gap-3 items-end pb-3 border-b border-foreground/10">
-                <div className="grid gap-1">
-                  <Label>Menu Item</Label>
-                  <AdminSelect name="menuItemId" required>
-                    <option value="">Pilih item</option>
-                    {menuItems.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                  </AdminSelect>
-                </div>
-                <div className="grid gap-1"><Label>Label</Label><Input name="label" required placeholder="Contoh: Porsi Besar" /></div>
-                <div className="grid gap-1"><Label>Tambahan Harga (Rp)</Label><Input name="priceModifier" type="number" defaultValue={0} className="w-36" /></div>
-                <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-              </form>
-            )}
+          </div>
 
-            {variants.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Belum ada varian.</p>
-            ) : (
-              <div className="divide-y divide-foreground/5">
-                {variants.map((v, idx) => (
-                  <div key={v.id}>
-                    {(idx === 0 || variants[idx - 1].menuItemName !== v.menuItemName) && (
-                      <p className="pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                        {v.menuItemName}
+          {showAdd && (
+            <form action={(fd) => run(async () => { await addVariant(fd); setShowAdd(false); })}
+              className="flex flex-wrap items-end gap-3 border-b border-border pb-3">
+              <div className="grid gap-1">
+                <Label>Menu Item</Label>
+                <AdminSelect name="menuItemId" required className="border-border bg-card-2">
+                  <option value="">Pilih item</option>
+                  {menuItems.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </AdminSelect>
+              </div>
+              <div className="grid gap-1"><Label>Label</Label><Input name="label" required placeholder="Contoh: Porsi Besar" className="border-border bg-card-2" /></div>
+              <div className="grid gap-1"><Label>Tambahan Harga (Rp)</Label><Input name="priceModifier" type="number" defaultValue={0} className="w-36 border-border bg-card-2" /></div>
+              <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+            </form>
+          )}
+
+          {variants.length === 0 ? (
+            <p className="py-4 text-center text-[12.5px] font-semibold text-muted-foreground">Belum ada varian.</p>
+          ) : (
+            <div className="divide-y divide-border">
+              {variants.map((v, idx) => (
+                <div key={v.id}>
+                  {(idx === 0 || variants[idx - 1].menuItemName !== v.menuItemName) && (
+                    <p className="pb-1 pt-3 text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+                      {v.menuItemName}
+                    </p>
+                  )}
+                  <div className="flex items-start justify-between gap-2 py-2.5">
+                    <div className="min-w-0">
+                      <p className="text-[13.5px] font-bold">{v.label}</p>
+                      <p className="text-[11.5px] text-muted-foreground">
+                        <span className="tabular-nums">{v.menuItemName} · {v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)}</span>
                       </p>
-                    )}
-                    <div className="flex items-start justify-between py-2.5 gap-2">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium">{v.label}</p>
-                        <p className="text-xs text-muted-foreground">
-                          <span className="tabular-nums">{v.menuItemName} · {v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)}</span>
-                        </p>
-                      </div>
-                      {isOwner && (
-                        <div className="flex gap-1 shrink-0">
-                          <Button size="xs" variant="outline" onClick={() => setEditId(editId === v.id ? null : v.id)}>Edit</Button>
-                          <Button size="xs" variant="destructive" disabled={isPending}
-                            onClick={async () => { if (await confirm({ title: `Hapus varian "${v.label}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteVariant(v.id)); }}>Hapus</Button>
-                        </div>
-                      )}
                     </div>
-                    {isOwner && editId === v.id && (
-                      <div className="bg-muted/30 rounded-lg px-3 py-3 mb-2">
-                        <form action={(fd) => run(async () => { await updateVariant(v.id, fd); setEditId(null); })}
-                          className="flex flex-wrap gap-3 items-end">
-                          <input type="hidden" name="menuItemId" value={v.menuItemId} />
-                          <div className="grid gap-1"><Label>Label</Label><Input name="label" defaultValue={v.label} required /></div>
-                          <div className="grid gap-1"><Label>+Harga</Label><Input name="priceModifier" type="number" defaultValue={v.priceModifier} className="w-36" /></div>
-                          <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-                        </form>
+                    {isOwner && (
+                      <div className="flex shrink-0 gap-1.5">
+                        <Button size="sm" variant="outline" onClick={() => setEditId(editId === v.id ? null : v.id)}>Edit</Button>
+                        <Button size="sm" variant="destructive" disabled={isPending}
+                          onClick={async () => { if (await confirm({ title: `Hapus varian "${v.label}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deleteVariant(v.id)); }}>Hapus</Button>
                       </div>
                     )}
                   </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  {isOwner && editId === v.id && (
+                    <div className="mb-2 rounded-xl bg-card-2 px-3 py-3">
+                      <form action={(fd) => run(async () => { await updateVariant(v.id, fd); setEditId(null); })}
+                        className="flex flex-wrap items-end gap-3">
+                        <input type="hidden" name="menuItemId" value={v.menuItemId} />
+                        <div className="grid gap-1"><Label>Label</Label><Input name="label" defaultValue={v.label} required className="border-border bg-card" /></div>
+                        <div className="grid gap-1"><Label>+Harga</Label><Input name="priceModifier" type="number" defaultValue={v.priceModifier} className="w-36 border-border bg-card" /></div>
+                        <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </BentoCard>
       )}
 
       {/* ─── ONLINE PRICING ─── */}
       {tab === "online" && (
-        <Card>
-          <CardHeader>
+        <BentoCard className="flex flex-col gap-4">
+          <div>
             <CardTitle>Harga Online (GoFood, ShopeeFood, GrabFood)</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-xs text-muted-foreground">
+            <p className="mt-1 text-[11.5px] font-semibold text-muted-foreground">
               Atur harga khusus untuk vendor online. Jika tidak diatur, harga default menu yang digunakan.
             </p>
-            {menuItems.filter((m) => !m.isHidden).map((m) => {
-              const itemVariants = variants.filter((v) => v.menuItemId === m.id);
-              const itemPrices = onlinePrices.filter((op) => op.menuItemId === m.id && !op.variantId);
-              return (
-                <div key={m.id} className="border border-foreground/10 rounded-lg p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-medium">{m.name}</p>
-                      <p className="text-xs text-muted-foreground tabular-nums">Harga dasar: {formatRupiah(m.price)}</p>
-                    </div>
-                  </div>
-                  {/* Base item online prices */}
-                  <div className="flex flex-col gap-2">
-                    {SERVICES.map((svc) => {
-                      const existing = itemPrices.find((p) => p.service === svc);
-                      return (
-                        <OnlinePriceInput
-                          key={svc}
-                          service={svc}
-                          menuItemId={m.id}
-                          variantId={null}
-                          currentPrice={existing?.price ?? null}
-                          priceId={existing?.id ?? null}
-                          isPending={isPending}
-                          run={run}
-                        />
-                      );
-                    })}
-                  </div>
-                  {/* Variant online prices */}
-                  {itemVariants.map((v) => {
-                    const variantPrices = onlinePrices.filter((op) => op.menuItemId === m.id && op.variantId === v.id);
+          </div>
+          {menuItems.filter((m) => !m.isHidden).map((m) => {
+            const itemVariants = variants.filter((v) => v.menuItemId === m.id);
+            const itemPrices = onlinePrices.filter((op) => op.menuItemId === m.id && !op.variantId);
+            return (
+              <div key={m.id} className="space-y-2 rounded-xl border border-border p-3">
+                <div>
+                  <p className="text-[13.5px] font-bold">{m.name}</p>
+                  <p className="text-[11.5px] text-muted-foreground tabular-nums">Harga dasar: {formatRupiah(m.price)}</p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {SERVICES.map((svc) => {
+                    const existing = itemPrices.find((p) => p.service === svc);
                     return (
-                      <div key={v.id} className="ml-4 border-l-2 border-foreground/10 pl-3 space-y-1">
-                        <p className="text-xs font-medium tabular-nums">{v.label} ({v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)})</p>
-                        <div className="flex flex-col gap-2">
-                          {SERVICES.map((svc) => {
-                            const existing = variantPrices.find((p) => p.service === svc);
-                            return (
-                              <OnlinePriceInput
-                                key={svc}
-                                service={svc}
-                                menuItemId={m.id}
-                                variantId={v.id}
-                                currentPrice={existing?.price ?? null}
-                                priceId={existing?.id ?? null}
-                                isPending={isPending}
-                                run={run}
-                              />
-                            );
-                          })}
-                        </div>
-                      </div>
+                      <OnlinePriceInput
+                        key={svc}
+                        service={svc}
+                        menuItemId={m.id}
+                        variantId={null}
+                        currentPrice={existing?.price ?? null}
+                        priceId={existing?.id ?? null}
+                        isPending={isPending}
+                        run={run}
+                      />
                     );
                   })}
                 </div>
-              );
-            })}
-          </CardContent>
-        </Card>
+                {itemVariants.map((v) => {
+                  const variantPrices = onlinePrices.filter((op) => op.menuItemId === m.id && op.variantId === v.id);
+                  return (
+                    <div key={v.id} className="ml-4 space-y-1 border-l-2 border-border pl-3">
+                      <p className="text-[11.5px] font-bold tabular-nums">{v.label} ({v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)})</p>
+                      <div className="flex flex-col gap-2">
+                        {SERVICES.map((svc) => {
+                          const existing = variantPrices.find((p) => p.service === svc);
+                          return (
+                            <OnlinePriceInput
+                              key={svc}
+                              service={svc}
+                              menuItemId={m.id}
+                              variantId={v.id}
+                              currentPrice={existing?.price ?? null}
+                              priceId={existing?.id ?? null}
+                              isPending={isPending}
+                              run={run}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </BentoCard>
       )}
 
       {/* ─── PACKAGES ─── */}
       {tab === "packages" && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+        <BentoCard className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
             <CardTitle>Paket Bundle</CardTitle>
             <Button size="sm" onClick={() => setShowAdd((v) => !v)}>{showAdd ? "Batal" : "+ Tambah"}</Button>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {showAdd && (
-              <form action={(fd) => run(async () => { await addPackage(fd); setShowAdd(false); })}
-                className="flex flex-wrap gap-3 items-end pb-3 border-b border-foreground/10">
-                <div className="grid gap-1"><Label>Nama Paket</Label><Input name="name" required placeholder="Nama paket" /></div>
-                <div className="grid gap-1"><Label>Harga Bundle (Rp)</Label><Input name="bundlePrice" type="number" min={0} required className="w-36" /></div>
-                <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-              </form>
-            )}
-            <div className="space-y-3">
-              {packages.map((pkg) => {
-                const items = packageItems.filter((pi) => pi.packageId === pkg.id);
-                const isExpanded = expandPackage === pkg.id;
-                return (
-                  <div key={pkg.id} className="border border-foreground/10 rounded-lg overflow-hidden">
-                    <div className="flex items-center justify-between px-4 py-2 bg-muted/30">
-                      {isOwner && editId === pkg.id ? (
-                        <form action={(fd) => run(async () => { await updatePackage(pkg.id, fd); setEditId(null); })}
-                          className="flex flex-wrap gap-3 items-end flex-1 mr-3">
-                          <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={pkg.name} required /></div>
-                          <div className="grid gap-1"><Label>Harga</Label><Input name="bundlePrice" type="number" defaultValue={pkg.bundlePrice} min={0} className="w-32" /></div>
-                          <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
-                        </form>
-                      ) : (
-                        <div>
-                          <p className="font-medium">{pkg.name}</p>
-                          <p className="text-xs text-muted-foreground tabular-nums">{formatRupiah(pkg.bundlePrice)}</p>
-                        </div>
-                      )}
-                      <div className="flex gap-1 shrink-0">
-                        <Button size="xs" variant="outline" onClick={() => setExpandPackage(isExpanded ? null : pkg.id)}>
-                          {isExpanded ? "Tutup" : `Item (${items.length})`}
-                        </Button>
-                        {isOwner && (
-                          <>
-                            <Button size="xs" variant="outline" onClick={() => setEditId(editId === pkg.id ? null : pkg.id)}>Edit</Button>
-                            <Button size="xs" variant="destructive" disabled={isPending}
-                              onClick={async () => { if (await confirm({ title: `Hapus paket "${pkg.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deletePackage(pkg.id)); }}>Hapus</Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
+          </div>
 
-                    {isExpanded && (
-                      <div className="px-4 pb-3 pt-2 space-y-2">
-                        {items.map((pi) => (
-                          <div key={pi.id} className="flex items-center justify-between text-sm">
-                            <span>{pi.menuItemName}{pi.variantLabel ? ` (${pi.variantLabel})` : ""}</span>
-                            {isOwner && (
-                              <Button size="xs" variant="ghost" disabled={isPending}
-                                onClick={() => run(() => deletePackageItem(pi.id))}>Hapus</Button>
-                            )}
-                          </div>
-                        ))}
-                        <form action={(fd) => run(() => addPackageItem(fd))}
-                          className="flex flex-wrap gap-2 items-end pt-2 border-t border-foreground/10">
-                          <input type="hidden" name="packageId" value={pkg.id} />
-                          <div className="grid gap-1">
-                            <Label className="text-xs">Tambah Item</Label>
-                            <AdminSelect
-                              name="menuItemId"
-                              required
-                              className="h-8 px-2 text-xs"
-                              onChange={(e) => {
-                                const form = e.target.closest("form")!;
-                                const nameInput = form.querySelector<HTMLInputElement>("[name=nameSnapshot]")!;
-                                nameInput.value = e.target.options[e.target.selectedIndex].text;
-                              }}
-                            >
-                              <option value="">Pilih item</option>
-                              {menuItems.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-                            </AdminSelect>
-                          </div>
-                          <input type="hidden" name="nameSnapshot" />
-                          <Button type="submit" size="xs" disabled={isPending}>+ Tambah</Button>
-                        </form>
+          {showAdd && (
+            <form action={(fd) => run(async () => { await addPackage(fd); setShowAdd(false); })}
+              className="flex flex-wrap items-end gap-3 border-b border-border pb-3">
+              <div className="grid gap-1"><Label>Nama Paket</Label><Input name="name" required placeholder="Nama paket" className="border-border bg-card-2" /></div>
+              <div className="grid gap-1"><Label>Harga Bundle (Rp)</Label><Input name="bundlePrice" type="number" min={0} required className="w-36 border-border bg-card-2" /></div>
+              <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+            </form>
+          )}
+
+          <div className="flex flex-col gap-3">
+            {packages.map((pkg) => {
+              const items = packageItems.filter((pi) => pi.packageId === pkg.id);
+              const isExpanded = expandPackage === pkg.id;
+              return (
+                <div key={pkg.id} className="overflow-hidden rounded-xl border border-border">
+                  <div className="flex items-center justify-between bg-card-2 px-4 py-2">
+                    {isOwner && editId === pkg.id ? (
+                      <form action={(fd) => run(async () => { await updatePackage(pkg.id, fd); setEditId(null); })}
+                        className="mr-3 flex flex-1 flex-wrap items-end gap-3">
+                        <div className="grid gap-1"><Label>Nama</Label><Input name="name" defaultValue={pkg.name} required className="border-border bg-card" /></div>
+                        <div className="grid gap-1"><Label>Harga</Label><Input name="bundlePrice" type="number" defaultValue={pkg.bundlePrice} min={0} className="w-32 border-border bg-card" /></div>
+                        <Button type="submit" size="sm" disabled={isPending}>Simpan</Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setEditId(null)}>Batal</Button>
+                      </form>
+                    ) : (
+                      <div>
+                        <p className="text-[13.5px] font-bold">{pkg.name}</p>
+                        <p className="text-[11.5px] text-muted-foreground tabular-nums">{formatRupiah(pkg.bundlePrice)}</p>
                       </div>
                     )}
+                    <div className="flex shrink-0 gap-1.5">
+                      <Button size="sm" variant="outline" onClick={() => setExpandPackage(isExpanded ? null : pkg.id)}>
+                        {isExpanded ? "Tutup" : `Item (${items.length})`}
+                      </Button>
+                      {isOwner && (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => setEditId(editId === pkg.id ? null : pkg.id)}>Edit</Button>
+                          <Button size="sm" variant="destructive" disabled={isPending}
+                            onClick={async () => { if (await confirm({ title: `Hapus paket "${pkg.name}"?`, destructive: true, confirmLabel: "Hapus" })) run(() => deletePackage(pkg.id)); }}>Hapus</Button>
+                        </>
+                      )}
+                    </div>
                   </div>
-                );
-              })}
-              {packages.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">Belum ada paket.</p>}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-    </div>
+                  {isExpanded && (
+                    <div className="space-y-2 px-4 pb-3 pt-2">
+                      {items.map((pi) => (
+                        <div key={pi.id} className="flex items-center justify-between text-[12.5px] font-semibold">
+                          <span>{pi.menuItemName}{pi.variantLabel ? ` (${pi.variantLabel})` : ""}</span>
+                          {isOwner && (
+                            <Button size="sm" variant="ghost" disabled={isPending}
+                              onClick={() => run(() => deletePackageItem(pi.id))}>Hapus</Button>
+                          )}
+                        </div>
+                      ))}
+                      <form action={(fd) => run(() => addPackageItem(fd))}
+                        className="flex flex-wrap items-end gap-2 border-t border-border pt-2">
+                        <input type="hidden" name="packageId" value={pkg.id} />
+                        <div className="grid gap-1">
+                          <Label className="text-xs">Tambah Item</Label>
+                          <AdminSelect
+                            name="menuItemId"
+                            required
+                            className="h-8 border-border bg-card px-2 text-xs"
+                            onChange={(e) => {
+                              const form = e.target.closest("form")!;
+                              const nameInput = form.querySelector<HTMLInputElement>("[name=nameSnapshot]")!;
+                              nameInput.value = e.target.options[e.target.selectedIndex].text;
+                            }}
+                          >
+                            <option value="">Pilih item</option>
+                            {menuItems.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+                          </AdminSelect>
+                        </div>
+                        <input type="hidden" name="nameSnapshot" />
+                        <Button type="submit" size="sm" disabled={isPending}>+ Tambah</Button>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+            {packages.length === 0 && <p className="py-4 text-center text-[12.5px] font-semibold text-muted-foreground">Belum ada paket.</p>}
+          </div>
+        </BentoCard>
+      )}
+    </>
   );
+}
+
+function CardTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="font-display text-[15px] font-bold">{children}</h2>;
 }
 
 function OnlinePriceInput({
@@ -496,18 +496,18 @@ function OnlinePriceInput({
 
   return (
     <div className="flex items-center gap-2">
-      <Label className="text-xs w-24 shrink-0 text-muted-foreground">{service}</Label>
+      <Label className="w-24 shrink-0 text-xs text-muted-foreground">{service}</Label>
       <Input
         type="number"
         min={0}
         placeholder="Harga default"
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        className="h-8 text-sm flex-1"
+        className="h-8 flex-1 border-border bg-card text-sm"
       />
       {hasChanged && value && (
         <Button
-          size="xs"
+          size="sm"
           disabled={isPending}
           onClick={() => run(() => setOnlinePrice({ menuItemId, variantId, service, price: parseInt(value) }))}
         >
@@ -516,7 +516,7 @@ function OnlinePriceInput({
       )}
       {priceId && (
         <Button
-          size="xs"
+          size="sm"
           variant="ghost"
           disabled={isPending}
           onClick={() => { run(() => deleteOnlinePrice(priceId)); setValue(""); }}

@@ -6,8 +6,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AdminSelect, ErrorBanner } from "@/components/admin/ui";
+import { AdminSelect } from "@/components/admin/ui";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { formatRupiah, formatDateTime, formatPaymentMethod, formatTransactionShortId } from "@/lib/format";
 import type { StoreInfo } from "@/lib/settings";
 import { useAdminAction } from "@/hooks/use-admin-action";
@@ -140,33 +140,35 @@ export default function TransactionDetailClient({
   const isPaid = data.status === "PAID";
 
   return (
-    <div className="space-y-6">
+    <>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
           <Button variant="outline" size="sm" render={<Link href="/admin/transactions" />}>
-            <ArrowLeft className="size-4 mr-1" />
+            <ArrowLeft className="size-4" />
             Kembali
           </Button>
-          <h1 className="text-2xl font-bold">{data.session.name}</h1>
-          <span
-            className="font-mono text-xs text-muted-foreground bg-muted rounded-md px-2 py-0.5"
-            title={data.id}
-          >
-            {formatTransactionShortId(data.id)}
-          </span>
+          <div className="min-w-0">
+            <h1 className="font-display truncate text-[17px] font-bold">{data.session.name}</h1>
+            <span
+              className="font-mono text-[10px] text-muted-foreground"
+              title={data.id}
+            >
+              {formatTransactionShortId(data.id)}
+            </span>
+          </div>
         </div>
         {isOwner && (
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {!editing ? (
               <Button size="sm" onClick={() => setEditing(true)}>
-                <Pencil className="size-4 mr-1" />
+                <Pencil className="size-4" />
                 Edit
               </Button>
             ) : (
               <>
                 <Button size="sm" onClick={handleSave} disabled={isPending}>
-                  <Save className="size-4 mr-1" />
+                  <Save className="size-4" />
                   Simpan
                 </Button>
                 <Button
@@ -177,7 +179,7 @@ export default function TransactionDetailClient({
                     setEditing(false);
                   }}
                 >
-                  <X className="size-4 mr-1" />
+                  <X className="size-4" />
                   Batal
                 </Button>
               </>
@@ -186,37 +188,38 @@ export default function TransactionDetailClient({
         )}
       </div>
 
-      {error && <ErrorBanner error={error} />}
+      {error ? (
+        <div className="rounded-2xl border border-destructive/35 bg-destructive-soft p-3.5 text-[12.5px] font-semibold text-destructive">
+          {error}
+        </div>
+      ) : null}
 
-      <div className="space-y-6">
-        {/* Left: Receipt Preview */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="flex items-center justify-between">
-              <span>Struk</span>
-              <div className="flex gap-2">
-                {isSupported && (
-                  <Button size="sm" variant="outline" onClick={handlePrint} disabled={printing}>
-                    {printing ? (
-                      <Loader2 className="size-3 mr-1 animate-spin" />
-                    ) : (
-                      <Printer className="size-3 mr-1" />
-                    )}
-                    Cetak
-                  </Button>
-                )}
-                <Button size="sm" variant="outline" onClick={handleDownload}>
-                  <Download className="size-3 mr-1" />
-                  Unduh
+      <div className="flex flex-col gap-3">
+        {/* Receipt Preview */}
+        <BentoCard className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <CardLabel>Struk</CardLabel>
+            <div className="flex gap-2">
+              {isSupported && (
+                <Button size="sm" variant="outline" onClick={handlePrint} disabled={printing}>
+                  {printing ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Printer className="size-3" />
+                  )}
+                  Cetak
                 </Button>
-              </div>
-            </CardTitle>
-            {printError && (
-              <p className="text-xs text-red-500 mt-1">{printError}</p>
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-center">
+              )}
+              <Button size="sm" variant="outline" onClick={handleDownload}>
+                <Download className="size-3" />
+                Unduh
+              </Button>
+            </div>
+          </div>
+          {printError && (
+            <p className="text-xs text-destructive">{printError}</p>
+          )}
+          <div className="flex justify-center">
               <div
                 ref={receiptRef}
                 className="w-75 bg-white text-black p-4 font-mono text-xs space-y-2"
@@ -338,18 +341,14 @@ export default function TransactionDetailClient({
                   {storeInfo.receiptFooter}
                 </p>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </BentoCard>
 
-        {/* Right: Edit Form or Details */}
-        <div className="space-y-4">
+        {/* Edit Form or Details */}
+        <div className="flex flex-col gap-3">
           {/* Session Info */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Info Sesi</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
+          <BentoCard className="flex flex-col gap-3">
+            <CardLabel>Info Sesi</CardLabel>
               <div className="grid gap-1">
                 <Label className="text-xs">Nama Pelanggan</Label>
                 {editing ? (
@@ -357,7 +356,7 @@ export default function TransactionDetailClient({
                     value={customerAlias}
                     onChange={(e) => setCustomerAlias(e.target.value)}
                     placeholder="Nama pelanggan"
-                    className="h-8 text-sm"
+                    className="h-8 border-border bg-card-2 text-sm"
                   />
                 ) : (
                   <p className="text-sm">{data.session.customerAlias || "-"}</p>
@@ -371,7 +370,7 @@ export default function TransactionDetailClient({
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     placeholder="No. HP pelanggan"
-                    className="h-8 text-sm"
+                    className="h-8 border-border bg-card-2 text-sm"
                   />
                 ) : (
                   <p className="text-sm">{data.session.customerPhone || "-"}</p>
@@ -383,6 +382,7 @@ export default function TransactionDetailClient({
                   <AdminSelect
                     value={service ?? ""}
                     onChange={(e) => setService(e.target.value)}
+                    className="border-border bg-card-2"
                   >
                     {serviceOptions.map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -401,7 +401,7 @@ export default function TransactionDetailClient({
                     value={externalOrderId}
                     onChange={(e) => setExternalOrderId(e.target.value)}
                     placeholder="ID dari GoFood/Shopee/Grab"
-                    className="h-8 text-sm"
+                    className="h-8 border-border bg-card-2 text-sm"
                   />
                 ) : (
                   <p className="text-sm">{data.session.externalOrderId || "-"}</p>
@@ -417,6 +417,7 @@ export default function TransactionDetailClient({
                   <AdminSelect
                     value={paymentMethod}
                     onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="border-border bg-card-2"
                   >
                     <option value="CASH">Tunai</option>
                     <option value="QRIS">QRIS</option>
@@ -436,178 +437,169 @@ export default function TransactionDetailClient({
                 <p className="text-sm">{formatDateTime(data.paidAt)}</p>
               </div>
               {data.settlement && (
-                <div className="rounded-lg bg-primary/10 p-3 space-y-1 text-sm">
-                  <p className="font-medium text-primary">Sudah Cair</p>
-                  <p className="text-xs text-muted-foreground">
+                <div className="space-y-1 rounded-xl bg-primary-soft p-3 text-[12.5px]">
+                  <p className="font-bold text-primary">Sudah Cair</p>
+                  <p className="text-[11.5px] text-muted-foreground">
                     {formatDateTime(data.settlement.settlementDate)} · oleh {data.settlement.settledBy ?? "-"}
                   </p>
-                  <div className="space-y-0.5 text-xs">
+                  <div className="space-y-0.5 text-[11.5px]">
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Komisi</span>
-                      <span className="text-destructive">-{formatRupiah(data.settlement.commissionAmount)}</span>
+                      <span className="text-destructive tabular-nums">-{formatRupiah(data.settlement.commissionAmount)}</span>
                     </div>
                     {data.settlement.deductions.map((d) => (
                       <div key={d.id} className="flex justify-between">
                         <span className="text-muted-foreground">{d.label}</span>
-                        <span className="text-destructive">-{formatRupiah(d.amount)}</span>
+                        <span className="text-destructive tabular-nums">-{formatRupiah(d.amount)}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between font-medium border-t pt-1">
+                    <div className="flex justify-between border-t border-border pt-1 font-bold">
                       <span>Diterima</span>
-                      <span className="text-primary">{formatRupiah(data.settlement.finalAmount)}</span>
+                      <span className="text-primary tabular-nums">{formatRupiah(data.settlement.finalAmount)}</span>
                     </div>
                   </div>
                   {data.settlement.notes && (
-                    <p className="text-xs text-muted-foreground italic">{data.settlement.notes}</p>
+                    <p className="text-[11px] italic text-muted-foreground">{data.settlement.notes}</p>
                   )}
                 </div>
               )}
               {data.status === "VOIDED" && (
-                <div className="rounded-lg bg-destructive/10 p-3 space-y-1 text-sm">
-                  <p className="font-medium text-destructive">Transaksi di-void</p>
+                <div className="space-y-1 rounded-xl bg-destructive-soft p-3 text-[12.5px]">
+                  <p className="font-bold text-destructive">Transaksi di-void</p>
                   {data.voidReason && <p>Alasan: {data.voidReason}</p>}
                   {data.voidedBy && <p>Oleh: {data.voidedBy}</p>}
                   {data.voidedAt && <p>Waktu: {formatDateTime(data.voidedAt)}</p>}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </BentoCard>
 
           {/* Order Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Item Pesanan</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {orderItems.map((item, i) => (
-                  <div
-                    key={item.id}
-                    className={`rounded-lg border p-2 space-y-1 text-sm ${item.status === "CANCELLED" ? "opacity-50" : ""}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">{item.nameSnapshot}</span>
-                      {item.status === "CANCELLED" && (
-                        <span className="text-xs text-destructive">Dibatalkan</span>
-                      )}
-                    </div>
-                    {editing && item.status !== "CANCELLED" ? (
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <Label className="text-xs">Qty</Label>
-                          <Input
-                            type="number"
-                            min={1}
-                            value={item.qty}
-                            onChange={(e) => {
-                              const updated = [...orderItems];
-                              updated[i] = { ...updated[i], qty: Math.max(1, parseInt(e.target.value) || 1) };
-                              setOrderItems(updated);
-                            }}
-                            className="h-7 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Harga</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={item.price}
-                            onChange={(e) => {
-                              const updated = [...orderItems];
-                              updated[i] = { ...updated[i], price: Math.max(0, parseInt(e.target.value) || 0) };
-                              setOrderItems(updated);
-                            }}
-                            className="h-7 text-xs"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs">Catatan</Label>
-                          <Input
-                            value={item.note ?? ""}
-                            onChange={(e) => {
-                              const updated = [...orderItems];
-                              updated[i] = { ...updated[i], note: e.target.value || null };
-                              setOrderItems(updated);
-                            }}
-                            placeholder="-"
-                            className="h-7 text-xs"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{item.qty}x @ {formatRupiah(item.price)}</span>
-                        <span>{formatRupiah(item.qty * item.price)}</span>
-                      </div>
+          <BentoCard className="flex flex-col gap-3">
+            <CardLabel>Item Pesanan</CardLabel>
+            <div className="flex flex-col gap-2">
+              {orderItems.map((item, i) => (
+                <div
+                  key={item.id}
+                  className={`space-y-1 rounded-xl border border-border p-2 text-[12.5px] ${item.status === "CANCELLED" ? "opacity-50" : ""}`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold">{item.nameSnapshot}</span>
+                    {item.status === "CANCELLED" && (
+                      <span className="text-[11px] text-destructive">Dibatalkan</span>
                     )}
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                  {editing && item.status !== "CANCELLED" ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Label className="text-xs">Qty</Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={item.qty}
+                          onChange={(e) => {
+                            const updated = [...orderItems];
+                            updated[i] = { ...updated[i], qty: Math.max(1, parseInt(e.target.value) || 1) };
+                            setOrderItems(updated);
+                          }}
+                          className="h-7 border-border bg-card-2 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Harga</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={item.price}
+                          onChange={(e) => {
+                            const updated = [...orderItems];
+                            updated[i] = { ...updated[i], price: Math.max(0, parseInt(e.target.value) || 0) };
+                            setOrderItems(updated);
+                          }}
+                          className="h-7 border-border bg-card-2 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Catatan</Label>
+                        <Input
+                          value={item.note ?? ""}
+                          onChange={(e) => {
+                            const updated = [...orderItems];
+                            updated[i] = { ...updated[i], note: e.target.value || null };
+                            setOrderItems(updated);
+                          }}
+                          placeholder="-"
+                          className="h-7 border-border bg-card-2 text-xs"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between text-[11.5px] text-muted-foreground">
+                      <span>{item.qty}x @ {formatRupiah(item.price)}</span>
+                      <span className="tabular-nums">{formatRupiah(item.qty * item.price)}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </BentoCard>
 
           {/* Charges */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Rincian Biaya</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span>Subtotal</span>
-                <span>{formatRupiah(editing ? subtotal : data.subtotal)}</span>
-              </div>
-              <div className="grid gap-1">
-                <Label className="text-xs">Pajak</Label>
-                {editing ? (
-                  <Input
-                    type="number"
-                    min={0}
-                    value={taxAmount}
-                    onChange={(e) => setTaxAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="h-8 text-sm"
-                  />
-                ) : (
-                  <p className="text-sm">{formatRupiah(data.taxAmount)}</p>
-                )}
-              </div>
-              <div className="grid gap-1">
-                <Label className="text-xs">Service</Label>
-                {editing ? (
-                  <Input
-                    type="number"
-                    min={0}
-                    value={serviceCharge}
-                    onChange={(e) => setServiceCharge(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="h-8 text-sm"
-                  />
-                ) : (
-                  <p className="text-sm">{formatRupiah(data.serviceCharge)}</p>
-                )}
-              </div>
-              <div className="grid gap-1">
-                <Label className="text-xs">Diskon</Label>
-                {editing ? (
-                  <Input
-                    type="number"
-                    min={0}
-                    value={discountAmount}
-                    onChange={(e) => setDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
-                    className="h-8 text-sm"
-                  />
-                ) : (
-                  <p className="text-sm">{formatRupiah(data.discountAmount)}</p>
-                )}
-              </div>
-              <div className="flex justify-between text-sm font-bold border-t pt-2">
-                <span>Total</span>
-                <span>{formatRupiah(editing ? totalAmount : data.totalAmount)}</span>
-              </div>
-            </CardContent>
-          </Card>
+          <BentoCard className="flex flex-col gap-3">
+            <CardLabel>Rincian Biaya</CardLabel>
+            <div className="flex justify-between text-[12.5px]">
+              <span>Subtotal</span>
+              <span className="tabular-nums">{formatRupiah(editing ? subtotal : data.subtotal)}</span>
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs">Pajak</Label>
+              {editing ? (
+                <Input
+                  type="number"
+                  min={0}
+                  value={taxAmount}
+                  onChange={(e) => setTaxAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="h-8 border-border bg-card-2 text-sm"
+                />
+              ) : (
+                <p className="text-[12.5px] tabular-nums">{formatRupiah(data.taxAmount)}</p>
+              )}
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs">Service</Label>
+              {editing ? (
+                <Input
+                  type="number"
+                  min={0}
+                  value={serviceCharge}
+                  onChange={(e) => setServiceCharge(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="h-8 border-border bg-card-2 text-sm"
+                />
+              ) : (
+                <p className="text-[12.5px] tabular-nums">{formatRupiah(data.serviceCharge)}</p>
+              )}
+            </div>
+            <div className="grid gap-1">
+              <Label className="text-xs">Diskon</Label>
+              {editing ? (
+                <Input
+                  type="number"
+                  min={0}
+                  value={discountAmount}
+                  onChange={(e) => setDiscountAmount(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="h-8 border-border bg-card-2 text-sm"
+                />
+              ) : (
+                <p className="text-[12.5px] tabular-nums">{formatRupiah(data.discountAmount)}</p>
+              )}
+            </div>
+            <div className="flex justify-between border-t border-border pt-2 text-[12.5px] font-bold">
+              <span>Total</span>
+              <span className="tabular-nums">{formatRupiah(editing ? totalAmount : data.totalAmount)}</span>
+            </div>
+          </BentoCard>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

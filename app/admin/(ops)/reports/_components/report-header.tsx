@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { RefreshCw, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AdminPageHeader } from "@/components/admin/ui";
+import { BentoCard } from "@/components/shell/ui";
 import { Segmented } from "./segmented";
 import { PeriodStepper } from "./period-stepper";
 import type { Period } from "../_utils/period-date";
@@ -37,25 +37,23 @@ export function ReportHeader({
   const showMenu = Boolean(onExportCSV || onExportPDF);
 
   return (
-    <div className="space-y-3">
-      <AdminPageHeader title="Laporan">
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            aria-label="Muat ulang"
-            title="Muat ulang"
-          >
-            <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
-          </Button>
-          {showMenu && <KebabMenu onCSV={onExportCSV} onPDF={onExportPDF} />}
-        </div>
-      </AdminPageHeader>
-      <Segmented<Period> value={period} onChange={onPeriodChange} options={PERIOD_OPTIONS} />
+    <BentoCard className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <Segmented<Period> value={period} onChange={onPeriodChange} options={PERIOD_OPTIONS} className="flex-1" />
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          aria-label="Muat ulang"
+          title="Muat ulang"
+        >
+          <RefreshCw className={isRefreshing ? "animate-spin" : ""} />
+        </Button>
+        {showMenu && <KebabMenu onCSV={onExportCSV} onPDF={onExportPDF} />}
+      </div>
       <PeriodStepper period={period} date={date} onChange={onDateChange} />
-    </div>
+    </BentoCard>
   );
 }
 
@@ -87,12 +85,12 @@ function KebabMenu({ onCSV, onPDF }: { onCSV?: () => void; onPDF?: () => void })
       {open && (
         <div
           role="menu"
-          className="absolute right-0 top-full z-20 mt-1 min-w-32 rounded-xl border border-border bg-popover p-1 text-sm shadow-md"
+          className="absolute right-0 top-full z-20 mt-1 min-w-32 rounded-xl border border-border bg-card p-1 text-[12.5px] font-semibold shadow-md"
         >
           {onCSV && (
             <button
               role="menuitem"
-              className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted"
+              className="block w-full rounded-lg px-3 py-2 text-left hover:bg-card-2"
               onClick={() => {
                 setOpen(false);
                 onCSV();
@@ -104,7 +102,7 @@ function KebabMenu({ onCSV, onPDF }: { onCSV?: () => void; onPDF?: () => void })
           {onPDF && (
             <button
               role="menuitem"
-              className="block w-full rounded-lg px-3 py-2 text-left hover:bg-muted"
+              className="block w-full rounded-lg px-3 py-2 text-left hover:bg-card-2"
               onClick={() => {
                 setOpen(false);
                 onPDF();

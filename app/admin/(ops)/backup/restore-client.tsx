@@ -3,9 +3,8 @@
 import { useRef, useState } from "react";
 import { Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import { ErrorBanner } from "@/components/admin/ui";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { restoreDatabase, type BackupData } from "@/app/actions/admin/restore";
 import { validateBackup } from "@/lib/backup-utils";
@@ -92,52 +91,46 @@ export default function RestoreClient() {
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload File Backup</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".json,application/json"
-            className="hidden"
-            onChange={handleFile}
-          />
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => fileRef.current?.click()}
-            disabled={isPending}
-          >
-            <Upload className="size-4" />
-            Pilih File Backup (.json)
-          </Button>
-          {parseError && (
-            <p className="text-sm text-destructive flex items-center gap-1">
-              <AlertTriangle className="size-4 shrink-0" />
-              {parseError}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+    <>
+      <BentoCard className="flex flex-col gap-3">
+        <CardLabel>Upload File Backup</CardLabel>
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".json,application/json"
+          className="hidden"
+          onChange={handleFile}
+        />
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => fileRef.current?.click()}
+          disabled={isPending}
+        >
+          <Upload className="size-4" />
+          Pilih File Backup (.json)
+        </Button>
+        {parseError && (
+          <p className="flex items-center gap-1 text-[12.5px] font-semibold text-destructive">
+            <AlertTriangle className="size-4 shrink-0" />
+            {parseError}
+          </p>
+        )}
+      </BentoCard>
 
       {backup && (
         <>
           {backup.exportedAt && (
-            <p className="text-xs text-muted-foreground">
+            <p className="text-[11.5px] font-semibold text-muted-foreground">
               Dibuat: {new Date(backup.exportedAt).toLocaleString("id-ID")}
               {backup.version ? ` · v${backup.version}` : ""}
             </p>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Pilih Tabel yang Akan Dipulihkan</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex gap-2">
+          <BentoCard className="flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <CardLabel>Pilih Tabel yang Akan Dipulihkan</CardLabel>
+              <div className="flex gap-1.5">
                 <Button variant="ghost" size="sm" onClick={() => setSelected(new Set(availableTables))}>
                   Pilih Semua
                 </Button>
@@ -145,32 +138,36 @@ export default function RestoreClient() {
                   Hapus Semua
                 </Button>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-2">
-                {availableTables.map((t) => (
-                  <label key={t} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(t)}
-                      onChange={() => toggleTable(t)}
-                      className="rounded"
-                    />
-                    <span className="flex-1">{TABLE_LABELS[t] ?? t}</span>
-                    <span className="text-xs text-muted-foreground">{counts[t]}</span>
-                  </label>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+            <div className="grid grid-cols-2 gap-2">
+              {availableTables.map((t) => (
+                <label key={t} className="flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(t)}
+                    onChange={() => toggleTable(t)}
+                    className="rounded accent-primary"
+                  />
+                  <span className="flex-1">{TABLE_LABELS[t] ?? t}</span>
+                  <span className="text-[11.5px] text-muted-foreground tabular-nums">{counts[t]}</span>
+                </label>
+              ))}
+            </div>
+          </BentoCard>
 
-          <div className="rounded-lg border border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20 dark:border-yellow-700 p-3 flex gap-2 text-sm">
-            <AlertTriangle className="size-4 shrink-0 text-yellow-600 dark:text-yellow-400 mt-0.5" />
-            <p className="text-yellow-800 dark:text-yellow-300">
+          <div className="flex gap-2 rounded-2xl border border-warning/35 bg-warning-soft p-3.5 text-[12.5px] font-semibold">
+            <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+            <p className="text-warning">
               Data yang sudah ada dengan ID sama akan ditimpa. Data yang tidak ada di file backup akan tetap dipertahankan.
             </p>
           </div>
 
-          <ErrorBanner error={error} />
+          {error ? (
+            <div className="rounded-2xl border border-destructive/35 bg-destructive-soft p-3.5 text-[12.5px] font-semibold text-destructive">
+              {error}
+            </div>
+          ) : null}
 
           <Button
             className="w-full"
@@ -187,36 +184,32 @@ export default function RestoreClient() {
       )}
 
       {result && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle2 className="size-5 text-primary" />
-              Hasil Pemulihan
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="space-y-1">
-              {Object.entries(result.imported).map(([t, n]) => (
-                <div key={t} className="flex justify-between text-sm">
-                  <span>{TABLE_LABELS[t] ?? t}</span>
-                  <span className="text-muted-foreground">{n} record</span>
-                </div>
-              ))}
-            </div>
-            {result.errors.length > 0 && (
-              <div className="rounded-lg bg-destructive/10 p-3 space-y-1">
-                <p className="text-sm font-medium text-destructive">Error ({result.errors.length})</p>
-                {result.errors.slice(0, 10).map((e, i) => (
-                  <p key={i} className="text-xs text-destructive/80">{e}</p>
-                ))}
-                {result.errors.length > 10 && (
-                  <p className="text-xs text-destructive/60">...dan {result.errors.length - 10} lainnya</p>
-                )}
+        <BentoCard className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="size-5 text-primary" />
+            <CardLabel>Hasil Pemulihan</CardLabel>
+          </div>
+          <div className="flex flex-col gap-1">
+            {Object.entries(result.imported).map(([t, n]) => (
+              <div key={t} className="flex justify-between text-[12.5px] font-semibold">
+                <span>{TABLE_LABELS[t] ?? t}</span>
+                <span className="text-muted-foreground tabular-nums">{n} record</span>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+          {result.errors.length > 0 && (
+            <div className="flex flex-col gap-1 rounded-xl bg-destructive-soft p-3">
+              <p className="text-[12.5px] font-bold text-destructive">Error ({result.errors.length})</p>
+              {result.errors.slice(0, 10).map((e, i) => (
+                <p key={i} className="text-[11px] text-destructive/80">{e}</p>
+              ))}
+              {result.errors.length > 10 && (
+                <p className="text-[11px] text-destructive/60">...dan {result.errors.length - 10} lainnya</p>
+              )}
+            </div>
+          )}
+        </BentoCard>
       )}
-    </div>
+    </>
   );
 }

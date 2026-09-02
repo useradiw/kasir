@@ -2,9 +2,8 @@
 
 import { useRouter, usePathname } from "next/navigation";
 import { useState, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AdminPageHeader } from "@/components/admin/ui";
+import { BentoCard } from "@/components/shell/ui";
 import { formatRupiah } from "@/lib/format";
 import type { MenuPerformanceData, MenuPerformanceRow } from "@/app/actions/admin/queries";
 
@@ -105,56 +104,45 @@ export function MenuPerformanceClient({
   const sortBtnProps = { sortKey, sortAsc, onSort: handleSort };
 
   return (
-    <div className="space-y-6">
-      <AdminPageHeader title="Performa Menu">
-        <span className="text-sm text-muted-foreground">Jumlah terjual dan pendapatan per menu item</span>
-      </AdminPageHeader>
-
+    <>
       {/* Period controls */}
-      <Card>
-        <CardContent className="pt-4 space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {(["daily", "weekly", "monthly", "yearly"] as Period[]).map((p) => (
-              <Button
-                key={p}
-                variant={currentPeriod === p ? "default" : "secondary"}
-                size="sm"
-                onClick={() => navigate(p, currentDate)}
-                className="text-sm"
-              >
-                {PERIOD_LABELS[p]}
-              </Button>
-            ))}
-          </div>
+      <BentoCard className="flex flex-col gap-3">
+        <div className="flex flex-wrap gap-2">
+          {(["daily", "weekly", "monthly", "yearly"] as Period[]).map((p) => (
+            <Button
+              key={p}
+              variant={currentPeriod === p ? "default" : "outline"}
+              size="sm"
+              onClick={() => navigate(p, currentDate)}
+            >
+              {PERIOD_LABELS[p]}
+            </Button>
+          ))}
+        </div>
 
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon-sm" onClick={prevDate} aria-label="Periode sebelumnya">‹</Button>
-            <input
-              type="date"
-              value={currentDate}
-              onChange={(e) => e.target.value && navigate(currentPeriod, e.target.value)}
-              className="h-9 rounded-4xl border border-input bg-input/30 px-3 text-sm"
-            />
-            <Button variant="outline" size="icon-sm" onClick={nextDate} aria-label="Periode berikutnya">›</Button>
-          </div>
-        </CardContent>
-      </Card>
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon-sm" onClick={prevDate} aria-label="Periode sebelumnya">‹</Button>
+          <input
+            type="date"
+            value={currentDate}
+            onChange={(e) => e.target.value && navigate(currentPeriod, e.target.value)}
+            className="h-9 rounded-xl border border-border bg-card-2 px-3 text-[13px]"
+          />
+          <Button variant="outline" size="icon-sm" onClick={nextDate} aria-label="Periode berikutnya">›</Button>
+        </div>
+      </BentoCard>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Total Penjualan</p>
-            <p className="text-lg font-semibold tabular-nums">{formatRupiah(totals.revenue)}</p>
-            <p className="text-xs text-muted-foreground tabular-nums">{totals.qtySold} item terjual</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-4">
-            <p className="text-xs text-muted-foreground">Jumlah Menu Terjual</p>
-            <p className="text-lg font-semibold tabular-nums">{data.rows.length}</p>
-          </CardContent>
-        </Card>
+        <BentoCard>
+          <p className="text-[11.5px] font-bold uppercase tracking-wide text-muted-foreground">Total Penjualan</p>
+          <p className="font-display mt-1 text-[17px] font-bold tabular-nums">{formatRupiah(totals.revenue)}</p>
+          <p className="mt-0.5 text-[11.5px] font-semibold text-muted-foreground tabular-nums">{totals.qtySold} item terjual</p>
+        </BentoCard>
+        <BentoCard>
+          <p className="text-[11.5px] font-bold uppercase tracking-wide text-muted-foreground">Jumlah Menu Terjual</p>
+          <p className="font-display mt-1 text-[17px] font-bold tabular-nums">{data.rows.length}</p>
+        </BentoCard>
       </div>
 
       {/* Search */}
@@ -163,58 +151,54 @@ export function MenuPerformanceClient({
         placeholder="Cari nama menu..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="h-9 w-full rounded-4xl border border-input bg-input/30 px-3 text-sm"
+        className="h-9 w-full rounded-xl border border-border bg-card-2 px-3 text-[13px]"
       />
 
       {/* Table */}
       {sorted.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground text-sm">
-            Tidak ada data untuk periode ini.
-          </CardContent>
-        </Card>
+        <p className="py-12 text-center text-[12.5px] font-semibold text-muted-foreground">
+          Tidak ada data untuk periode ini.
+        </p>
       ) : (
-        <Card>
-          <CardContent className="pt-4 overflow-x-auto">
-            <table className="w-full text-sm min-w-100">
-              <thead>
-                <tr className="border-b text-left text-muted-foreground">
-                  <th className="pb-2 pr-3">Menu</th>
-                  <th className="pb-2 pr-3 text-right">
-                    <SortBtn col="qtySold" label="Terjual" {...sortBtnProps} />
-                  </th>
-                  <th className="pb-2 text-right">
-                    <SortBtn col="revenue" label="Pendapatan" {...sortBtnProps} />
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {sorted.map((row) => (
-                  <PerformanceRow key={row.key} row={row} />
-                ))}
-              </tbody>
-              <tfoot className="border-t font-semibold">
-                <tr>
-                  <td className="pt-2 pr-3">Total</td>
-                  <td className="pt-2 pr-3 text-right tabular-nums">{totals.qtySold}</td>
-                  <td className="pt-2 text-right tabular-nums">{formatRupiah(totals.revenue)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </CardContent>
-        </Card>
+        <BentoCard className="overflow-x-auto">
+          <table className="w-full min-w-100 text-[12.5px]">
+            <thead>
+              <tr className="border-b border-border text-left text-muted-foreground">
+                <th className="pb-2 pr-3 font-bold">Menu</th>
+                <th className="pb-2 pr-3 text-right font-bold">
+                  <SortBtn col="qtySold" label="Terjual" {...sortBtnProps} />
+                </th>
+                <th className="pb-2 text-right font-bold">
+                  <SortBtn col="revenue" label="Pendapatan" {...sortBtnProps} />
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {sorted.map((row) => (
+                <PerformanceRow key={row.key} row={row} />
+              ))}
+            </tbody>
+            <tfoot className="border-t border-border font-bold">
+              <tr>
+                <td className="pt-2 pr-3">Total</td>
+                <td className="pt-2 pr-3 text-right tabular-nums">{totals.qtySold}</td>
+                <td className="pt-2 text-right tabular-nums">{formatRupiah(totals.revenue)}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </BentoCard>
       )}
-    </div>
+    </>
   );
 }
 
 function PerformanceRow({ row }: { row: MenuPerformanceRow }) {
   return (
-    <tr className="hover:bg-muted/30 transition-colors">
+    <tr>
       <td className="py-2 pr-3">
-        <span className="font-medium">{row.name}</span>
+        <span className="font-semibold">{row.name}</span>
         {row.variantLabel && (
-          <span className="ml-1 text-xs text-muted-foreground">({row.variantLabel})</span>
+          <span className="ml-1 text-[11px] text-muted-foreground">({row.variantLabel})</span>
         )}
       </td>
       <td className="py-2 pr-3 text-right tabular-nums">{row.qtySold}</td>

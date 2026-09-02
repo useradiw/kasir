@@ -44,7 +44,7 @@ export function ReportClient({
   ];
 
   return (
-    <div className="space-y-6">
+    <>
       <ReportHeader
         period={currentPeriod}
         date={currentDate}
@@ -74,6 +74,6 @@ export function ReportClient({
       {tab === "sales" && <PenjualanTab data={data} />}
       {tab === "ops" && <OperasionalTab data={data} isOwner={isOwner} />}
       {tab === "txn" && isOwner && <TransaksiTab data={data} />}
-    </div>
+    </>
   );
 }
