@@ -1,23 +1,13 @@
-import { Container } from "@/components/shared/container";
-import { requireAuth } from "@/lib/admin-auth";
-import { listCategories, listCashAccounts } from "@/app/actions/admin/queries";
-import { ExpensesInputClient } from "./expenses-input-client";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export default async function ExpensesPage() {
-  await requireAuth();
-  const [categories, cashAccounts] = await Promise.all([
-    listCategories(),
-    listCashAccounts(),
-  ]);
-
-  return (
-    <Container id="expenses" className="py-6">
-      <ExpensesInputClient
-        cashAccounts={cashAccounts.map((a) => ({ name: a.name, label: a.label }))}
-        categories={categories.filter((c) => c.active).map((c) => ({ code: c.code, name: c.name, bucket: c.bucket }))}
-      />
-    </Container>
-  );
+/**
+ * /expenses retired 2026-09-02 — the cashier-facing Catat Pengeluaran form is
+ * now /buku/belanja, which renders the same add-only form with the same
+ * requireAuth() gate (docs/redesign/plan-open-items.md section 1, step 5).
+ *
+ * Kept as a redirect rather than deleted: cashiers have this URL on their phone
+ * home screens, and the petunjuk has taught it for months.
+ */
+export default function ExpensesPage() {
+  redirect("/buku/belanja");
 }

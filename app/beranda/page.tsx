@@ -133,7 +133,7 @@ export default async function BerandaPage() {
               {[
                 { ic: "🛒", l: "Jual", href: "/kasir" },
                 { ic: "💵", l: "Kas", href: "/kas" },
-                { ic: "🧾", l: "Belanja", href: "/expenses" },
+                { ic: "🧾", l: "Belanja", href: "/buku/belanja" },
                 { ic: "❓", l: "Petunjuk", href: "/petunjuk" },
               ].map((a) => (
                 <Link

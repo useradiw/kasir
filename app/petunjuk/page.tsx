@@ -158,7 +158,7 @@ export default async function PetunjukPage() {
           catatan langsung masuk ke buku besar (ledger).
         </p>
         <Steps>
-          <li>Buka <Link href="/expenses" className="text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
+          <li>Buka <Link href="/buku/belanja" className="text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
           <li>Pilih <strong>Akun kas</strong> — dari mana uangnya keluar (mis. Kas Laci, Kas Pak Har).</li>
           <li>Pilih <strong>Kategori</strong> pengeluaran.</li>
           <li>Isi nama item, <strong>Qty</strong>, dan <strong>Harga satuan</strong> — jumlah total terisi otomatis (boleh disunting).</li>
@@ -350,7 +350,7 @@ export default async function PetunjukPage() {
                 <p className="text-sm text-muted-foreground mb-2">
                   Halaman Kas Pak Har yang terpisah sudah tidak ada lagi. Uang
                   Pak Har sekarang dicatat sebagai pengeluaran biasa di{" "}
-                  <Link href="/expenses" className="text-primary hover:underline">Pengeluaran</Link>{" "}
+                  <Link href="/buku/belanja" className="text-primary hover:underline">Pengeluaran</Link>{" "}
                   dengan memilih akun kas &quot;Kas Pak Har&quot; — saldonya
                   bisa dilihat dari buku besar di{" "}
                   <Link href="/admin/keuangan" className="text-primary hover:underline">Jurnal</Link>.

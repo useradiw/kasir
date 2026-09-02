@@ -9,20 +9,16 @@ import { RoleEnum } from "@/generated/prisma";
  */
 export default async function AkunPage() {
   const staff = await requireAuth();
-  const isOwner = staff.role === "OWNER" || staff.role === "DEVELOPER";
-  const isAdmin = isOwner || staff.role === "MANAGER";
+  const isAdmin =
+    staff.role === "OWNER" || staff.role === "DEVELOPER" || staff.role === "MANAGER";
 
   const links: { href: string; label: string; detail: string; roles?: RoleEnum[] }[] = [
     { href: "/profile", label: "Profil", detail: "Nama, ganti password, keluar" },
     { href: "/petunjuk", label: "Petunjuk Penggunaan", detail: "Cara pakai tiap layar" },
+    // Pengaturan Toko and Backup DB live on the Admin index under Sistem, and
+    // are deliberately not repeated here — one place per destination.
     ...(isAdmin
       ? [{ href: "/admin", label: "Admin", detail: "Staff, menu, penjualan, sistem" }]
-      : []),
-    ...(isOwner
-      ? [
-          { href: "/settings", label: "Pengaturan Toko", detail: "Pajak, service, jam kunci kas" },
-          { href: "/admin/backup", label: "Backup Database", detail: "Unduh salinan lengkap" },
-        ]
       : []),
   ];
 
