@@ -23,12 +23,12 @@ import { StatementRow, EmptyBookNotice } from "./statement-row";
  * re-derived again in test/buku-laporan.test.ts as a guard on the fixture
  * shape this screen relies on.
  */
-export function ArusKasTab({ laporan, isEmpty }: { laporan: LaporanKeuangan; isEmpty: boolean }) {
+export function ArusKasTab({ laporan, isEmpty, setupComplete }: { laporan: LaporanKeuangan; isEmpty: boolean; setupComplete: boolean }) {
   const { arusKas } = laporan;
 
   return (
     <div className="flex flex-col gap-3">
-      {isEmpty && <EmptyBookNotice />}
+      {isEmpty && <EmptyBookNotice setupComplete={setupComplete} />}
       <BentoCard className="flex flex-col gap-0.5">
         <CardLabel>Arus Kas</CardLabel>
         <StatementRow label="Kas dari Operasi" value={arusKas.operasi} emphasis />

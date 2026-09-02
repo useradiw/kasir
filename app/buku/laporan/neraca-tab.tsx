@@ -14,12 +14,12 @@ import { totalEkuitasDanLiabilitas } from "./totals";
  * and "Total Kewajiban" figures — totals.ts computes that sum (the one new
  * piece of screen-level arithmetic this rebuild adds; see its doc comment).
  */
-export function NeracaTab({ laporan, isEmpty }: { laporan: LaporanKeuangan; isEmpty: boolean }) {
+export function NeracaTab({ laporan, isEmpty, setupComplete }: { laporan: LaporanKeuangan; isEmpty: boolean; setupComplete: boolean }) {
   const { neraca } = laporan;
 
   return (
     <div className="flex flex-col gap-3">
-      {isEmpty && <EmptyBookNotice />}
+      {isEmpty && <EmptyBookNotice setupComplete={setupComplete} />}
 
       <Row title="Status Neraca">
         <Tag tone={neraca.balanced ? "ok" : "bad"}>

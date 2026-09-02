@@ -80,7 +80,13 @@ function AccountCard({ acc }: { acc: BukuKasAccount }) {
   );
 }
 
-export function BukuKasTab({ accounts }: { accounts: BukuKasAccount[] }) {
+export function BukuKasTab({
+  accounts,
+  setupComplete,
+}: {
+  accounts: BukuKasAccount[];
+  setupComplete: boolean;
+}) {
   if (accounts.length === 0) {
     return (
       <div className="rounded-2xl border border-warning/35 bg-warning-soft p-3.5 text-[12px] font-semibold text-warning-foreground">
@@ -99,12 +105,23 @@ export function BukuKasTab({ accounts }: { accounts: BukuKasAccount[] }) {
     <div className="flex flex-col gap-3">
       {allEmpty && (
         <div className="rounded-2xl border border-warning/35 bg-warning-soft p-3.5 text-[12px] font-semibold text-warning-foreground">
-          Belum ada transaksi tercatat ke buku besar bulan ini, jadi semua angka di bawah masih
-          Rp 0 — ini bukan berarti rusak. Pastikan dulu: isi akun default, buat minimal satu akun
-          kas di <a href="/buku/akun" className="underline">Akun Kas</a>, lalu atur Akun Penjualan di{" "}
-          <a href="/buku/akun-penjualan" className="underline">Akun Penjualan</a> untuk tunai,
-          elektronik dan online. Setelah itu, tutup kas dan pencairan online akan mulai mengisi
-          buku kas ini.
+          {setupComplete ? (
+            <>
+              Belum ada transaksi tercatat ke buku besar bulan ini, jadi semua angka di bawah
+              masih Rp 0. Angka akan terisi sendiri begitu ada tutup kas, pencairan online, atau
+              pengeluaran yang dicatat bulan ini.
+            </>
+          ) : (
+            <>
+              Belum ada transaksi tercatat ke buku besar bulan ini, jadi semua angka di bawah
+              masih Rp 0 — ini bukan berarti rusak. Pastikan dulu: isi akun default, buat minimal
+              satu akun kas di <a href="/buku/akun" className="underline">Akun Kas</a>, lalu atur
+              Akun Penjualan di{" "}
+              <a href="/buku/akun-penjualan" className="underline">Akun Penjualan</a> untuk tunai,
+              elektronik dan online. Setelah itu, tutup kas dan pencairan online akan mulai
+              mengisi buku kas ini.
+            </>
+          )}
         </div>
       )}
       {accounts.map((acc) => (

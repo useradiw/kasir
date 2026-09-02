@@ -16,12 +16,12 @@ import { StatementRow, EmptyBookNotice } from "./statement-row";
  * for this rebuild (docs/redesign/plan-open-items.md section 1). Rows are
  * plain, non-tappable.
  */
-export function LabaRugiTab({ laporan, isEmpty }: { laporan: LaporanKeuangan; isEmpty: boolean }) {
+export function LabaRugiTab({ laporan, isEmpty, setupComplete }: { laporan: LaporanKeuangan; isEmpty: boolean; setupComplete: boolean }) {
   const { labaRugi } = laporan;
 
   return (
     <div className="flex flex-col gap-3">
-      {isEmpty && <EmptyBookNotice />}
+      {isEmpty && <EmptyBookNotice setupComplete={setupComplete} />}
 
       <BentoCard className="flex flex-col gap-0.5">
         <CardLabel>Pendapatan</CardLabel>

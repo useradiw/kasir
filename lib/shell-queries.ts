@@ -282,6 +282,13 @@ export async function getBukuSetupStatus(db: PrismaClient = prisma): Promise<Buk
   };
 }
 
+/** True when every blocking setup step is done. Derived from setupSteps so the
+ *  checklist and the zero-state notices can never disagree about what "set up"
+ *  means. */
+export function isBukuSetupComplete(status: BukuSetupStatus): boolean {
+  return setupSteps(status).every((s) => s.done);
+}
+
 /** Human checklist derived from the raw status — mirrors the UAT ordering. */
 export function setupSteps(status: BukuSetupStatus): {
   done: boolean;

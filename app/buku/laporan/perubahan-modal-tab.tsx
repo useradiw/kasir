@@ -15,12 +15,12 @@ import { StatementRow, EmptyBookNotice } from "./statement-row";
  * modal_awal + tambahan_modal + laba_bersih - prive itself (see
  * test/buku-laporan.test.ts for the guard on that formula).
  */
-export function PerubahanModalTab({ laporan, isEmpty }: { laporan: LaporanKeuangan; isEmpty: boolean }) {
+export function PerubahanModalTab({ laporan, isEmpty, setupComplete }: { laporan: LaporanKeuangan; isEmpty: boolean; setupComplete: boolean }) {
   const { perubahanModal } = laporan;
 
   return (
     <div className="flex flex-col gap-3">
-      {isEmpty && <EmptyBookNotice />}
+      {isEmpty && <EmptyBookNotice setupComplete={setupComplete} />}
       <BentoCard className="flex flex-col gap-0.5">
         <CardLabel>Perubahan Modal</CardLabel>
         <StatementRow label="Modal Awal" value={perubahanModal.modal_awal} />

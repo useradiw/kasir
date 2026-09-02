@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { requireOwner } from "@/lib/admin-auth";
 import { getLaporanKeuangan } from "@/app/actions/admin/queries/laporan-keuangan-queries";
 import { getSelectedMonth } from "@/lib/keuangan-month";
+import { getBukuSetupStatus, isBukuSetupComplete } from "@/lib/shell-queries";
 import { LaporanClient } from "./laporan-client";
 
 export const dynamic = "force-dynamic";
@@ -35,6 +36,7 @@ export default async function BukuLaporanPage() {
   const staff = await requireOwner();
   const month = await getSelectedMonth();
   const laporan = await getLaporanKeuangan(month);
+  const setupComplete = isBukuSetupComplete(await getBukuSetupStatus());
 
   return (
     <AppShell role={staff.role}>
@@ -46,7 +48,7 @@ export default async function BukuLaporanPage() {
         <p className="text-[11.5px] font-semibold text-muted-foreground">{formatMonth(month)}</p>
       </div>
       <div className="flex flex-1 flex-col gap-3 px-4 pb-6 pt-3">
-        <LaporanClient laporan={laporan} />
+        <LaporanClient laporan={laporan} setupComplete={setupComplete} />
       </div>
     </AppShell>
   );

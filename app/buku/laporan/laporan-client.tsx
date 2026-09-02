@@ -51,7 +51,13 @@ function isBookEmpty(laporan: LaporanKeuangan): boolean {
  * export-csv.ts, covered by test/export-csv.test.ts) fed by
  * buildLaporanSections (lib/laporan-csv.ts) — neither function changed.
  */
-export function LaporanClient({ laporan }: { laporan: LaporanKeuangan }) {
+export function LaporanClient({
+  laporan,
+  setupComplete,
+}: {
+  laporan: LaporanKeuangan;
+  setupComplete: boolean;
+}) {
   const [tab, setTab] = useState<TabKey>("laba-rugi");
   const empty = isBookEmpty(laporan);
 
@@ -72,10 +78,10 @@ export function LaporanClient({ laporan }: { laporan: LaporanKeuangan }) {
 
       <Segmented options={TABS} value={tab} onChange={setTab} />
 
-      {tab === "laba-rugi" && <LabaRugiTab laporan={laporan} isEmpty={empty} />}
-      {tab === "neraca" && <NeracaTab laporan={laporan} isEmpty={empty} />}
-      {tab === "arus-kas" && <ArusKasTab laporan={laporan} isEmpty={empty} />}
-      {tab === "modal" && <PerubahanModalTab laporan={laporan} isEmpty={empty} />}
+      {tab === "laba-rugi" && <LabaRugiTab laporan={laporan} isEmpty={empty} setupComplete={setupComplete} />}
+      {tab === "neraca" && <NeracaTab laporan={laporan} isEmpty={empty} setupComplete={setupComplete} />}
+      {tab === "arus-kas" && <ArusKasTab laporan={laporan} isEmpty={empty} setupComplete={setupComplete} />}
+      {tab === "modal" && <PerubahanModalTab laporan={laporan} isEmpty={empty} setupComplete={setupComplete} />}
       {tab === "calk" && <CalkTab calk={laporan.calk} month={laporan.month} />}
       {tab === "validasi" && <ValidasiTab laporan={laporan} />}
     </>

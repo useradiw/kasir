@@ -73,16 +73,31 @@ export function StatementRow({
   );
 }
 
-/** Calm zero-state notice shown at the top of a tab when the book has never
- *  been posted to — points at the setup screens instead of a wall of "Rp 0".
- *  Same copy as the old EmptyBookNotice, with the /buku route names. */
-export function EmptyBookNotice() {
+/** Calm zero-state notice shown at the top of a tab when the month has no
+ *  postings yet.
+ *
+ *  It says two different things. While setup is incomplete the zeros have a
+ *  cause the owner can act on, so it names the screens. Once setup is done the
+ *  same lecture is wrong — it tells a fully configured owner to go and
+ *  configure things — so it only explains that the month is still empty. */
+export function EmptyBookNotice({ setupComplete }: { setupComplete: boolean }) {
   return (
     <div className="rounded-2xl border border-warning/35 bg-warning-soft p-3.5 text-[12px] font-semibold text-warning-foreground">
-      Belum ada transaksi tercatat ke buku besar bulan ini, jadi semua angka di bawah masih Rp 0
-      — ini bukan berarti rusak. Pastikan dulu: isi akun default (Buku → Akun Kas), buat minimal
-      satu akun kas, lalu atur Akun Penjualan (Buku → Akun Penjualan) untuk tunai, elektronik dan
-      online. Setelah itu, tutup kas dan pencairan online akan mulai mengisi laporan ini.
+      {setupComplete ? (
+        <>
+          Belum ada transaksi tercatat ke buku besar bulan ini, jadi semua angka di bawah masih
+          Rp 0. Angka akan terisi sendiri begitu ada tutup kas, pencairan online, atau
+          pengeluaran yang dicatat bulan ini.
+        </>
+      ) : (
+        <>
+          Belum ada transaksi tercatat ke buku besar bulan ini, jadi semua angka di bawah masih
+          Rp 0 — ini bukan berarti rusak. Pastikan dulu: isi akun default (Buku → Akun Kas), buat
+          minimal satu akun kas, lalu atur Akun Penjualan (Buku → Akun Penjualan) untuk tunai,
+          elektronik dan online. Setelah itu, tutup kas dan pencairan online akan mulai mengisi
+          laporan ini.
+        </>
+      )}
     </div>
   );
 }

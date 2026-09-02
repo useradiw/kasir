@@ -3,6 +3,7 @@ import { AppShell } from "@/components/shell/app-shell";
 import { requireOwner } from "@/lib/admin-auth";
 import { getBukuKas, getCekSaldo, listCashAccounts } from "@/app/actions/admin/queries";
 import { getSelectedMonth } from "@/lib/keuangan-month";
+import { getBukuSetupStatus, isBukuSetupComplete } from "@/lib/shell-queries";
 import { KasClient } from "./kas-client";
 
 export const dynamic = "force-dynamic";
@@ -32,11 +33,13 @@ function formatMonth(m: string): string {
 export default async function BukuKasPage() {
   const staff = await requireOwner();
   const month = await getSelectedMonth();
-  const [accounts, cekSaldo, cashAccounts] = await Promise.all([
+  const [accounts, cekSaldo, cashAccounts, setupStatus] = await Promise.all([
     getBukuKas(month),
     getCekSaldo(month),
     listCashAccounts(),
+    getBukuSetupStatus(),
   ]);
+  const setupComplete = isBukuSetupComplete(setupStatus);
 
   return (
     <AppShell role={staff.role}>
@@ -52,6 +55,7 @@ export default async function BukuKasPage() {
           accounts={accounts}
           cekSaldo={cekSaldo}
           cashAccounts={cashAccounts.map((a) => ({ name: a.name, label: a.label }))}
+          setupComplete={setupComplete}
         />
       </div>
     </AppShell>

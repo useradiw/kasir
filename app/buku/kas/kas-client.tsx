@@ -18,10 +18,12 @@ export function KasClient({
   accounts,
   cekSaldo,
   cashAccounts,
+  setupComplete,
 }: {
   accounts: BukuKasAccount[];
   cekSaldo: CekSaldoRow[];
   cashAccounts: CashAccount[];
+  setupComplete: boolean;
 }) {
   const [tab, setTab] = useState<TabKey>("buku-kas");
 
@@ -36,7 +38,7 @@ export function KasClient({
         onChange={setTab}
       />
 
-      {tab === "buku-kas" ? <BukuKasTab accounts={accounts} /> : <CekSaldoTab rows={cekSaldo} cashAccounts={cashAccounts} />}
+      {tab === "buku-kas" ? <BukuKasTab accounts={accounts} setupComplete={setupComplete} /> : <CekSaldoTab rows={cekSaldo} cashAccounts={cashAccounts} />}
     </>
   );
 }
