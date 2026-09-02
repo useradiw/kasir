@@ -1,102 +1,99 @@
 # HANDOFF
 
-## 2026-09-01 — open-items plan approved, first build running
-`docs/redesign/plan-open-items.md` is the plan of record for what remains.
-Decisions Adi made on it: (1) do NOT move `/admin/keuangan` — build each screen
-fresh under `/buku` on the new design system, delete the old folder only once
-every feature has an equivalent; (2) the login brute-force lockout is approved
-as specced (own session, backup first); (3) `/kas` Phase 3 is a rebuild plus the
-retirement of `/cashregister` and `/admin/cash-register`, which cannot be split
-because `/kas` is currently made of them; (4) retire `app/admin/page.tsx` and
-`/admin/settlement`, and make `/admin` itself the navigation index; (5)
-`/admin/suppliers` is an orphan but is KEPT for future purchasing work.
-
-**Section 7 (historical data migration) is NOT approved — do not build it.**
-It needs another planning pass. Settled so far: Warung Books is the source of
-truth for April-July 2026, kasir backfills from the handover date onward, and
-the two ranges must meet exactly by date. The boundary date is unconfirmed and
-the Warung Books schema is unread. A peer session named "Seed warungbooks/report
-to kasir DB" may hold prior work on this — check it before replanning.
-
-**Landed (staged, awaiting Adi's commit):** `/buku/akun`,
-`/buku/akun-penjualan`, `/buku/kategori`, `/buku/bulan` — section 1 steps 1-4,
-built as NEW pages beside the untouched `/admin/keuangan` ones. Server actions
-reused unchanged; every page carries its own `requireOwner()` (verified). Adds
-a `Row` primitive to `components/shell/ui.tsx`. lint + build clean, 277 tests
-pass. Adi accepted them visually. Two mockup figures were dropped because no
-query returns them: per-account balance/channel-count on Akun Kas, and
-per-category monthly totals on Kategori. Adding them needs new query functions
-and a separate decision.
-
-**⚠ Open, and it blocks step 6:** the old `/admin/keuangan` layout carried a
-MonthPicker doing TWO jobs — create a month, and set the ACTIVE month through
-`setSelectedMonth` (a cookie that `getSelectedMonth` feeds to buku-kas,
-laporan, jurnal, modal, pengeluaran). `/buku/bulan` only creates and locks.
-Nothing on `/buku` sets the active month yet, so `/buku/jurnal` (step 6) has no
-period source. Decide this before building it.
-
-**Next:** steps 5-8 — pengeluaran merge (largest), jurnal, kas, laporan.
+## 2026-09-01 (later) — login brute-force lockout, UNCOMMITTED
+Section 2 of `plan-open-items.md`, built as specced. Six files, nothing else:
+NEW `lib/login-throttle.ts` (injectable `db` + injectable clock, no
+`"use server"`), NEW `test/login-throttle.test.ts` (9 tests, pglite, fake
+clock), NEW `prisma/sql/2026-09-login-attempts.sql` (BEGIN;/COMMIT;-wrapped)
+and its unwrapped twin `prisma/migrations/20260901000000_login_attempts/
+migration.sql` (exists so `migrate resolve --applied` has a target — never run
+`migrate deploy`). EDITED `app/actions/login.ts` and `prisma/schema.prisma`.
+Rule: 5 consecutive failures lock the USERNAME STRING for 15 minutes; an
+unknown username locks identically to a real one, which is what keeps the
+account-enumeration leak closed (guard test 8 fails if anyone breaks that
+symmetry). `checkLock` gates before the Staff lookup, `clearFailures` runs
+after sign-in succeeds and BEFORE the `isActive` check — do not reorder
+`isActive`, it is deliberately after password verification.
+**NOT APPLIED to prod.** Adi runs `db execute` + `migrate resolve` himself,
+after a backup. Claude ran no command that connects to a database.
+lint clean, `npm test` 304 passed + 1 skipped. **`npm run build` FAILS** on
+`app/kas/page.tsx:63` — `getCashRegisterDataForStaff` rows lack `createdAt`,
+which `RegisterRowBase` in `components/kas/kas-shared.tsx:45` requires. That is
+the parallel /kas Phase 3 work, not this diff.
+The lockout has NEVER been exercised against a real sign-in — no OWNER login.
 
 
-## 2026-08-31 — audit batch A+B (UNCOMMITTED)
-Adi audited every route as OWNER. Landed: business renamed to **Sate Kambing
-Sido Mampir**; BottomNav moved inside the `max-w-lg` column and cut to FOUR
-tabs (Beranda/Kasir/Kas/Akun — Buku left the bar, it is owner-only); `/akun`
-lost Pencairan + Kelola Staff; `/buku` h1 is now "Laporan Keuangan"; the
-`/kasir` category strip scrolls with a mouse wheel; the owner `/beranda` bento
-is now Penjualan + Pengeluaran + Gaji ("N dari M hadir") plus Buku/Admin links.
-`getTodayOverview` gained expensesToday/salaryToday/staffPresentToday/
-staffTotalToday. lint + build clean, 277 tests pass.
-Then: `/` (login) rebuilt to dark tokens per screens-auth.html mockup 1 —
-brand tile, show/hide password, error banner on `destructive-soft`; the
-error-as-data login contract is untouched. The dead `/buku` month pill is gone
-(Adi dropped the selector — laporan covers period selection).
-**Still open from that audit:** login brute-force lockout (needs ONE additive
-table — own session, backup first); the `/buku` month pill must become a
-day/week/month/year selector; the `/admin` vs `/buku` split (Phase 4 re-homing)
-is planned but unapproved; `/kas` Phase 3 rebuild (incl. a back button) and the
-Phase 5/6 reskins are untouched. `/admin/staff` ALREADY exists — Adi thought it
-did not.
+## 2026-09-01 — /kas Phase 3 built (UNCOMMITTED, on top of step 5)
+`/kas` is now the real screen. `components/kas/{kas-shared,kas-owner,kas-cashier}.tsx`
+render all five screens of `screens-kas.html`; screens 2, 4 and 5 (tutup kas,
+detail hari, buka kas) are in-page client states, not routes, because the page
+already holds their data. `app/kas/page.tsx` is still the only fetcher and
+still calls `getCashRegisterData` / `getCashRegisterDataForStaff`.
 
-Branch `zcode`, last commit `9095084`.
-**The Warung Books merge is CODE-COMPLETE — all 6 slices (0-5) are committed.**
-Per-slice detail lives in the commit messages; don't re-derive it here.
+**Adi approved all eight mockup additions**, so this slice DID add data (the
+plan's "no new query functions" rule was lifted by that decision, once):
+`getNonSalesCashMovementLines` in `lib/ledger-queries.ts` is now the primitive
+and `getNonSalesCashMovementByDate` reduces over it — one filter, one source of
+truth, guarded by a test that the lines sum exactly to the net. `sumDaySales`
+gained `cashTxnCount`. `resolveRegisterPostings` in `queries/_shared.ts` is the
+single posting/journal-number lookup both fetchers use. Both fetchers now also
+return `qrisIncome`, `movements`, `cashAccountLabel`.
 
-**On top of it, UNCOMMITTED, sit three more bodies of work:** (1) the UI/IA
-redesign — spec, mockups and the design system in `docs/redesign/`, Phase 0
-tokens/fonts/`components/shell/*`, the new `/beranda`, `/kas`, `/buku`,
-`/buku/setup`, `/akun` screens, and the `/kasir` reskin; (2) a security and
-money pass on the cashier sync and login paths; (3) the parity suites that
-hold both to the pre-branch bar. The rollout status per route lives in
-`docs/redesign/design.md` section 9 — update it with every phase. `/kas` is
-next. `/cashregister`, `/admin/cash-register` and `/expenses` still render
-beside their replacements; retiring them to redirects is part of their phase.
+**There is no shift concept in the schema.** `CashRegister` is one row per date,
+so wherever the mockup writes "Shift Siang" the screen shows the date and the
+opener's name. Real shifts are a schema change and their own session.
 
-**The `/kasir` reskin is styling only.** Adi decided 2026-08-31 to keep the
-current flow: the "Buat Sesi" gate stays and the split-bill flow is unchanged,
-so the mockup's Favorit and Keypad tabs were deliberately NOT built.
+**Deleted:** `app/cashregister/` and `app/admin/cash-register/`. `lib/revalidate.ts`
+now points at `/kas` (it was NOT left empty — an empty revalidate is the silent
+stale-numbers bug the plan warns about). `app/petunjuk/page.tsx` and
+`validasi-tab.tsx:59` repointed at `/kas`.
 
-> ## ⚠️ NEXT: THE UAT. Nothing has ever run for real.
-> Every `/admin/keuangan/*` page and action is `requireOwner()`-gated. Claude
-> cannot log in, so across the entire build **no guarded server action has ever
-> executed** — every "live pass" rendered real components with fabricated data
-> through a temporary unguarded route under `app/auth/`, since deleted.
-> **No journal entry has ever been written by the real UI.**
->
-> The checklist is in memory: **`project_warungbooks_uat.md`** (indexed in
-> MEMORY.md). It is the acceptance gate, not a formality. Run it before cutover.
+lint, tsc and build clean; `npm test` 304 passed + 1 skipped (up from 289).
+**Nothing has rendered against real data** — no OWNER or CASHIER login exists
+for Claude, so open, close, edit, delete, the lock countdown, the recovery
+button and the CSV download have never executed. UAT material.
 
-## Do these three things first — they block everything else
-Nothing can post until all three are done, and they have blocked real testing
-since Slice 3a:
-1. `/admin/keuangan/akun` → **"Isi akun default"** (seeds the chart of accounts).
-2. `/admin/keuangan/akun` → create the real kas accounts (Kas Laci, Kas Pak Har,
-   Bank…). Cash accounts are deliberately NOT seeded — you define them.
-3. `/admin/keuangan/akun-penjualan` → map **all three** channels (tunai,
-   elektronik, online) to kas accounts.
-Also `/admin/keuangan/kategori` → "Isi kategori default" before any pengeluaran.
-**Take a backup at `/admin/backup` first.** The UAT writes real rows into the
-production ledger; prefer a dedicated test month.
+**Next:** steps 6-8 — jurnal, kas (`/buku/kas`), laporan. Then the deletion commit.
+
+## 2026-09-02 — three commits landed; a BLANK DB is coming
+
+`docs/redesign/plan-open-items.md` is the plan of record. Committed on
+`feat/warungbooks`, in this order:
+- `aed6554` login brute-force lockout (per-username, 5 tries / 15 min).
+- `8577ed5` the real `/kas` screen; `/cashregister` and `/admin/cash-register`
+  DELETED. `reconcileCashDates` was extended, not duplicated.
+- `35deeae` `/buku/pengeluaran`, `belanja`, `jurnal`, `kas`, `laporan`, plus the
+  active-month setter on `/buku/bulan`.
+Gates at that point: tsc, lint, build clean; 328 tests pass + 1 skipped.
+NOTHING has been visually verified — Claude has no login.
+
+**⛔ BEFORE DEPLOYING `aed6554`:** `checkLock` does not swallow errors, so the
+code fails EVERY login until `login_attempts` exists. Apply
+`prisma/sql/2026-09-login-attempts.sql` via `prisma db execute`, then
+`prisma migrate resolve --applied 20260901000000_login_attempts`.
+
+**Authorised 2026-09-01:** `/buku/belanja` is `requireAuth()`, not
+`requireOwner()` — the only page under `/buku` that is. Do not "fix" it.
+
+**⚠ NEXT, and it changes everything below:** Adi is repointing `DATABASE_URL`
+to a NEW BLANK database so the app starts clean. When that lands, the whole
+"migration history is incomplete" landmine goes away, and the job becomes:
+reconcile the migration chain so `migrate deploy` from zero reproduces
+`schema.prisma` exactly, then drop the dormant junk models. KEEP `Supplier`
+(Adi's decision, reserved for future purchasing work). Open question Adi must
+answer first: is the blank DB in the SAME Supabase project (so `Staff.supabaseUserId`
+still resolves and everyone can still log in) or a new one (every staff account
+must be recreated)?
+
+**Section 7 (historical data migration) is still NOT approved** and now needs
+rewriting for the blank DB: with nothing carried over, menu, staff and settings
+must be imported too, not just the ledger. Warung Books stays the source of
+truth for April-July 2026. A peer session named "Seed warungbooks/report to
+kasir DB" may hold prior work — check it before replanning.
+
+**Remaining plan work:** section 4 (retire `app/admin/page.tsx` and
+`/admin/settlement`, make `/admin` the grouped index) and the deletion of
+`app/admin/keuangan/` now that `/buku` covers it.
 
 ## ☠ DATABASE — read before any DB command
 - **`.env` is PRODUCTION** (Supabase `oyvgyhuzvxepteldlghn`). There is NO dev DB.
