@@ -816,3 +816,16 @@ model LedgerPosting {
   @@index([journalEntryId])
   @@map("ledger_postings")
 }
+
+/// Login brute-force lockout counter. Keyed by the raw username string, with
+/// NO foreign key to Staff — deliberately: an unknown username must lock on
+/// exactly the same schedule as a real one, or the presence/absence of a
+/// lockout would itself leak which usernames exist (account enumeration).
+model LoginAttempt {
+  username     String    @id
+  failedCount  Int       @default(0)
+  lockedUntil  DateTime?
+  lastFailedAt DateTime  @default(now())
+
+  @@map("login_attempts")
+}

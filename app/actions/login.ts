@@ -5,10 +5,21 @@ import { prisma } from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { redirect } from "next/navigation";
+import { checkLock, recordFailure, clearFailures, lockedMessage } from "@/lib/login-throttle";
 
 /** One message for every credential failure, so nothing reveals whether it was
  *  the username or the password that was wrong. */
 const INVALID_CREDENTIALS = "Username atau password salah.";
+
+/**
+ * Brute-force lockout: checkLock runs before any credential check, so a
+ * locked-out attempt never touches Staff/Supabase at all. Every path that
+ * returns INVALID_CREDENTIALS below calls recordFailure first — unknown
+ * username, unlinked staff, or wrong password all burn an attempt the same
+ * way, so the lockout schedule can't be used to probe which usernames exist.
+ * A successful sign-in clears the counter. The locked message is kept
+ * distinct from INVALID_CREDENTIALS so the UI can tell the two apart.
+ */
 
 const masukSchema = z.object({
   username: z.string().min(1, { message: "Username tidak boleh kosong." }),
@@ -33,6 +44,11 @@ export async function login(formData: FormData): Promise<{ error?: string }> {
     return { error: Object.values(errors).flat().join(", ") };
   }
 
+  const lock = await checkLock(parsed.data.username);
+  if (lock.locked) {
+    return { error: lockedMessage(lock.minutesLeft) };
+  }
+
   const staff = await prisma.staff.findUnique({
     where: { username: parsed.data.username },
   });
@@ -42,6 +58,7 @@ export async function login(formData: FormData): Promise<{ error?: string }> {
   // exist just by trying names — an account-enumeration leak. The empty-field
   // messages above are fine to keep: they describe the form, not the account.
   if (!staff || !staff.supabaseUserId) {
+    await recordFailure(parsed.data.username);
     return { error: INVALID_CREDENTIALS };
   }
 
@@ -50,6 +67,7 @@ export async function login(formData: FormData): Promise<{ error?: string }> {
     await adminSupabase.auth.admin.getUserById(staff.supabaseUserId);
 
   if (userError || !userData.user?.email) {
+    await recordFailure(parsed.data.username);
     return { error: INVALID_CREDENTIALS };
   }
 
@@ -60,8 +78,11 @@ export async function login(formData: FormData): Promise<{ error?: string }> {
   });
 
   if (error) {
+    await recordFailure(parsed.data.username);
     return { error: INVALID_CREDENTIALS };
   }
+
+  await clearFailures(parsed.data.username);
 
   // isActive is checked AFTER the password is verified, deliberately. Checking
   // it earlier told an attacker the username was real without needing the
