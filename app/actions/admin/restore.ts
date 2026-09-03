@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { reconcileJournalSequence } from "@/lib/accounting/reconcileJournalSequence";
 import { requireOwner } from "@/lib/admin-auth";
 
 export interface BackupData {
@@ -80,6 +81,25 @@ export async function restoreDatabase(
   }
 
   await relinkWarungBooksSelfReferences(data, selectedTables, errors);
+
+  // A backup carries `sequences`, so restoring an older file rewinds the
+  // journal counter and the next posted entry reuses a number the ledger
+  // already has. Move it forward to max(number) before anything can post.
+  // Runs whenever journal rows or the counter itself were touched.
+  if (selectedTables.includes("journalEntries") || selectedTables.includes("sequences")) {
+    try {
+      const fixed = await reconcileJournalSequence(prisma);
+      if (fixed.repaired) {
+        console.warn(
+          `[restore] journal sequence moved forward from ${fixed.before ?? "missing"} to ${fixed.after}`,
+        );
+      }
+    } catch (err) {
+      errors.push(
+        `sequences[journal]: gagal menyesuaikan nomor jurnal — ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
 
   return { imported, errors };
 }

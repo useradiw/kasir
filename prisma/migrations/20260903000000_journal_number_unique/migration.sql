@@ -1,0 +1,15 @@
+-- Gapless-unique journal numbering, enforced by the database.
+--
+-- Until now `journal_entries.number` was unique only by convention: the comment
+-- in schema.prisma said "gapless", and correctness rested entirely on
+-- sequenceHelper. A restore re-imports the `sequences` table, which rewinds the
+-- "journal" counter, and every entry posted afterwards silently reuses a number
+-- the ledger already had. UAT on 2026-09-03 produced two live entries numbered 9.
+--
+-- Postgres permits any number of NULLs in a unique index, so DRAFT entries
+-- (number IS NULL until POST) are unaffected.
+--
+-- This index will REFUSE to build while duplicate numbers exist. Clear them
+-- first: see reconcileJournalSequence for the forward-only counter repair, and
+-- renumber or void the colliding entry by hand before applying.
+CREATE UNIQUE INDEX "journal_entries_number_key" ON "journal_entries"("number");

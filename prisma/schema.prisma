@@ -393,6 +393,11 @@ model LedgerAccount {
 model JournalEntry {
   id        String     @id @default(cuid())
   // Gapless human number, null while DRAFT; assigned atomically at POST.
+  // UNIQUE (see @@unique below) — the invariant belongs in the database, not
+  // only in sequenceHelper. A restore that re-imported the `sequences` table
+  // rewound the counter and silently produced two entries numbered 9
+  // (found in UAT 2026-09-03). Postgres allows many NULLs in a unique index,
+  // so DRAFT entries are unaffected.
   number    Int?
   state     EntryState @default(DRAFT)
   date      String // ISO date string, e.g. "2024-01-15"
@@ -413,6 +418,7 @@ model JournalEntry {
   sourceType String?
   sourceMeta Json?
 
+  @@unique([number])
   @@map("journal_entries")
 }
 
