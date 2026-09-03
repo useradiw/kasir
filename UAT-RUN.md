@@ -43,16 +43,12 @@ Effect: an owner who deletes a default category has no working way to restore
 it, and is told the restore succeeded. Not a ledger-integrity problem.
 Proposed fix: delete the `count() > 0` early return.
 
-## Section 7 — login lockout — PASS (first half)
+## Section 7 — login lockout — PASS
 - [x] Five wrong passwords on `uji.lockout.zzz` gave "Username atau password
       salah."; the sixth gave "Terlalu banyak percobaan. Coba lagi dalam 15
       menit."
 - [x] A real account (`dev.developer`) signed in normally while that fake
       username was locked.
-
-## Current ledger state
-7 entries: #1 VOID, #2 reversal, #3 transfer, #4 modal, #5 prive, #6 saldo awal,
-#7 belanja Kambing hidup Rp 1.500.000.
 
 ## Section 4 — laporan — ALL PASS (one bug found and fixed)
 Checked every column by hand against the seven entries posted in section 1.
@@ -159,36 +155,50 @@ ledger. It IS a real operational trap: an owner restoring an old backup to
 documenting it in the petunjuk — the safe recovery for a bad entry is always a
 void, never a restore — and re-running Cek Saldo after any restore.
 
-## Section 3 — STILL OPEN, and it cannot be skipped
-Checked against git rather than assumed. Versus the merge-base with master
-(`1904f58`), `lib/accounting/salesPostingRepository.ts` (265 lines) and
-`settlementPostingRepository.ts` (238 lines) are entirely NEW files, and
-`app/actions/cashregister.ts` (148 lines changed), `push-transaction.ts` (126),
-`settlement.ts` (64) and `app/kas/page.tsx` (new) all differ. Ringing up a sale
-IS effectively unchanged — only `app/kasir/layout.tsx` moved, by 26 lines — but
-everything from closing the register through to the ledger posting, the selisih
-kas sign and the double-post guard is new code that has never run.
+## Section 2 — the cashier path — ALL PASS (one bug found and fixed)
+Run signed in as `dev.kasir` (CASHIER).
+- [x] `dev.kasir` can open `/buku/belanja` and record a pengeluaran. Recorded
+      1,5 x Rp 20.000 = Rp 30.000 ongkir on Kas Laci; "Pengeluaran dicatat".
+      This is the first time `recordPengeluaranAsStaff` has ever run for real.
+      The page correctly shows no list and no Void for a cashier (add-only).
+- [x] `dev.kasir` is redirected to `/beranda` from `/buku`, `/buku/laporan` and
+      `/buku/jurnal` — and also from `/buku/kas`, `/buku/pengeluaran`,
+      `/buku/bulan`, `/buku/setup` and `/buku/kategori`, which I checked too.
+- [x] `/expenses` redirects to `/buku/belanja`.
+- [x] Bonus: `/akun` correctly hides the Admin row for a cashier.
 
-## Section 6 — backup round-trip — 3 of 4 PASS, restore not yet run
-- [x] `/admin/backup` export did NOT error with real ledger rows present. The
-      BigInt replacer holds. 23.8 KB, 28 tables, version 3.
-- [x] `journalEntries` (8), `journalLines` (16) and `ledgerAccounts` (13) are all
-      present, and EVERY journalLines amount is a string — zero non-string
-      amounts. Each entry has exactly 2 lines summing to 0.
-- [x] The dropped tables (ingredients, recipes, expenses, kas pak har, and the
-      old UnitClass/pack tables) do NOT appear. Verified by name against the
-      export's table list.
-- [ ] Restore round-trip. NOT RUN — needs the exported file on disk and
-      overwrites the database. Waiting on Adi.
+### BUG FOUND AND FIXED — /buku/belanja was unreachable for every cashier
+The page gated itself with `requireAuth()` as designed, but then read its two
+lists through `listCategories()` and `listCashAccounts()` from
+`app/actions/admin/queries`, and both call `requireOwner()`. So a cashier was
+redirected to `/` and on to `/beranda` — while `/beranda` kept showing them a
+"Belanja" tile that bounced straight back. The one cashier-facing page under
+`/buku` did not work for cashiers at all.
 
-The void reversal survives the export intact: `reversedById` sits on the
-REVERSING entry (#2 points at #1's id), which matches `prisma/schema.prisma:404`.
-Entry #1 is VOID, #2 is POSTED. Not a broken link.
+Fixed by reading `ExpenseRepository` and `CashAccountRepository` directly. That
+is the correct layer: this is a server component, `requireAuth()` above is its
+gate, and the `app/actions/admin/queries` exports are thin requireOwner()
+wrappers built for client callers.
 
-Also closed, for free: `/expenses` redirects to `/buku/belanja` (a section 2
-item that does not depend on role).
+**Why every gate missed it.** `test/buku-pengeluaran.test.ts` already carried a
+source guard asserting the page calls `requireAuth()` and not `requireOwner()`.
+It passed the entire time, because it checked the gate and not whether the page
+could actually READ as a cashier — a proxy for the failure rather than the
+failure itself. Added a second guard asserting the page never imports from
+`app/actions/admin/queries`, and confirmed it fails against the old file.
 
-Console note: `/admin/backup` looked like it was throwing 500s, but a FRESH tab
-showed every request 200 and no console errors. That was the retained
-error-boundary replay the project memory warns about.
+## Verification
+`npm test` 330 passed + 1 skipped, `npm run lint` clean, tsc clean.
 
+## Current ledger state
+9 journal entries plus the cashier's Rp 30.000 ongkir, and one balance
+assertion on Kas Laci. Entry #9 is an orphan reversal left by the section 6
+restore test, so Kas Laci does not reflect reality. Wipe and re-seed before
+cutover: `npx tsx scripts/wipe-db.ts --yes` then `scripts/seed-shop.ts`.
+
+## What is left
+Section 3 only — the operational postings. It needs one real tunai sale rung up
+in `/kasir`, after which the register close, the selisih kas sign, the void, the
+online settlement and the double-post guard can all be driven from here. The two
+stragglers attached to it are the laporan-vs-/kas cross-check and the
+locked-month register close ("Belum tercatat ke buku besar").

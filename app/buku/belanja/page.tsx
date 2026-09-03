@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { requireAuth } from "@/lib/admin-auth";
-import { listCategories, listCashAccounts } from "@/app/actions/admin/queries";
+import { prisma } from "@/lib/prisma";
+import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
+import { CashAccountRepository } from "@/lib/accounting/cashAccountRepository";
 import { recordPengeluaranAsStaff } from "@/app/actions/admin/keuangan";
 import { EntryForm } from "../pengeluaran/entry-form";
 
@@ -17,12 +19,20 @@ export const dynamic = "force-dynamic";
  * requireAuth() gate on recordPengeluaranAsStaff (see the comment above that
  * action in app/actions/admin/keuangan.ts), and it must not be "fixed" to
  * requireOwner(). test/buku-pengeluaran.test.ts guards this.
+ *
+ * It therefore reads the two lists through the lib repositories DIRECTLY rather
+ * than through app/actions/admin/queries, whose exports are thin requireOwner()
+ * wrappers built for client callers. Routing this page through those wrappers
+ * redirected every cashier to /beranda and made the page unreachable for the
+ * only role it exists for (found in UAT 2026-09-03). This is a server
+ * component and requireAuth() above is its gate, so calling lib is the correct
+ * layer. Do NOT reintroduce the queries import here.
  */
 export default async function BukuBelanjaPage() {
   const staff = await requireAuth();
   const [categories, cashAccounts] = await Promise.all([
-    listCategories(),
-    listCashAccounts(),
+    new ExpenseRepository(prisma).listCategories(),
+    new CashAccountRepository(prisma).list(),
   ]);
 
   return (

@@ -182,6 +182,18 @@ describe("buku page auth-gate guard", () => {
     expect(source).not.toMatch(/await requireOwner\(/);
   });
 
+  // The requireAuth() gate above is worthless on its own: the page also has to
+  // READ without owner rights. It shipped calling listCategories() and
+  // listCashAccounts() from app/actions/admin/queries, whose exports are thin
+  // requireOwner() wrappers, so every cashier was redirected to /beranda and
+  // the page was unreachable for the only role it exists for. The gate test
+  // above passed the whole time — it checked a proxy, not the thing that
+  // failed. Found in UAT 2026-09-03. Read the lib repositories directly here.
+  it("app/buku/belanja/page.tsx does not read through the requireOwner() query wrappers", () => {
+    const source = readFileSync(path.join(APP_BUKU_DIR, "belanja/page.tsx"), "utf8");
+    expect(source).not.toMatch(/from\s+["']@\/app\/actions\/admin\/queries/);
+  });
+
   it("every other app/buku/**/page.tsx calls requireOwner()", () => {
     const pages = findPageFiles(APP_BUKU_DIR).filter(
       (p) => path.relative(APP_BUKU_DIR, p) !== path.join("belanja", "page.tsx"),

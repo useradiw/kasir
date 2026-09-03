@@ -1,37 +1,35 @@
 # HANDOFF
 
-## 2026-09-03 — UAT sections 1, 4, 5 and 7 RUN AND PASSED (UNCOMMITTED)
-The acceptance gate is finally moving: money has now been posted through the
-real UI. Full results and every hand-checked figure are in `UAT-RUN.md` — read
-that, not this, to resume.
-Landed: sections 1 (all entry forms, void, gapless numbering, every error path),
-4 (all six laporan tabs, arithmetic checked by hand, CSV), 5 (buku kas, cek
-saldo, tutup buku + period lock) and 7 (login lockout). Two real bugs found and
-fixed, each with a guard test:
-1. `lib/accounting/expenseRepository.ts` — `ensureDefaultCategories` returned
-   early on `count() > 0`, making "Isi kategori default" a silent no-op that
-   still reported success. Deleted the early return; `skipDuplicates` was
-   already the idempotency mechanism.
-2. `lib/calk.ts` — the CALK Ekuitas column omitted its `Laba Bersih` row, so it
-   summed to 5.700.000 while printing 4.200.000. `CalkInput` did not declare the
-   field. The Perubahan Modal tab and CSV were correct. Validasi 12/12 does NOT
-   read the CALK, so it never caught this.
-`npm test` 329 passed + 1 skipped · lint and tsc clean. NOT COMMITTED.
-Section 6 now PASSES IN FULL, restore included: entry #3 was voided, the
-pre-void backup restored, and #3 came back POSTED with its amount intact. A
-third bug was fixed on the way — `restore-client.tsx` keeps its own
-TABLE_LABELS map that never learned the ten Warung Books tables, so the import
-screen listed them in raw camelCase; it also still named the dropped
-`ingredientPacks`. Read UAT-RUN.md for the operational caveat about restore
-never deleting, which silently zeroed Kas Laci in the test while every balance
-check still passed.
-STILL OPEN: section 3 (NOT skippable — the register-close-to-ledger path is new
-code on this branch; verified against the merge-base with master), section 6
-(backup round-trip, now runnable), section 2 (needs a `dev.kasir` sign-in).
-Test data lives in the blank DB: 9 journal entries (#9 is an orphan reversal
-left by the restore test, so Kas Laci reads 0) and one cash-count assertion
-on Kas Laci with a deliberate Rp 50.000 shortfall. Wipe and re-seed before
-cutover — `npx tsx scripts/wipe-db.ts --yes` then `scripts/seed-shop.ts`.
+## 2026-09-03 — UAT: sections 1, 2, 4, 5, 6 and 7 PASS. Only section 3 is left.
+Money now posts through the real UI. Full results and every hand-checked figure
+are in `UAT-RUN.md` — read that, not this, to resume.
+Four real bugs found and fixed, each with a guard test that was verified to fail
+against the old code:
+1. `ensureDefaultCategories` returned early on `count() > 0`, so "Isi kategori
+   default" was a silent no-op that still reported success.
+2. `lib/calk.ts` omitted the Laba Bersih row, so the CALK Ekuitas column summed
+   to 5.700.000 while printing 4.200.000. Validasi 12/12 never reads the CALK.
+3. `restore-client.tsx` had its own TABLE_LABELS map that never learned the ten
+   Warung Books tables, so the import screen listed them in raw camelCase.
+4. **`/buku/belanja` was unreachable for every cashier** — it gated with
+   `requireAuth()` as designed but read through `listCategories()` /
+   `listCashAccounts()`, which are `requireOwner()` wrappers, so cashiers were
+   bounced to /beranda by the very page built for them. Now reads the lib
+   repositories directly. The existing source guard passed throughout because it
+   checked the gate, not whether the page could read.
+Also shipped: a one-tap Keluar row on /akun (sign-out was two taps deep) and
+/profile moved onto the dark AppShell. Ten files still use the old Container —
+petunjuk, settlement, settings, the auth pages, error/not-found, two loading
+files — worth their own pass.
+`npm test` 330 passed + 1 skipped, lint and tsc clean.
+**STILL OPEN: section 3 only.** It needs one real tunai sale in /kasir from Adi;
+everything after that (register close, selisih kas sign, void, settlement,
+double-post guard) can be driven by Claude. Not skippable: the whole
+register-to-ledger path is new code on this branch, verified against the
+merge-base with master.
+Test DB holds 10 entries and one Kas Laci assertion. Entry #9 is an orphan
+reversal left by the restore test, so Kas Laci reads wrong on purpose. Wipe and
+re-seed before cutover.
 
 ## 2026-09-01 (later) — login brute-force lockout, UNCOMMITTED
 Section 2 of `plan-open-items.md`, built as specced. Six files, nothing else:
