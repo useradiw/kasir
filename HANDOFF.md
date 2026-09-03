@@ -21,8 +21,13 @@ shortage; voiding the sale reversed and reposted (#10 VOID, #11 reversal, #12
 fresh) with the overage landing on Income:SelisihKas — correct opposite sign. The
 close variants only reachable one-per-date (exact count, all-zero, double post)
 are covered in test/sales-posting.test.ts.
-**Section 3 REMAINDER: the online settlement posting, net of commission.** That
-is the only UAT item never exercised. Everything else in the plan passes.
+**The UAT is COMPLETE — all seven sections pass.** The settlement case closed it
+on 2026-09-03 after the wipe: a GoFood sale of Rp 70.000 settled at 20% + Rp
+1.000 commission plus a Rp 5.000 deduction posted `Dr Assets:Cash:BankBCA
+50.000 / Dr Expenses:OpEx:KomisiOnline 20.000 / Cr Income:Sales:Online 70.000`,
+with Validasi 12/12. Revenue is recognised gross, the platform cut is expensed.
+⚠ Commission rates in `/settings` are TEST values (GoFood 20% + 1.000;
+ShopeeFood and GrabFood still 0). Set the real rates before going live.
 
 **Reskin is finished.** Every page audited; settings, petunjuk, settlement, the
 three auth pages, error, not-found and both loading skeletons moved onto the dark

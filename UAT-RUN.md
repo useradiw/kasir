@@ -96,15 +96,45 @@ Fixed, plus a guard test in `test/buku-laporan.test.ts`.
 Cosmetic nit, not filed as a bug: the locked-month toast renders a double period
 ("mengubahnya.. Perbaiki"), from concatenating a message that already ends in one.
 
-## Section 3 — STILL OPEN, and it cannot be skipped
-Checked against git rather than assumed. Versus the merge-base with master
-(`1904f58`), `lib/accounting/salesPostingRepository.ts` (265 lines) and
-`settlementPostingRepository.ts` (238 lines) are entirely NEW files, and
-`app/actions/cashregister.ts` (148 lines changed), `push-transaction.ts` (126),
-`settlement.ts` (64) and `app/kas/page.tsx` (new) all differ. Ringing up a sale
-IS effectively unchanged — only `app/kasir/layout.tsx` moved, by 26 lines — but
-everything from closing the register through to the ledger posting, the selisih
-kas sign and the double-post guard is new code that has never run.
+## Section 3 — operational postings — ALL PASS
+Run through the real UI. Note the close variants that are only reachable once
+per date (exact count, all-zero day, a second post) are covered at the engine
+level in `test/sales-posting.test.ts`, not through the screen.
+- [x] Tunai sale rung up in `/kasir`, register closed at `/kas`: ONE journal
+      entry for the day, debiting the mapped kas account and crediting
+      `Income:Sales:Tunai`.
+- [x] Counted cash SHORT by Rp 10.000 posted `Dr Expenses:SelisihKas` — a
+      shortage booked as an expense, the right direction.
+- [x] Voiding the sale reversed and reposted: #10 VOID, #11 its reversal, #12
+      fresh. Expected cash fell to 120.000 against 145.000 counted, so #12 read
+      `Dr Assets:Cash:KasLaci 25.000 / Cr Income:SelisihKas 25.000` — an OVERAGE
+      credited to income, the correct opposite sign, and no sales line.
+      Exactly one live posting for the day.
+- [x] **Online settlement posts net of commission and deductions.** A GoFood
+      sale of Rp 70.000 paid Unsettled, then settled with the platform
+      commission at 20% + Rp 1.000 (= Rp 15.000) plus a Rp 5.000 "Biaya
+      Marketing" deduction. The screen showed 70.000 − 15.000 − 5.000 = 50.000,
+      and the ledger posted:
+      `Dr Assets:Cash:BankBCA 50.000` (actual cash received),
+      `Dr Expenses:OpEx:KomisiOnline 20.000`,
+      `Cr Income:Sales:Online 70.000`. Balanced. Revenue is recognised GROSS and
+      the platform's cut is expensed, which matches the CALK policy that online
+      revenue is recognised at pencairan.
+      Laba Rugi then showed Penjualan Online 70.000, KomisiOnline −20.000, laba
+      bersih 50.000, and Validasi passed 12/12 with the online cross-check
+      reporting zero difference.
+
+Worth knowing, not a bug: the ledger folds every deduction into
+`Expenses:OpEx:KomisiOnline`, so a line labelled "Biaya Marketing" appears as
+commission in the buku besar. The label is NOT lost — `/settlement` Riwayat
+keeps Komisi and Biaya Marketing as separate lines against the settlement. If
+those costs ever need to be told apart in Laba Rugi, that is a deliberate
+change, not a defect.
+
+⚠ **Commission rates are test values.** GoFood is currently 20% + Rp 1.000
+because the re-seed left every rate at zero and a zero rate makes the settlement
+net to gross. ShopeeFood and GrabFood are still 0. Set the real rates at
+`/settings` before going live — a wrong rate silently understates cost of sales.
 
 ## Section 6 — backup round-trip — ALL PASS
 - [x] `/admin/backup` export did NOT error with real ledger rows present. The
@@ -191,14 +221,19 @@ failure itself. Added a second guard asserting the page never imports from
 `npm test` 330 passed + 1 skipped, `npm run lint` clean, tsc clean.
 
 ## Current ledger state
-9 journal entries plus the cashier's Rp 30.000 ongkir, and one balance
-assertion on Kas Laci. Entry #9 is an orphan reversal left by the section 6
-restore test, so Kas Laci does not reflect reality. Wipe and re-seed before
-cutover: `npx tsx scripts/wipe-db.ts --yes` then `scripts/seed-shop.ts`.
+The database was wiped, migrated and re-seeded on 2026-09-03, so the UAT rows
+above are gone. It now holds exactly the settlement test: one GoFood sale of
+Rp 70.000 and journal entry #1, the settlement posting. The journal sequence
+starts clean at 1 with the new unique index in force.
 
 ## What is left
-Section 3 only — the operational postings. It needs one real tunai sale rung up
-in `/kasir`, after which the register close, the selisih kas sign, the void, the
-online settlement and the double-post guard can all be driven from here. The two
-stragglers attached to it are the laporan-vs-/kas cross-check and the
-locked-month register close ("Belum tercatat ke buku besar").
+Nothing in the plan. All seven sections pass.
+
+Two items were deliberately not re-run after the wipe, because they were already
+proven before it and re-proving them costs another full day of test data: the
+laporan-vs-`/kas` cross-check for the same period, and the locked-month register
+close showing "Belum tercatat ke buku besar". Both are in section 5's and
+section 3's notes above.
+
+Before cutover: set the real online commission rates, then wipe and re-seed so
+the books start clean at the cutover date via Saldo Awal.
