@@ -1,9 +1,12 @@
 "use client";
 
-import { Container } from "@/components/shared/container";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { Button } from "@/components/ui/button";
 
+/**
+ * Rendered outside any route's AppShell, so it applies the `.dark` token scope
+ * itself — otherwise a failure flashes a light card in a dark app.
+ */
 export default function Error({
   error,
   reset,
@@ -12,25 +15,19 @@ export default function Error({
   reset: () => void;
 }) {
   return (
-    <Container id="error" sectionStyle="bg-white dark:bg-black" className="flex h-screen justify-center items-center">
-      <Card className="w-full max-w-sm shadow" size="sm">
-        <CardHeader className="border-b">
-          <CardTitle className="font-bold text-xl">Terjadi Kesalahan</CardTitle>
-          <CardDescription>
-            Maaf, terjadi kesalahan saat memuat halaman ini.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {error.message || "Silakan coba lagi atau hubungi administrator."}
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={reset} className="cursor-pointer">
-            Coba Lagi
-          </Button>
-        </CardFooter>
-      </Card>
-    </Container>
+    <div className="dark flex min-h-dvh items-center justify-center bg-background px-4 text-foreground">
+      <BentoCard className="flex w-full max-w-sm flex-col gap-0.5">
+        <CardLabel>Terjadi Kesalahan</CardLabel>
+        <h1 className="font-display mt-1.5 text-[17px] font-bold">
+          Halaman ini gagal dimuat
+        </h1>
+        <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-muted-foreground">
+          {error.message || "Silakan coba lagi, atau hubungi pemilik kalau masalahnya berlanjut."}
+        </p>
+        <Button onClick={reset} className="mt-4 w-full">
+          Coba Lagi
+        </Button>
+      </BentoCard>
+    </div>
   );
 }

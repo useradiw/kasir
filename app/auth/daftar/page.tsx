@@ -1,5 +1,4 @@
-import { Container } from "@/components/shared/container";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -47,42 +46,37 @@ export default function Daftar() {
     };
 
     return (
-        <Container id="main" sectionStyle="bg-white dark:bg-black" className="flex h-screen justify-center items-center">
-            <Card className="w-full max-w-sm shadow" size="sm">
-                <CardHeader className="border-b">
-                    <CardTitle className="font-bold text-xl">Kasir - Sate Kambing Sido Mampir</CardTitle>
-                    <CardDescription>
-                        Daftar dengan email dan password.
-                    </CardDescription>
-                </CardHeader>
-                <Form action={handleClick}>
-                    <CardContent className="mb-6">
-                        <div className="flex flex-col gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email</Label>
-                                <Input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    placeholder="contoh@gmail.com"
-                                    required
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
-                                </div>
-                                <Input id="password" name="password" type="password" required />
-                            </div>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex-col gap-2">
-                        <Button type="submit" className="w-full cursor-pointer">
-                            Daftar
-                        </Button>
-                    </CardFooter>
+        // Unauthenticated — applies the `.dark` scope itself, like the login
+        // screen. Reached from the invite link the owner sends from /admin/staff.
+        <div className="dark flex min-h-dvh items-center justify-center bg-background px-4 text-foreground">
+            <BentoCard className="flex w-full max-w-sm flex-col gap-0.5">
+                <CardLabel>Daftar Akun</CardLabel>
+                <h1 className="font-display mt-1.5 text-[17px] font-bold">
+                    Sate Kambing Sido Mampir
+                </h1>
+                <p className="mt-1 text-[11.5px] font-semibold text-muted-foreground">
+                    Daftar dengan email dan password.
+                </p>
+                <Form action={handleClick} className="mt-4 flex flex-col gap-3">
+                    <div className="space-y-1.5">
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                            id="email"
+                            name="email"
+                            type="email"
+                            placeholder="contoh@gmail.com"
+                            required
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label htmlFor="password">Password</Label>
+                        <Input id="password" name="password" type="password" required />
+                    </div>
+                    <Button type="submit" className="mt-1 w-full">
+                        Daftar
+                    </Button>
                 </Form>
-            </Card>
-        </Container>
+            </BentoCard>
+        </div>
     );
 }

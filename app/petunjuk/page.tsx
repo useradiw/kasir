@@ -1,8 +1,7 @@
 import { requireAuth } from "@/lib/admin-auth";
-import { Container } from "@/components/shared/container";
-import { Button } from "@/components/ui/button";
+import { AppShell } from "@/components/shell/app-shell";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import { BackToTop } from "./back-to-top";
 
 export const metadata = { title: "Petunjuk Penggunaan" };
@@ -55,25 +54,22 @@ export default async function PetunjukPage() {
   const hasCashAccess = role !== "STAFF";
 
   return (
-    <Container id="top" sectionStyle="min-h-screen" className="py-8 max-w-2xl">
-      <Link href="/">
-        <Button variant="ghost" size="sm" className="mb-4 -ml-2 gap-1.5 text-muted-foreground">
-          <ArrowLeft className="size-4" />
-          Kembali
-        </Button>
-      </Link>
-      <h1 className="text-2xl font-bold mb-1">Petunjuk Penggunaan</h1>
-      <p className="text-muted-foreground text-sm mb-6">
-        Panduan cara menggunakan fitur-fitur aplikasi Kasir POS.
-        <span className="block mt-1 text-xs">Diperbarui: 30 Agustus 2026</span>
-      </p>
-
-      {/* TOC at top */}
-      <nav className="border border-border rounded-lg p-4 mb-10 bg-muted/30">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-          Daftar Isi
+    <AppShell role={role}>
+      <div id="top" className="px-4 pb-1 pt-6">
+        <Link href="/akun" className="text-[12.5px] font-bold text-muted-foreground">
+          ← Akun
+        </Link>
+        <h1 className="font-display mt-2 text-[17px] font-bold">Petunjuk Penggunaan</h1>
+        <p className="text-[11.5px] font-semibold text-muted-foreground">
+          Cara pakai tiap layar · diperbarui 30 Agustus 2026
         </p>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-sm">
+      </div>
+
+      <div className="flex flex-1 flex-col px-4 pb-6 pt-3">
+      {/* TOC at top */}
+      <BentoCard className="mb-6 flex flex-col gap-0.5">
+        <CardLabel>Daftar Isi</CardLabel>
+        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
           <a href="#kasir" className="text-foreground hover:text-primary transition-colors py-0.5">Kasir (POS)</a>
           <a href="#pengeluaran" className="text-foreground hover:text-primary transition-colors py-0.5">Pengeluaran</a>
           {hasCashAccess && (
@@ -105,7 +101,7 @@ export default async function PetunjukPage() {
           )}
           <a href="#akses-peran" className="text-foreground hover:text-primary transition-colors py-0.5">Akses Peran</a>
         </div>
-      </nav>
+      </BentoCard>
 
       {/* ── KASIR ── */}
       <section id="kasir">
@@ -488,6 +484,7 @@ export default async function PetunjukPage() {
       </p>
 
       <BackToTop />
-    </Container>
+      </div>
+    </AppShell>
   );
 }

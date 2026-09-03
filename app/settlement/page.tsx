@@ -1,4 +1,5 @@
-import { Container } from "@/components/shared/container";
+import Link from "next/link";
+import { AppShell } from "@/components/shell/app-shell";
 import { requireRole } from "@/lib/admin-auth";
 import { getSettlementData } from "@/app/actions/admin/queries";
 import { SettlementClient } from "./settlement-client";
@@ -8,8 +9,20 @@ export default async function SettlementPage() {
   const data = await getSettlementData();
 
   return (
-    <Container id="settlement" className="py-6">
-      <SettlementClient data={data} staffRole={staff.role} />
-    </Container>
+    <AppShell role={staff.role}>
+      <div className="px-4 pb-1 pt-6">
+        <Link href="/admin" className="text-[12.5px] font-bold text-muted-foreground">
+          ← Admin
+        </Link>
+        <h1 className="font-display mt-2 text-[17px] font-bold">Pencairan Online</h1>
+        <p className="text-[11.5px] font-semibold text-muted-foreground">
+          {data.summary.unsettledCount} transaksi belum cair
+        </p>
+      </div>
+
+      <div className="flex flex-1 flex-col gap-3 px-4 pb-6 pt-3">
+        <SettlementClient data={data} staffRole={staff.role} />
+      </div>
+    </AppShell>
   );
 }

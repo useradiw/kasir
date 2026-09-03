@@ -12,12 +12,11 @@ import type { ServiceEnum } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
-import { ErrorBanner, PageHeader, TabBar } from "@/components/shared/ui";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
+import { ErrorBanner, TabBar } from "@/components/shared/ui";
 import { Badge } from "@/components/shared/badge";
 import { cn } from "@/lib/utils";
-import { Plus, Trash2, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { Plus, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 
 type ServiceKey = "GoFood" | "ShopeeFood" | "GrabFood";
 
@@ -41,11 +40,9 @@ function getCommissionForService(
 export function SettlementClient({
   data,
   staffRole,
-  backHref = "/",
 }: {
   data: SettlementData;
   staffRole: RoleEnum;
-  backHref?: string;
 }) {
   const [tab, setTab] = useState<"create" | "history">("create");
   const [serviceFilter, setServiceFilter] = useState<ServiceKey | "all">("all");
@@ -61,34 +58,28 @@ export function SettlementClient({
     : data.settlements.filter((s) => s.service === serviceFilter);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Link href={backHref} className="p-1">
-          <ArrowLeft className="size-5 text-muted-foreground" />
-        </Link>
-        <PageHeader title="Pencairan Online" />
-      </div>
-
-      {/* Summary cards */}
+    <div className="flex flex-col gap-3">
+      {/* Summary cards. Belum Cair uses the warning token, not a raw amber — see
+          the theme notes in the project memory. */}
       <div className="grid grid-cols-2 gap-3">
-        <Card>
-          <CardHeader className="p-3">
-            <p className="text-xs text-muted-foreground">Belum Cair</p>
-            <CardTitle className="text-lg text-amber-600 dark:text-amber-400">
-              {formatRupiah(data.summary.unsettledAmount)}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">{data.summary.unsettledCount} transaksi</p>
-          </CardHeader>
-        </Card>
-        <Card>
-          <CardHeader className="p-3">
-            <p className="text-xs text-muted-foreground">Sudah Cair</p>
-            <CardTitle className="text-lg text-primary">
-              {formatRupiah(data.summary.settledAmount)}
-            </CardTitle>
-            <p className="text-xs text-muted-foreground">{data.summary.settledCount} transaksi</p>
-          </CardHeader>
-        </Card>
+        <BentoCard className="flex flex-col gap-0.5">
+          <CardLabel>Belum Cair</CardLabel>
+          <p className="text-[19px] font-bold tabular-nums text-warning-foreground">
+            {formatRupiah(data.summary.unsettledAmount)}
+          </p>
+          <p className="text-[11.5px] font-semibold text-muted-foreground">
+            {data.summary.unsettledCount} transaksi
+          </p>
+        </BentoCard>
+        <BentoCard className="flex flex-col gap-0.5">
+          <CardLabel>Sudah Cair</CardLabel>
+          <p className="text-[19px] font-bold tabular-nums text-primary">
+            {formatRupiah(data.summary.settledAmount)}
+          </p>
+          <p className="text-[11.5px] font-semibold text-muted-foreground">
+            {data.summary.settledCount} transaksi
+          </p>
+        </BentoCard>
       </div>
 
       {/* Service filter */}

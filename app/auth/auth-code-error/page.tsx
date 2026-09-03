@@ -1,26 +1,24 @@
-import { Container } from "@/components/shared/container";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import Link from "next/link";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
+import { Button } from "@/components/ui/button";
 
+/** Unauthenticated — applies the `.dark` scope itself, like the login screen. */
 export default function AuthCodeError() {
-    return (
-        <Container id="main" sectionStyle="bg-white dark:bg-black" className="flex h-screen justify-center items-center">
-            <Card className="w-full max-w-sm shadow" size="sm">
-                <CardHeader className="border-b">
-                    <CardTitle className="font-bold text-xl">Link Tidak Valid</CardTitle>
-                    <CardDescription>
-                        Link konfirmasi tidak valid atau sudah kadaluarsa.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-sm text-muted-foreground">
-                        Silakan coba daftar ulang atau hubungi administrator jika masalah berlanjut.
-                    </p>
-                </CardContent>
-                <CardFooter>
-                    <Link href="/auth/daftar" className="cursor-pointer text-blue-700 underline hover:text-blue-800">Daftar Ulang</Link>
-                </CardFooter>
-            </Card>
-        </Container>
-    );
+  return (
+    <div className="dark flex min-h-dvh items-center justify-center bg-background px-4 text-foreground">
+      <BentoCard className="flex w-full max-w-sm flex-col gap-0.5">
+        <CardLabel>Link Tidak Valid</CardLabel>
+        <h1 className="font-display mt-1.5 text-[17px] font-bold">
+          Link konfirmasi tidak bisa dipakai
+        </h1>
+        <p className="mt-2 text-[12.5px] font-semibold leading-relaxed text-muted-foreground">
+          Link itu tidak valid atau sudah kadaluarsa. Silakan daftar ulang, atau
+          hubungi pemilik kalau masalahnya berlanjut.
+        </p>
+        <Button className="mt-4 w-full" render={<Link href="/auth/daftar" />}>
+          Daftar Ulang
+        </Button>
+      </BentoCard>
+    </div>
+  );
 }

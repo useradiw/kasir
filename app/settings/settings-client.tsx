@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { ErrorBanner } from "@/components/admin/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateSettings } from "@/app/actions/admin/settings";
-import { ArrowLeft, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 export default function SettingsClient({
@@ -37,47 +36,33 @@ export default function SettingsClient({
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Button size="sm" variant="ghost" render={<Link href="/" />}>
-          <ArrowLeft className="size-4 mr-1" />
-          Kembali
-        </Button>
-        <h1 className="text-2xl font-bold">Pengaturan</h1>
-      </div>
-
+    <>
       <ErrorBanner error={error} />
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-3">
         {/* Store Info */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Informasi Toko</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <BentoCard className="flex flex-col gap-0.5">
+            <CardLabel>Informasi Toko</CardLabel>
+            <div className="mt-1.5 space-y-4">
             <Field label="Nama Toko" value={values.store_name} onChange={(v) => set("store_name", v)} />
             <Field label="Alamat" value={values.store_address} onChange={(v) => set("store_address", v)} />
             <Field label="No. Telepon" value={values.store_phone} onChange={(v) => set("store_phone", v)} placeholder="08xxxxxxxxxx" />
             <Field label="Instagram" value={values.store_instagram} onChange={(v) => set("store_instagram", v)} placeholder="@username" />
-          </CardContent>
-        </Card>
+          </div>
+        </BentoCard>
 
         {/* Receipt */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Struk</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <BentoCard className="flex flex-col gap-0.5">
+            <CardLabel>Struk</CardLabel>
+            <div className="mt-1.5 space-y-4">
             <Field label="Footer Struk" value={values.receipt_footer} onChange={(v) => set("receipt_footer", v)} />
-          </CardContent>
-        </Card>
+          </div>
+        </BentoCard>
 
         {/* Cash Register */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Kas Harian</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <BentoCard className="flex flex-col gap-0.5">
+            <CardLabel>Kas Harian</CardLabel>
+            <div className="mt-1.5 space-y-4">
             <Field
               label="Durasi Kunci Kas (jam)"
               value={values.lock_hours}
@@ -89,15 +74,13 @@ export default function SettingsClient({
             <p className="text-xs text-muted-foreground">
               Staff harus menunggu selama ini sebelum bisa menutup kas. Owner tidak terpengaruh.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </BentoCard>
 
         {/* Default Charges */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Default Biaya</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <BentoCard className="flex flex-col gap-0.5">
+            <CardLabel>Default Biaya</CardLabel>
+            <div className="mt-1.5 space-y-4">
             <Field
               label="Pajak Default (%)"
               value={values.default_tax_pct}
@@ -119,15 +102,13 @@ export default function SettingsClient({
             <p className="text-xs text-muted-foreground">
               Nilai default yang terisi otomatis saat membuat transaksi baru. Owner/Manager masih bisa mengubahnya per transaksi.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </BentoCard>
 
         {/* Online Vendor Commissions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Komisi Online Vendor</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
+        <BentoCard className="flex flex-col gap-0.5">
+            <CardLabel>Komisi Online Vendor</CardLabel>
+            <div className="mt-1.5 space-y-5">
             <p className="text-xs text-muted-foreground">
               Komisi dipotong dari pendapatan kotor setiap transaksi online. Contoh: 19% + Rp 1.000 per transaksi.
             </p>
@@ -163,15 +144,13 @@ export default function SettingsClient({
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </BentoCard>
 
         {/* Developer */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Developer</CardTitle>
-          </CardHeader>
-          <CardContent>
+        <BentoCard className="flex flex-col gap-0.5">
+            <CardLabel>Developer</CardLabel>
+            <div className="mt-1.5">
             <div className="flex items-center justify-between gap-4">
               <div>
                 <Label>Mode Developer</Label>
@@ -184,15 +163,15 @@ export default function SettingsClient({
                 onCheckedChange={(checked) => set("dev_mode", checked ? "true" : "false")}
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </BentoCard>
 
-        <Button type="submit" disabled={isPending} className="gap-1.5">
+        <Button type="submit" disabled={isPending} className="w-full gap-1.5">
           {saved && <Check className="size-4" />}
           {isPending ? "Menyimpan..." : saved ? "Tersimpan" : "Simpan Pengaturan"}
         </Button>
       </form>
-    </div>
+    </>
   );
 }
 
