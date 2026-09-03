@@ -129,10 +129,13 @@ export default async function BerandaPage() {
                 sub={`${own?.txnsToday ?? 0} transaksi`}
               />
             </BentoCard>
-            <div className="grid grid-cols-4 gap-2 rounded-2xl border border-border bg-card p-3">
+            {/* Only destinations the bottom tab bar CANNOT reach. Jual (/kasir)
+                and Kas (/kas) used to sit here too and were removed: both are
+                already tabs for every role that sees this grid, so the screen
+                offered the same destination twice. Check nav-items.ts before
+                adding a tile here. */}
+            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-card p-3">
               {[
-                { ic: "🛒", l: "Jual", href: "/kasir" },
-                { ic: "💵", l: "Kas", href: "/kas" },
                 { ic: "🧾", l: "Belanja", href: "/buku/belanja" },
                 { ic: "❓", l: "Petunjuk", href: "/petunjuk" },
               ].map((a) => (
