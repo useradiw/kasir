@@ -36,7 +36,7 @@ export function AkunLogout() {
     <button
       type="button"
       onClick={handleClick}
-      className="mt-1 flex items-center rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-4 text-left transition-all duration-150 active:scale-[0.99]"
+      className="mt-1 flex cursor-pointer items-center rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-4 text-left transition-all duration-150 active:scale-[0.99]"
     >
       <div>
         <p className="text-[14px] font-bold text-destructive">Keluar</p>

@@ -48,7 +48,11 @@ kasir.tokokencana.com (Vercel). Real business data — the DB is PRODUCTION Supa
 
 - **Production DB.** Additive migrations only. Never drop/truncate.
 - Branch order for commits: current-month branch (e.g. `june`) → `develop` →
-  `master`, in that order. I commit manually; you only propose messages.
+  `master`, in that order. I merge into `develop` and `master` myself.
+- This repo IS on the commit allowlist in `~/.claude/hooks/git-guard.js`: Claude
+  may run `git commit` here on my explicit "commit" order, but only from a
+  feature or month branch — the hook refuses commits on `master` and `develop`,
+  and refuses `git push` entirely. Never commit proactively.
 - Roles: Owner, Manager, Cashier, Staff, DEVELOPER — permission changes need my
   explicit approval per role.
 - Memory system lives at
