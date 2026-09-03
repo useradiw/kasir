@@ -18,7 +18,6 @@ const TABLE_LABELS: Record<string, string> = {
   menuItemOnlinePrices: "Harga Online",
   staff: "Staff",
   suppliers: "Supplier",
-  ingredientPacks: "Kemasan Bahan",
   tableSessions: "Sesi Meja",
   orderItems: "Item Order",
   transactions: "Transaksi",
@@ -29,6 +28,19 @@ const TABLE_LABELS: Record<string, string> = {
   onlineSettlements: "Pencairan Online",
   settlementItems: "Item Pencairan",
   settlementDeductions: "Potongan Pencairan",
+  // --- Warung Books ledger. Keep in sync with TABLE_OPTIONS in
+  // backup-client.tsx, ALL_TABLES in app/actions/admin/backup.ts AND
+  // IMPORT_ORDER in app/actions/admin/restore.ts. ---
+  ledgerAccounts: "Akun Buku Besar",
+  expenseCategories: "Kategori Pengeluaran",
+  sequences: "Nomor Urut Jurnal",
+  accountingMonths: "Bulan Akuntansi",
+  salesChannelAccounts: "Akun Kas Penjualan",
+  accountingSettings: "Pengaturan Akuntansi",
+  balanceAssertions: "Cek Saldo",
+  journalEntries: "Jurnal",
+  journalLines: "Baris Jurnal",
+  ledgerPostings: "Tautan Jurnal",
 };
 
 export default function RestoreClient() {

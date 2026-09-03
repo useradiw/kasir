@@ -42,6 +42,22 @@ describe("ensureDefaultCategories", () => {
     const second = await expenses.listCategories();
     expect(second.length).toBe(first.length);
   });
+
+  // Guard: an early return on "any category exists" makes this unreachable and
+  // turns the Isi kategori default button into a silent no-op. Found in UAT
+  // 2026-09-03.
+  it("restores a default the owner deleted", async () => {
+    await expenses.ensureDefaultCategories();
+    const before = await expenses.listCategories();
+    const victim = before[0];
+    await expenses.deleteCategory(victim.id);
+    expect((await expenses.listCategories()).length).toBe(before.length - 1);
+
+    await expenses.ensureDefaultCategories();
+    const after = await expenses.listCategories();
+    expect(after.length).toBe(before.length);
+    expect(after.some((c) => c.code === victim.code)).toBe(true);
+  });
 });
 
 describe("kategori CRUD", () => {

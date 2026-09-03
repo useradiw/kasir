@@ -42,6 +42,7 @@ export interface CalkInput {
   perubahanModal: {
     modal_awal: number;
     tambahan_modal: number;
+    laba_bersih: number;
     /** Debit-positive engine convention (see changesInEquity.ts) — this
      *  module negates it for display, matching lib/laporan-csv.ts. */
     prive: number;
@@ -114,6 +115,7 @@ export function buildCalk(laporan: CalkInput, notes: Record<string, string> = {}
       generated: [
         { label: "Modal Awal", value: laporan.perubahanModal.modal_awal },
         { label: "Tambahan Modal", value: laporan.perubahanModal.tambahan_modal },
+        { label: "Laba Bersih", value: laporan.perubahanModal.laba_bersih },
         // Displayed as an outflow (negative), matching lib/laporan-csv.ts.
         { label: "Prive", value: -laporan.perubahanModal.prive },
         { label: "Modal Akhir", value: laporan.perubahanModal.modal_akhir },

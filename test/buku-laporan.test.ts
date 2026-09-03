@@ -19,6 +19,7 @@
 
 import { describe, it, expect } from "vitest";
 import { totalEkuitasDanLiabilitas } from "../app/buku/laporan/totals";
+import { buildCalk } from "../lib/calk";
 
 // ---------------------------------------------------------------------------
 // Fixture: one internally-consistent LaporanKeuangan-shaped month, built by
@@ -160,5 +161,30 @@ describe("Perubahan Modal — modal awal + setoran + laba - prive = modal akhir"
     expect(
       perubahanModal.modal_awal + perubahanModal.tambahan_modal + perubahanModal.laba_bersih - perubahanModal.prive,
     ).toBe(perubahanModal.modal_akhir);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CALK — same invariant, on the notes page
+// ---------------------------------------------------------------------------
+
+describe("CALK ekuitas — the rows must add up to Modal Akhir", () => {
+  // Guard: the section shipped without its Laba Bersih row, so the column read
+  // modal_awal + tambahan_modal - prive while printing modal_akhir against it.
+  // Found in UAT 2026-09-03; the Perubahan Modal tab and the CSV were correct.
+  it("Modal Awal + Tambahan Modal + Laba Bersih - Prive = Modal Akhir", () => {
+    const calk = buildCalk({
+      period: { dateFrom: "2026-09-01", dateTo: "2026-09-30" },
+      labaRugi,
+      neraca,
+      perubahanModal,
+    });
+    const ekuitas = calk.sections.find((s) => s.key === "ekuitas");
+    expect(ekuitas).toBeDefined();
+
+    const rows = ekuitas!.generated.map((g) => g.value as number);
+    const akhir = rows.pop();
+    expect(rows.reduce((s, v) => s + v, 0)).toBe(akhir);
+    expect(akhir).toBe(perubahanModal.modal_akhir);
   });
 });

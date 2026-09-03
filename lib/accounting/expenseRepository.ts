@@ -223,10 +223,10 @@ export class ExpenseRepository {
   // ensureDefaultCategories — idempotent, safe to call from an RSC
   // -------------------------------------------------------------------------
 
+  // `skipDuplicates` is what makes this idempotent, so it must run even when
+  // categories already exist — otherwise a default the owner deleted by mistake
+  // can never be restored, and the UI reports a success that did nothing.
   async ensureDefaultCategories(): Promise<void> {
-    const existing = await this.prisma.expenseCategory.count();
-    if (existing > 0) return;
-
     await this.prisma.expenseCategory.createMany({
       data: DEFAULT_CATEGORIES.map((s) => ({
         code: s.code,
