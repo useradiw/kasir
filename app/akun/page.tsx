@@ -2,10 +2,14 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { requireAuth } from "@/lib/admin-auth";
 import { RoleEnum } from "@/generated/prisma";
+import { AkunLogout } from "./akun-logout";
 
 /**
  * /akun — the profile tab (SPEC #8): identity, settings, and help in one
- * place. Sign-out lives on /profile; this page links to it.
+ * place. Sign-out lives here as an ACTION row (see AkunLogout) and also on
+ * /profile, where account management sits. That does not break the
+ * "one place per destination" rule below: that rule is about ROUTES, and a
+ * sign-out is an action, not a second way to reach a page.
  */
 export default async function AkunPage() {
   const staff = await requireAuth();
@@ -44,6 +48,7 @@ export default async function AkunPage() {
             <span className="ml-auto text-muted-foreground">→</span>
           </Link>
         ))}
+        <AkunLogout />
       </div>
     </AppShell>
   );

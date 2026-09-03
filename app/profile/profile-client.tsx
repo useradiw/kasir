@@ -1,18 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { ArrowLeft, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { notify } from "@/lib/notify";
 import { createClient } from "@/utils/supabase/client";
 import { useAdminAction } from "@/hooks/use-admin-action";
 import { updateProfileName } from "@/app/actions/profile";
 import { signOut } from "@/app/actions/sign-out";
 import { RoleBadge } from "@/components/admin/ui";
-import { ErrorBanner, PageHeader } from "@/components/shared/ui";
+import { ErrorBanner } from "@/components/shared/ui";
+import { BentoCard, CardLabel } from "@/components/shell/ui";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -22,6 +21,16 @@ type Props = {
   role: string;
   email: string | null;
 };
+
+/** One labelled read-only fact inside the Informasi Akun card. */
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="text-[12.5px] font-semibold text-muted-foreground">{label}</span>
+      <div className="text-[13px] font-bold">{children}</div>
+    </div>
+  );
+}
 
 export function ProfileClient({ name, username, role, email }: Props) {
   const nameAction = useAdminAction();
@@ -78,114 +87,107 @@ export function ProfileClient({ name, username, role, email }: Props) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="size-5" />
-          </Link>
-          <PageHeader title="Profil Saya" />
+    <>
+      {/* Informasi Akun */}
+      <BentoCard className="flex flex-col gap-0.5">
+        <CardLabel>Informasi Akun</CardLabel>
+        <div className="mt-1.5">
+          <InfoRow label="Username">{username ?? "-"}</InfoRow>
+          <InfoRow label="Role">
+            <RoleBadge role={role} />
+          </InfoRow>
+          <InfoRow label="Email">
+            <span className="break-all">{email ?? "-"}</span>
+          </InfoRow>
         </div>
-        <form action={signOut}>
-          <Button type="submit" variant="outline" size="sm" className="cursor-pointer gap-1.5">
-            <LogOut className="size-4" />
-            Keluar
+      </BentoCard>
+
+      {/* Ubah Nama */}
+      <BentoCard className="flex flex-col gap-0.5">
+        <CardLabel>Ubah Nama</CardLabel>
+        <form
+          action={(fd) =>
+            nameAction.run(() => updateProfileName(fd), { successMessage: "Nama berhasil diubah" })
+          }
+          className="mt-2 space-y-3"
+        >
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Nama</Label>
+            <Input id="name" name="name" defaultValue={name} required />
+          </div>
+          <ErrorBanner error={nameAction.error} />
+          <Button type="submit" disabled={nameAction.isPending} className="w-full">
+            {nameAction.isPending ? (
+              <>
+                <Spinner /> Menyimpan...
+              </>
+            ) : (
+              "Simpan"
+            )}
           </Button>
         </form>
-      </div>
+      </BentoCard>
 
-      {/* Card A — Informasi Akun */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Informasi Akun</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <Label className="text-muted-foreground text-xs">Username</Label>
-            <p className="text-sm font-medium">{username ?? "-"}</p>
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs">Role</Label>
-            <div className="mt-0.5">
-              <RoleBadge role={role} />
+      {/* Ubah Password */}
+      {email && (
+        <BentoCard className="flex flex-col gap-0.5">
+          <CardLabel>Ubah Password</CardLabel>
+          <form onSubmit={handlePasswordChange} className="mt-2 space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="pw-old">Password Lama</Label>
+              <Input
+                id="pw-old"
+                type="password"
+                value={pwOld}
+                onChange={(e) => setPwOld(e.target.value)}
+                required
+              />
             </div>
-          </div>
-          <div>
-            <Label className="text-muted-foreground text-xs">Email</Label>
-            <p className="text-sm font-medium">{email ?? "-"}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Card B — Ubah Nama */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Ubah Nama</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            action={(fd) => nameAction.run(() => updateProfileName(fd), { successMessage: "Nama berhasil diubah" })}
-            className="space-y-3"
-          >
-            <div>
-              <Label htmlFor="name">Nama</Label>
-              <Input id="name" name="name" defaultValue={name} required />
+            <div className="space-y-1.5">
+              <Label htmlFor="pw-new">Password Baru</Label>
+              <Input
+                id="pw-new"
+                type="password"
+                value={pwNew}
+                onChange={(e) => setPwNew(e.target.value)}
+                required
+              />
             </div>
-            <ErrorBanner error={nameAction.error} />
-            <Button type="submit" disabled={nameAction.isPending} className="cursor-pointer">
-              {nameAction.isPending ? <><Spinner /> Menyimpan...</> : "Simpan"}
+            <div className="space-y-1.5">
+              <Label htmlFor="pw-confirm">Konfirmasi Password</Label>
+              <Input
+                id="pw-confirm"
+                type="password"
+                value={pwConfirm}
+                onChange={(e) => setPwConfirm(e.target.value)}
+                required
+              />
+            </div>
+            <ErrorBanner error={pwError} />
+            <Button type="submit" disabled={pwPending} className="w-full">
+              {pwPending ? (
+                <>
+                  <Spinner /> Mengubah...
+                </>
+              ) : (
+                "Ubah Password"
+              )}
             </Button>
           </form>
-        </CardContent>
-      </Card>
-
-      {/* Card C — Ubah Password */}
-      {email && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Ubah Password</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handlePasswordChange} className="space-y-3">
-              <div>
-                <Label htmlFor="pw-old">Password Lama</Label>
-                <Input
-                  id="pw-old"
-                  type="password"
-                  value={pwOld}
-                  onChange={(e) => setPwOld(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="pw-new">Password Baru</Label>
-                <Input
-                  id="pw-new"
-                  type="password"
-                  value={pwNew}
-                  onChange={(e) => setPwNew(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="pw-confirm">Konfirmasi Password</Label>
-                <Input
-                  id="pw-confirm"
-                  type="password"
-                  value={pwConfirm}
-                  onChange={(e) => setPwConfirm(e.target.value)}
-                  required
-                />
-              </div>
-              <ErrorBanner error={pwError} />
-              <Button type="submit" disabled={pwPending} className="cursor-pointer">
-                {pwPending ? <><Spinner /> Mengubah...</> : "Ubah Password"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        </BentoCard>
       )}
-    </div>
+
+      {/* Keluar — also on /akun as a one-tap row from the tab bar. */}
+      <form action={signOut}>
+        <Button
+          type="submit"
+          variant="outline"
+          className="w-full gap-1.5 border-destructive/30 bg-destructive/10 text-destructive"
+        >
+          <LogOut className="size-4" />
+          Keluar
+        </Button>
+      </form>
+    </>
   );
 }
