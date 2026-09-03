@@ -1,35 +1,39 @@
 # HANDOFF
 
-## 2026-09-03 — UAT: sections 1, 2, 4, 5, 6 and 7 PASS. Only section 3 is left.
-Money now posts through the real UI. Full results and every hand-checked figure
-are in `UAT-RUN.md` — read that, not this, to resume.
-Four real bugs found and fixed, each with a guard test that was verified to fail
-against the old code:
-1. `ensureDefaultCategories` returned early on `count() > 0`, so "Isi kategori
-   default" was a silent no-op that still reported success.
-2. `lib/calk.ts` omitted the Laba Bersih row, so the CALK Ekuitas column summed
-   to 5.700.000 while printing 4.200.000. Validasi 12/12 never reads the CALK.
-3. `restore-client.tsx` had its own TABLE_LABELS map that never learned the ten
-   Warung Books tables, so the import screen listed them in raw camelCase.
-4. **`/buku/belanja` was unreachable for every cashier** — it gated with
-   `requireAuth()` as designed but read through `listCategories()` /
-   `listCashAccounts()`, which are `requireOwner()` wrappers, so cashiers were
-   bounced to /beranda by the very page built for them. Now reads the lib
-   repositories directly. The existing source guard passed throughout because it
-   checked the gate, not whether the page could read.
-Also shipped: a one-tap Keluar row on /akun (sign-out was two taps deep) and
-/profile moved onto the dark AppShell. Ten files still use the old Container —
-petunjuk, settlement, settings, the auth pages, error/not-found, two loading
-files — worth their own pass.
-`npm test` 330 passed + 1 skipped, lint and tsc clean.
-**STILL OPEN: section 3 only.** It needs one real tunai sale in /kasir from Adi;
-everything after that (register close, selisih kas sign, void, settlement,
-double-post guard) can be driven by Claude. Not skippable: the whole
-register-to-ledger path is new code on this branch, verified against the
-merge-base with master.
-Test DB holds 10 entries and one Kas Laci assertion. Entry #9 is an orphan
-reversal left by the restore test, so Kas Laci reads wrong on purpose. Wipe and
-re-seed before cutover.
+## 2026-09-03 — UAT sections 1,2,4,5,6,7 PASS; reskin finished; DB wiped+migrated
+Read `UAT-RUN.md` for the full UAT results and every hand-checked figure.
+
+**Five bugs found and fixed, each with a guard test verified to fail on the old
+code:** ensureDefaultCategories silent no-op; the CALK Ekuitas column missing its
+Laba Bersih row; restore-client's TABLE_LABELS never learning the ten Warung
+Books tables; `/buku/belanja` unreachable for every cashier (requireAuth page
+reading through requireOwner query wrappers); and a restore rewinding the journal
+number sequence, which produced two live entries numbered 9.
+
+**Journal numbering is now enforced by the database.** `@@unique([number])` plus
+migration `20260903000000_journal_number_unique`, and `reconcileJournalSequence`
+(forward-only) runs as a restore post-pass. Adi wiped, ran `migrate deploy` and
+re-seeded on 2026-09-03, so the duplicate is gone and the index is applied.
+
+**Section 3 mostly PASSED through the real UI** before the wipe: the close posted
+Dr Assets:Cash:KasLaci / Cr Income:Sales:Tunai plus Dr Expenses:SelisihKas for a
+shortage; voiding the sale reversed and reposted (#10 VOID, #11 reversal, #12
+fresh) with the overage landing on Income:SelisihKas — correct opposite sign. The
+close variants only reachable one-per-date (exact count, all-zero, double post)
+are covered in test/sales-posting.test.ts.
+**Section 3 REMAINDER: the online settlement posting, net of commission.** That
+is the only UAT item never exercised. Everything else in the plan passes.
+
+**Reskin is finished.** Every page audited; settings, petunjuk, settlement, the
+three auth pages, error, not-found and both loading skeletons moved onto the dark
+shell. `components/shared/container.tsx` stays — components/kasir still uses it.
+
+**Traps that cost time today, do not repeat:** `prisma generate` while the dev
+server runs half-writes the client and the whole pglite suite then OOMs with
+"Fatal process out of memory" that looks like a code bug — stop the server first.
+A stale `.next/types` from an old production build reports phantom tsc errors
+about deleted layouts; `rm -rf .next/types` clears it.
+`npm test` 337 passed + 1 skipped, lint and tsc clean.
 
 ## 2026-09-01 (later) — login brute-force lockout, UNCOMMITTED
 Section 2 of `plan-open-items.md`, built as specced. Six files, nothing else:
