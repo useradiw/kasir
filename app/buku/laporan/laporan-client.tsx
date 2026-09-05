@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Segmented } from "@/components/shell/sheet";
-import { exportCSV } from "@/lib/export-csv";
-import { buildLaporanSections } from "@/lib/laporan-csv";
 import type { LaporanKeuangan } from "@/app/actions/admin/queries/laporan-keuangan-queries";
 import { LabaRugiTab } from "./laba-rugi-tab";
 import { NeracaTab } from "./neraca-tab";
@@ -29,7 +26,7 @@ const TABS: { value: TabKey; label: string }[] = [
   { value: "validasi", label: "Validasi" },
 ];
 
-/** True when nothing has ever posted to the ledger for this month — carried
+/** True when nothing has ever posted to the ledger for this period — carried
  *  across unchanged from the old laporan-client.tsx. */
 function isBookEmpty(laporan: LaporanKeuangan): boolean {
   const { labaRugi, neraca, arusKas } = laporan;
@@ -44,12 +41,11 @@ function isBookEmpty(laporan: LaporanKeuangan): boolean {
 }
 
 /**
- * /buku/laporan client — reskin of app/admin/keuangan/laporan/
- * laporan-client.tsx on the Segmented tab control (the same primitive
- * app/buku/kas/kas-client.tsx already uses for its two tabs). The CSV export
- * is the old screen's exact wiring, reused unchanged: exportCSV (lib/
- * export-csv.ts, covered by test/export-csv.test.ts) fed by
- * buildLaporanSections (lib/laporan-csv.ts) — neither function changed.
+ * /buku/laporan client — the six statement tabs.
+ *
+ * The period picker and the download menu deliberately do NOT live here: they
+ * sit in the page header (see laporan-actions.tsx), which is what the mockup
+ * specifies and what keeps the body to a single row of chrome.
  */
 export function LaporanClient({
   laporan,
@@ -61,21 +57,8 @@ export function LaporanClient({
   const [tab, setTab] = useState<TabKey>("laba-rugi");
   const empty = isBookEmpty(laporan);
 
-  function download() {
-    exportCSV(`laporan-keuangan-${laporan.month}.csv`, buildLaporanSections(laporan));
-  }
-
   return (
     <>
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold text-muted-foreground">
-          Periode {laporan.period.dateFrom} s/d {laporan.period.dateTo}
-        </p>
-        <Button size="sm" variant="outline" onClick={download}>
-          ⬇ Unduh CSV
-        </Button>
-      </div>
-
       <Segmented options={TABS} value={tab} onChange={setTab} />
 
       {tab === "laba-rugi" && <LabaRugiTab laporan={laporan} isEmpty={empty} setupComplete={setupComplete} />}

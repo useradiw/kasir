@@ -16,6 +16,7 @@ import {
   formatPaymentMethod,
   formatTransactionShortId,
   localDateKey,
+  formatMonth,
 } from "@/lib/format";
 
 describe("formatRupiah", () => {
@@ -91,5 +92,20 @@ describe("localDateKey — the local calendar date, never UTC", () => {
   it("zero-pads month and day", () => {
     const d = new Date(2026, 2, 5, 12, 0, 0, 0); // 5 Mar 2026, midday
     expect(localDateKey(d)).toBe("2026-03-05");
+  });
+});
+
+describe("formatMonth", () => {
+  it("renders the Indonesian month name and year", () => {
+    expect(formatMonth("2026-04")).toBe("April 2026");
+    expect(formatMonth("2026-01")).toBe("Januari 2026");
+    expect(formatMonth("2026-12")).toBe("Desember 2026");
+  });
+
+  it("falls back to the raw string rather than printing undefined", () => {
+    // The laporan month picker feeds this straight from the DB, so a bad row
+    // must degrade to something readable instead of "undefined 2026".
+    expect(formatMonth("2026-13")).toBe("2026-13");
+    expect(formatMonth("bukan-bulan")).toBe("bukan-bulan");
   });
 });

@@ -8,7 +8,7 @@
  *
  * An empty/blank note DELETES the row rather than storing an empty string, so
  * the settings table doesn't accumulate noise for sections the owner never
- * annotated. listForMonth simply omits keys that were never written (or were
+ * annotated. listForPeriod simply omits keys that were never written (or were
  * cleared back to empty) — callers treat a missing entry the same as "".
  */
 
@@ -24,8 +24,14 @@ export class CalkNotesRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   /** sectionKey -> note text, for every section that has a non-empty note this month. */
-  async listForMonth(month: string): Promise<Record<string, string>> {
-    const prefix = `${KEY_PREFIX}${month}:`;
+  /**
+   * `period` is a laporan period key — "2026-04" for a month or "2026" for a
+   * year (lib/laporan-period.ts). Renamed from listForMonth 2026-09-05 when
+   * laporan gained the yearly scale; the stored key format did not change, so
+   * existing monthly notes keep resolving.
+   */
+  async listForPeriod(period: string): Promise<Record<string, string>> {
+    const prefix = `${KEY_PREFIX}${period}:`;
     const rows = await this.prisma.accountingSetting.findMany({
       where: { key: { startsWith: prefix } },
     });

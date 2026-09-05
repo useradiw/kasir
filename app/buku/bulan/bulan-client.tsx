@@ -6,23 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AlertRow, BentoCard, CardLabel, Row, Tag } from "@/components/shell/ui";
 import { useAdminAction } from "@/hooks/use-admin-action";
+import { formatMonth } from "@/lib/format";
 import { useConfirm } from "@/components/shared/confirm-dialog";
 import { lockMonth, unlockMonth, createMonth, setSelectedMonth } from "@/app/actions/admin/keuangan";
 
 type Month = { month: string; locked: boolean };
-
-const NAMES = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
-
-/** Local copy of the old month-picker's formatter — kept pure and duplicated
- *  here on purpose rather than imported from app/admin/keuangan, which is
- *  slated for deletion once every /buku equivalent exists. */
-function formatMonth(m: string): string {
-  const [y, mo] = m.split("-").map(Number);
-  return `${NAMES[(mo ?? 1) - 1]} ${y}`;
-}
 
 function thisMonthISO(): string {
   const d = new Date();

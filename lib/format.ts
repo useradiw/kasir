@@ -56,3 +56,23 @@ export function formatTransactionShortId(id: string): string {
 export function localDateKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+const MONTH_NAMES = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+/**
+ * "2026-04" -> "April 2026". Pure and client-safe, which is why it lives here
+ * and NOT in lib/keuangan-month.ts — that module imports next/headers for the
+ * wb_month cookie, so a client component importing from it fails to build.
+ *
+ * Extracted 2026-09-05 when the laporan month picker became the third copy
+ * (app/buku/laporan/page.tsx and app/buku/bulan/bulan-client.tsx were the
+ * first two).
+ */
+export function formatMonth(month: string): string {
+  const [y, mo] = month.split("-").map(Number);
+  const name = MONTH_NAMES[(mo ?? 1) - 1];
+  return name && y ? `${name} ${y}` : month;
+}

@@ -29,7 +29,7 @@ import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
 import { AccountingRepository } from "@/lib/accounting/accountingRepository";
 import { BalanceAssertionRepository } from "@/lib/accounting/balanceAssertionRepository";
 import { CalkNotesRepository } from "@/lib/accounting/calkNotesRepository";
-import { monthRange } from "@/lib/keuangan-month";
+import { resolvePeriod, type PeriodScale } from "@/lib/laporan-period";
 import { sumDaySales, type DaySalesInput } from "@/lib/day-close";
 import { buildCalk, type CalkResult } from "@/lib/calk";
 import {
@@ -159,8 +159,10 @@ async function getSaleTotals(
 // ---------------------------------------------------------------------------
 
 export interface LaporanKeuangan {
+  /** The period KEY: "2026-04" for a month, "2026" for a year. Named `month`
+   *  for continuity with every existing consumer (CSV filename, CalkTab). */
   month: string;
-  period: { dateFrom: string; dateTo: string };
+  period: { dateFrom: string; dateTo: string; label: string; scale: PeriodScale };
   labaRugi: Numberify<IncomeStatementResult>;
   neraca: Numberify<BalanceSheetResult>;
   arusKas: Numberify<CashFlowResult>;
@@ -204,8 +206,15 @@ function withFriendlyAssetLabels(
  * `db` defaults to the app's Prisma singleton; tests inject the pglite test
  * client so this query-layer function is exercisable outside a live DB.
  */
-export async function buildLaporanKeuangan(month: string, db: PrismaClient = prisma): Promise<LaporanKeuangan> {
-  const { dateFrom, dateTo } = monthRange(month);
+/**
+ * `period` is a self-describing key: "2026-04" for a month, "2026" for a whole
+ * year (see lib/laporan-period.ts). Everything below already worked from a
+ * dateFrom/dateTo pair, so the yearly scale needed no engine change — Neraca
+ * stays correct for free because balanceSheet() is a point-in-time snapshot at
+ * dateTo, which for a year is 31 December.
+ */
+export async function buildLaporanKeuangan(period: string, db: PrismaClient = prisma): Promise<LaporanKeuangan> {
+  const { dateFrom, dateTo, label, scale } = resolvePeriod(period);
 
   const [book, categoryRows, saleTotals, assertions, accountRows, notes] = await Promise.all([
     new AccountingRepository(db).loadBook({ dateTo }),
@@ -213,7 +222,7 @@ export async function buildLaporanKeuangan(month: string, db: PrismaClient = pri
     getSaleTotals(db, dateFrom, dateTo),
     new BalanceAssertionRepository(db).listForDate(dateTo),
     db.ledgerAccount.findMany({ where: { name: { startsWith: "Assets:" } }, select: { name: true, label: true } }),
-    new CalkNotesRepository(db).listForMonth(month),
+    new CalkNotesRepository(db).listForPeriod(period),
   ]);
 
   const cats: Record<string, { name: string }> = {};
@@ -237,8 +246,10 @@ export async function buildLaporanKeuangan(month: string, db: PrismaClient = pri
   const neraca = withFriendlyAssetLabels(toPlain(neracaRaw), labelByName);
 
   const laporan = {
-    month,
-    period: { dateFrom, dateTo },
+    // `month` keeps its name for every existing consumer (CSV filename, CalkTab
+    // save key); it now holds the period key, which may be a year.
+    month: period,
+    period: { dateFrom, dateTo, label, scale },
     labaRugi: toPlain(labaRugi),
     neraca,
     arusKas: toPlain(arusKas),
