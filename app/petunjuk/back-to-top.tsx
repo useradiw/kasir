@@ -16,7 +16,7 @@ export function BackToTop() {
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className="fixed bottom-6 right-6 z-50 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm shadow-lg hover:bg-primary/90 transition-all"
+      className="cursor-pointer fixed bottom-6 right-6 z-50 bg-primary text-primary-foreground rounded-full px-4 py-2 text-sm shadow-lg hover:bg-primary/90 transition-all"
       aria-label="Kembali ke atas"
     >
       ↑ Atas

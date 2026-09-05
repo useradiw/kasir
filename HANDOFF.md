@@ -1,242 +1,288 @@
 # HANDOFF
 
-## 2026-09-03 — UAT sections 1,2,4,5,6,7 PASS; reskin finished; DB wiped+migrated
-Read `UAT-RUN.md` for the full UAT results and every hand-checked figure.
+## 2026-09-04 (later) — LINK + BUTTON AUDIT
 
-**Five bugs found and fixed, each with a guard test verified to fail on the old
-code:** ensureDefaultCategories silent no-op; the CALK Ekuitas column missing its
-Laba Bersih row; restore-client's TABLE_LABELS never learning the ten Warung
-Books tables; `/buku/belanja` unreachable for every cashier (requireAuth page
-reading through requireOwner query wrappers); and a restore rewinding the journal
-number sequence, which produced two live entries numbered 9.
+Swept every link and button in `app/` and `components/`. Two classes of fix, both
+uncommitted and stacked on top of the migration work below.
 
-**Journal numbering is now enforced by the database.** `@@unique([number])` plus
-migration `20260903000000_journal_number_unique`, and `reconcileJournalSequence`
-(forward-only) runs as a restore post-pass. Adi wiped, ran `migrate deploy` and
-re-seeded on 2026-09-03, so the duplicate is gone and the index is applied.
+**Broken hrefs (10).** Nine links still pointed at `/admin/keuangan/*`, a route tree
+the Warung Books merge deleted; all nine now point at their `/buku/*` equivalent
+(`app/buku/page.tsx` quick actions, five links in `app/petunjuk/page.tsx`, and
+`components/kas/kas-owner.tsx`). The tenth, in `components/kas/kas-cashier.tsx`, was
+DELETED rather than repointed: `/buku/kas` is `requireOwner()`-gated and that
+component only renders for a CASHIER, so repointing would have swapped a 404 for a
+permission error. A why-comment there records this. `/tmp/href.py` validates every
+literal href against the route table and now reports 0 broken.
 
-**Section 3 mostly PASSED through the real UI** before the wipe: the close posted
-Dr Assets:Cash:KasLaci / Cr Income:Sales:Tunai plus Dr Expenses:SelisihKas for a
-shortage; voiding the sale reversed and reposted (#10 VOID, #11 reversal, #12
-fresh) with the overage landing on Income:SelisihKas — correct opposite sign. The
-close variants only reachable one-per-date (exact count, all-zero, double post)
-are covered in test/sales-posting.test.ts.
-**The UAT is COMPLETE — all seven sections pass.** The settlement case closed it
-on 2026-09-03 after the wipe: a GoFood sale of Rp 70.000 settled at 20% + Rp
-1.000 commission plus a Rp 5.000 deduction posted `Dr Assets:Cash:BankBCA
-50.000 / Dr Expenses:OpEx:KomisiOnline 20.000 / Cr Income:Sales:Online 70.000`,
-with Validasi 12/12. Revenue is recognised gross, the platform cut is expensed.
-⚠ Commission rates in `/settings` are TEST values (GoFood 20% + 1.000;
-ShopeeFood and GrabFood still 0). Set the real rates before going live.
+**cursor-pointer.** Tailwind v4 dropped the preflight rule, and the project had it in
+only 8 places, so nearly every control showed an arrow. Added once to the
+`buttonVariants` base in `components/ui/button.tsx` (covers all 221 `<Button>` uses),
+then explicitly to 58 `<Link>`, 43 raw `<button>`, and the shared class constants in
+`components/shell/sheet.tsx` and `components/shell/ui.tsx`. Left alone on purpose:
+`components/shared/badge.tsx` (already conditional on `onClick`), `app/global-error.tsx`
+(inline styles by design), and six `<div onClick>` handlers that are
+`stopPropagation` guards or a dismiss overlay, not affordances.
 
-**Reskin is finished.** Every page audited; settings, petunjuk, settlement, the
-three auth pages, error, not-found and both loading skeletons moved onto the dark
-shell. `components/shared/container.tsx` stays — components/kasir still uses it.
+Also removed 5 duplicate anchor ids in `app/petunjuk/page.tsx` — the id now lives only
+on `SectionHeading`, which carries `scroll-mt-28`, matching the other 7 sections.
 
-**Traps that cost time today, do not repeat:** `prisma generate` while the dev
-server runs half-writes the client and the whole pglite suite then OOMs with
-"Fatal process out of memory" that looks like a code bug — stop the server first.
-A stale `.next/types` from an old production build reports phantom tsc errors
-about deleted layouts; `rm -rf .next/types` clears it.
-`npm test` 337 passed + 1 skipped, lint and tsc clean.
+**Verified:** lint clean, tsc clean, all 12 petunjuk anchors resolve, 0 broken hrefs.
+The login screen was checked in the browser (both controls report `cursor: pointer`);
+everything past it is behind auth on the live database, so it was verified statically
+instead. `npx vitest run` OOMs right now — that is the documented dev-server trap
+below, confirmed pre-existing by re-running on a stashed clean tree.
 
-## 2026-09-01 (later) — login brute-force lockout, UNCOMMITTED
-Section 2 of `plan-open-items.md`, built as specced. Six files, nothing else:
-NEW `lib/login-throttle.ts` (injectable `db` + injectable clock, no
-`"use server"`), NEW `test/login-throttle.test.ts` (9 tests, pglite, fake
-clock), NEW `prisma/sql/2026-09-login-attempts.sql` (BEGIN;/COMMIT;-wrapped)
-and its unwrapped twin `prisma/migrations/20260901000000_login_attempts/
-migration.sql` (exists so `migrate resolve --applied` has a target — never run
-`migrate deploy`). EDITED `app/actions/login.ts` and `prisma/schema.prisma`.
-Rule: 5 consecutive failures lock the USERNAME STRING for 15 minutes; an
-unknown username locks identically to a real one, which is what keeps the
-account-enumeration leak closed (guard test 8 fails if anyone breaks that
-symmetry). `checkLock` gates before the Staff lookup, `clearFailures` runs
-after sign-in succeeds and BEFORE the `isActive` check — do not reorder
-`isActive`, it is deliberately after password verification.
-**NOT APPLIED to prod.** Adi runs `db execute` + `migrate resolve` himself,
-after a backup. Claude ran no command that connects to a database.
-lint clean, `npm test` 304 passed + 1 skipped. **`npm run build` FAILS** on
-`app/kas/page.tsx:63` — `getCashRegisterDataForStaff` rows lack `createdAt`,
-which `RegisterRowBase` in `components/kas/kas-shared.tsx:45` requires. That is
-the parallel /kas Phase 3 work, not this diff.
-The lockout has NEVER been exercised against a real sign-in — no OWNER login.
+**Reachability (found by Adi, 2026-09-05).** The href audit checked only the
+outbound direction. The inverse was broken: the whole Buku settings tier
+(`/buku/bulan`, `/buku/akun`, `/buku/akun-penjualan`, `/buku/kategori`,
+`/buku/setup`) was reachable ONLY from the setup checklist and from empty-state
+alerts, which stop rendering once the shop is correctly configured —
+`/buku/kategori` had no inbound link at all. `/buku` now carries an
+unconditional "Pengaturan" group linking all five.
+`test/route-reachability.test.ts` guards it, and was confirmed to FAIL when the
+group is removed. Three routes stay link-free on purpose and are documented in
+its `NO_LINK_EXPECTED`.
+
+**Verified:** lint clean, tsc clean, `npx vitest run` 345 passed + 1 skipped
+across 33 files. The `/buku` group itself was NOT seen rendered — those routes
+are `requireOwner()`-gated and Claude has no login; they return 307 to the login
+screen, which proves they compile, not that they look right. Adi should eyeball
+the new group.
+
+**Multi-month CSV export (2026-09-05).** `/buku/laporan`'s Unduh button is now
+a month menu: it exports ANY accounting month without touching the `wb_month`
+cookie. The month on screen is written from props with no round trip; the rest
+go through `getLaporanKeuangan(month)` one at a time, with a per-row busy state
+and `notify.error` on failure. `formatMonth` was extracted to `lib/format.ts`
+(it was about to become a third copy) and is covered in `test/format.test.ts`;
+`laporan/page.tsx` and `bulan/bulan-client.tsx` now import it. NOT seen
+rendered — owner-gated, no login; routes compile and 307 with no server errors.
+
+**Period selector + XLSX export (2026-09-05).** `/buku/laporan` now reports a
+MONTH or a WHOLE YEAR, and exports the Warung Books workbook.
+
+- `lib/laporan-period.ts`: period keys are self-describing — "2026-04" is a
+  month, "2026" a year — which is why `buildLaporanKeuangan(period)` kept its
+  one-string signature and NO existing caller or test changed. The statement
+  engine already worked from dateFrom/dateTo, so yearly needed no engine work;
+  Neraca is right for free because balanceSheet() snapshots at dateTo.
+- The period lives in the URL (`?periode=`), NOT the `wb_month` cookie — Adi
+  chose this so browsing laporan cannot silently retarget jurnal/kas/pengeluaran.
+  The cookie is still the default when no query string is present.
+- `CalkNotesRepository.listForMonth` -> `listForPeriod` (one call site). The
+  stored key format is unchanged, so existing monthly notes still resolve.
+- `lib/laporan-xlsx.ts` is a PURE spec carrying the Warung Books styling read
+  off the real file; `lib/export-xlsx.ts` renders it (exceljs, dynamically
+  imported like jsPDF). `applyWorkbook` is deliberately browser-free so
+  `scripts/check-xlsx.mts` can render a real .xlsx in node.
+- **Verified against the original**, not just unit-tested: a generated workbook
+  was diffed cell-by-cell with openpyxl against
+  "D:/Laporan Warung Sate Kambing/Laporan Keuangan April 2026.xlsx" — title
+  font/size/#1F4E78, subtitle/business #666666, section fill #D9E1F2, the
+  three-space indent, bold totals, column widths 46/20 and the Rupiah
+  accounting number format ALL match. kasir adds a 6th sheet, CALK, on purpose.
+- **Warung Books exports XLSX only.** The "Laporan Bulanan *.pdf" files in that
+  folder carry `Producer: jsPDF 4.2.1` — they are kasir's OWN /admin/reports
+  output. No PDF was added here; Adi chose XLSX-only.
+
+Suite: 372 passed + 1 skipped across 35 files. Routes compile (307, no server
+errors) for ?periode= month, year, absent and garbage. NOT seen rendered —
+owner-gated, no login.
+
+**Period selector redesigned after a UI audit (2026-09-05).** Adi rejected the
+first attempt: it stacked a scale switch, a period chip strip and a download row
+above the statement tabs — three rows of chrome before any number. The mockup
+(docs/redesign/screens-laporan.html) had always said the period belongs in the
+TOPBAR with the download as an icon beside it.
+
+Rebuilt as `period-picker.tsx` (trigger + the app's existing Dialog),
+`unduh-menu.tsx` and `laporan-actions.tsx`, all mounted in the page header;
+`laporan-client.tsx` is now just the six tabs.
+
+Audit findings, all measured not guessed (skill lives at
+`C:\Users\62852\.agents\skills\ui-ux-designer` and is NOT registered with
+Claude Code — read the path directly to use it):
+- CRITICAL: dimming no-data months with opacity-50 gave 2.38:1 contrast
+  (`--muted-foreground` on `--popover`), against a 4.5 floor. Now full-opacity
+  muted (5.37:1) plus a dot marker. **Never dim by opacity in this palette.**
+- CRITICAL: `prefers-reduced-motion` was handled NOWHERE in the app. Added to
+  globals.css, using near-zero durations rather than `animation:none` because
+  base-ui waits for animationend before unmounting a dialog.
+- Reused `Dialog` instead of a hand-rolled sheet: Escape, focus trap,
+  aria-modal and focus-return come free.
+- 44px cells, aria-pressed + Indonesian aria-labels, pending state on the
+  pressed cell (navigation runs in useTransition), radius vocabulary cut to
+  three values.
+- ACCEPTED AS-IS: `--border` is 1.15:1 against `--popover`, under the 3:1 UI
+  floor, and NO surface in this dark palette reaches 3:1. Legibility rests on
+  text contrast (5.37-14.55:1), not on the boundary. Do not "fix" this by
+  inventing colors — docs/design.md forbids hardcoded hex.
+
+**Portaled dialogs rendered WHITE on the dark app — fixed (2026-09-05).**
+Adi spotted the period picker was white. Root cause: `dark` was applied to a
+wrapper `<div>` inside `<body>` (app-shell.tsx, page.tsx, error.tsx, ...), never
+to `<html>`. base-ui's `Dialog.Portal` and Sonner both mount on `document.body`,
+OUTSIDE those wrappers, so they resolved tokens from `:root` = the LIGHT palette
+(`--popover: oklch(1 0 0)`, pure white).
+
+This was PRE-EXISTING and hit every dialog in the app — confirm-dialog,
+notifications, kas-owner — not just the new picker. `dark` now sits on `<html>`
+in app/layout.tsx; the app is dark-only (no theme toggle exists anywhere), so it
+is unconditional. The `dark` classes on the wrappers are now redundant but
+harmless.
+
+Proven in the browser, both directions: an element appended to document.body
+resolves `--popover` to rgb(29,33,38) now; reproducing the old setup (dark on a
+wrapper, not html) made the same element `lab(100 0 0)` — pure white.
+
+**NEXT (agreed order):** 1. commit this audit. 2. Rename HPP -> "Pengeluaran
+Bahan Baku" and Biaya Operasional -> "Pengeluaran Operasional" across UI, code,
+the `ExpenseBucket` enum and the `Expenses:HPP:*` / `Expenses:OpEx:*` ledger
+prefixes. 3. Wipe and reload the database. Adi confirmed 2026-09-05 that the DB
+is NOT yet production and may be wiped, which removes the need for an
+`ALTER TYPE` rename, a live prefix-rewrite, and the backup-translation shim.
+**Do not wipe until Adi has downloaded and reviewed the April-July laporan CSVs**
+— that migrated history is the only copy of the data being judged.
+
+**Dev server note:** kasir runs on port 4000 on this machine. Ports 3000/3001
+are the familytree project; 3456 is ceklis.
+
+## 2026-09-04 — MIGRASI SELESAI DAN TERVERIFIKASI
+
+**The migration has RUN against the live database `ktcaaasmrryoxinsutzt`.** It was
+wiped (73 rows of settlement-test data; the 5 `dev.*` staff were preserved by
+`scripts/wipe-db.ts`), then loaded via `npx tsx scripts/migrasi/run.mts --yes` with
+`MIGRASI_DATABASE_URL` set to `DIRECT_URL` — the pooler on 6543 breaks the
+repositories' interactive transactions, so use 5432 for any bulk load.
+
+**Zero rejections.** Live counts: 823 transactions, 870 table sessions, 1675 order
+items, 131 cash registers, 748 attendance, 11 staff (5 dev + 6 imported, all with
+`supabaseUserId` nulled), 67 expense categories, 5 accounting months (UNLOCKED —
+Adi locks them via the UI), 1012 journal entries (2 modal + 97 transfer + 778
+pengeluaran + 130 tutup kas + 5 settlement) and 135 ledger postings (130 + 5).
+The 29 Aug settlement carries its Rp 211 balancing deduction.
+
+**Reports verified with `npx tsx scripts/migrasi/laporan-check.mts`** (read-only,
+runs the app's own `buildLaporanKeuangan` against live data). Neraca balances and
+Validasi passes 12/12 in all four months. **July matches Warung Books exactly on
+every Laba Rugi line.** April and June match on HPP and Biaya Operasional; May
+matches on HPP. Remaining gaps are input differences, NOT code defects:
+- April −44.978 pendapatan: a Rp 45.000 Warung Books sale entry with no POS
+  transaction behind it, less Rp 22 of Rp-1 test rings in the till.
+- June −2.999: Rp 3.000 on 28 June, plus Rp 1.
+- May −39.995 pendapatan and −13.979 opex: the small day gaps, plus online booked
+  at kasir's settlement gross (243.230) vs Warung Books' 220.830, and komisi taken
+  from the real payouts (82.387) vs Warung Books' hand-typed 96.366.
+Cumulative Neraca divergence is Rp 73.993 and stops growing after June.
+
+**NEXT:** Adi enters August's books by hand, reads `/buku/laporan`, and locks
+April–July with the button. Nothing is committed — `git status` shows the new
+`scripts/migrasi/`, `docs/migrasi-data.md`, the edited test and this file.
+
+## Rencana
 
 
-## 2026-09-01 — /kas Phase 3 built (UNCOMMITTED, on top of step 5)
-`/kas` is now the real screen. `components/kas/{kas-shared,kas-owner,kas-cashier}.tsx`
-render all five screens of `screens-kas.html`; screens 2, 4 and 5 (tutup kas,
-detail hari, buka kas) are in-page client states, not routes, because the page
-already holds their data. `app/kas/page.tsx` is still the only fetcher and
-still calls `getCashRegisterData` / `getCashRegisterDataForStaff`.
 
-**Adi approved all eight mockup additions**, so this slice DID add data (the
-plan's "no new query functions" rule was lifted by that decision, once):
-`getNonSalesCashMovementLines` in `lib/ledger-queries.ts` is now the primitive
-and `getNonSalesCashMovementByDate` reduces over it — one filter, one source of
-truth, guarded by a test that the lines sum exactly to the net. `sumDaySales`
-gained `cashTxnCount`. `resolveRegisterPostings` in `queries/_shared.ts` is the
-single posting/journal-number lookup both fetchers use. Both fetchers now also
-return `qrisIncome`, `movements`, `cashAccountLabel`.
+**Read `docs/migrasi-data.md` first.** It is the active plan and it supersedes
+`docs/redesign/plan-open-items.md`, which is finished — all five of its sections
+shipped, and the UAT passed all seven sections (see `UAT-RUN.md`).
 
-**There is no shift concept in the schema.** `CashRegister` is one row per date,
-so wherever the mockup writes "Shift Siang" the screen shows the date and the
-opener's name. Real shifts are a schema change and their own session.
+The job: move kasir's operational history (2026-04-12 → 2026-08-31) and Warung
+Books' April–July bookkeeping into the new Supabase project, then read April
+through July in `/buku/laporan` against the four XLSX reports Adi already has.
 
-**Deleted:** `app/cashregister/` and `app/admin/cash-register/`. `lib/revalidate.ts`
-now points at `/kas` (it was NOT left empty — an empty revalidate is the silent
-stale-numbers bug the plan warns about). `app/petunjuk/page.tsx` and
-`validasi-tab.tsx:59` repointed at `/kas`.
+**All ten decisions are locked** — see the plan's "Keputusan yang sudah dikunci".
+The four that changed late: online revenue uses kasir's settlement flow (NOT
+Warung Books' sale-date recognition); `staff.supabaseUserId` is nulled; the
+29 Aug settlement gets a Rp 211 balancing deduction row; only April–July get read.
+**No application code changes** — everything goes through existing repositories.
 
-lint, tsc and build clean; `npm test` 304 passed + 1 skipped (up from 289).
-**Nothing has rendered against real data** — no OWNER or CASHIER login exists
-for Claude, so open, close, edit, delete, the lock countdown, the recovery
-button and the CSV download have never executed. UAT material.
+**Next step:** extract the loader out of `test/migrasi-warungbooks.test.ts` into a
+module both a pglite dry run and a real-database run can call, then add the two
+things the harness does not do yet: exclude Warung Books' five `KOMISI` pengeluaran
+(778 imported, not 783) and post the five online settlements through
+`SettlementPostingRepository`.
 
-**Next:** steps 6-8 — jurnal, kas (`/buku/kas`), laporan. Then the deletion commit.
+**Inputs, all gitignored:** `backup-2026-09-03.json` (old prod export, 31 tables,
+834 transactions), `scripts/migrasi/warungbooks-events.json` (67 categories, 783
+pengeluaran, 97 transfers, 2 modal), `scripts/migrasi/warungbooks-reports.json`
+(the four XLSX reports, as the comparison baseline).
 
-## 2026-09-02 — NEW BLANK DATABASE, schema cleaned
-
-**The database is now the fresh Supabase project `ktcaaasmrryoxinsutzt`.** Both
-`.env` (DATABASE_URL/DIRECT_URL) and `.env.local` (auth URL + keys) point at it;
-the old `oyvgyhuzvxepteldlghn` lines are commented out in both. It holds 29
-tables and no data.
-
-**The migration landmine is GONE.** The old 8-migration chain described a
-database that no longer exists and was deleted. `prisma/migrations/` now holds
-exactly one init, generated with `migrate diff --from-empty`, applied with
-`migrate deploy`. From here: one migration per schema change, normally. NEVER
-`db push` — it silently drops columns to make the database match.
-
-Committed on `feat/warungbooks`: `aed6554` login lockout · `8577ed5` the real
-`/kas` screen (both old routes deleted) · `35deeae` the five `/buku` screens ·
-`64f551e` schema cleanup · `3dac62a` + `da...` the init migration and its lock
-file · `6224074` the dev-accounts script.
-
-**Schema cleanup:** dropped 13 models (the COGS subsystem and the pre-ledger
-Expense/KasPakHar tables), 4 enums, and `Transaction.cogs` (its only writer
-wrote a literal null). `Supplier` is KEPT — unwired, reserved for future
-purchasing. The transaction-detail HPP card went with them; it had rendered an
-empty breakdown since Slice 1.
-
-**⏳ NEXT — Adi runs this, not Claude:**
-`$env:DEV_SEED_PASSWORD="<pick one>"; node scripts/dev-accounts.mjs create`
-creates one account per role, all marked `dev.` / `[DEV] `. `disable`, `enable`,
-`delete` and `list` are the other commands. Once `dev.developer` exists, Claude
-can finally verify screens visually — nothing on this branch ever has been.
-
-**Authorised 2026-09-01:** `/buku/belanja` is `requireAuth()`, not
-`requireOwner()`. Do not "fix" it.
-
-**Landed since:** the first browser pass this branch ever had, signed in as the
-seeded DEVELOPER. It found two real bugs that every gate had missed:
-`/buku/pengeluaran` crashed on every request (a Server Component read a
-non-function export from a `"use client"` module and got a client reference, not
-the array — constants now live in `variants.ts`), and the zero-state notice on
-laporan and buku kas told a fully configured owner to go and configure the book.
-Both fixed and verified. Also section 4: `/admin` is now a grouped dark index,
-its children moved into the route group `app/admin/(ops)/` (URLs unchanged, build
-route table checked), the dropdown became a back link, `dev-nav.tsx` and
-`/admin/settlement` are deleted, and `/akun` gained an Admin entry.
-
-**Still open, in rough order:**
-1. **The UAT** (`project_warungbooks_uat.md`). The acceptance gate: no money has
-   ever been posted by the real UI. The seeded shop and the dev accounts now make
-   it runnable. Its checklist still names the deleted `/admin/keuangan/*` routes
-   and needs rewriting to the `/buku` ones.
-2. Phase 5/6 reskins: the ten `app/admin/(ops)/` children are still light-themed
-   against the dark app.
-
-**No historical data migration.** Scrapped by Adi 2026-09-02 and deleted from the
-plan. The books start at the cutover date: count the real cash, bank and Kas Pak
-Har balances and enter them through Saldo Awal
-(`/buku/pengeluaran?jenis=saldo-awal`). The April-July Warung Books entries and
-kasir's own pre-cutover rows stay in their old projects and will never appear in
-this app. Do not re-propose importing them.
-
-**Verify with:** `npm run lint`, `npm test`, and
-`node --max-old-space-size=8192 node_modules/typescript/lib/tsc.js --noEmit`
-(plain `npx tsc` OOMs here). While the dev server runs, `npm run build` fails in
-`prisma generate` with EPERM on the query-engine DLL — use `npx next build`, or
-stop the server first.
+**Proven already:** a full dry run against pglite loaded every operational table
+and all 882 books events through the real repositories with ZERO rejections, and
+reproduced Warung Books' Total HPP and Total Biaya Operasional to the rupiah for
+all four months. July sales matched exactly too.
 
 ## ☠ DATABASE — read before any DB command
-- **`.env` is PRODUCTION** (Supabase `oyvgyhuzvxepteldlghn`). There is NO dev DB.
-  `.env.claude.local` belongs to a DIFFERENT project — never point kasir at it.
-  **pglite (in-process, `npm test`) is the only dev database.** No local
-  Postgres, no Docker, no `pg_dump` on this machine.
-- `prisma.config.ts` does `import "dotenv/config"` → every bare `prisma` CLI
-  command targets PROD. Verify the printed host every time.
-- **Prod's migration history is INCOMPLETE**: `_prisma_migrations` records only 4
-  of 8. `add_developer_role`, `add_ingredient_recipes`,
-  `add_unit_class_and_ingredient_extras`, `widen_costs_to_float` are unrecorded
-  and would be treated as PENDING — and `widen_costs_to_float` ALTERs money
-  columns. **NEVER `prisma migrate deploy` / `db push` / `migrate reset` here.**
-  Additive DDL goes via `prisma db execute` on a reviewed `BEGIN; … COMMIT;`
-  file, then `prisma migrate resolve --applied`.
-- Policy: **additive only** — no deletes, no edits to existing data or structure.
-- The whole merge added exactly ONE migration (`20260726000000_warung_books`,
-  applied 2026-07-27). Slices 1-5 added none; the retired tables are DORMANT
-  (models kept in `schema.prisma`, data untouched, still backed up).
+
+- **The database is the Supabase project `ktcaaasmrryoxinsutzt`** (since
+  2026-09-02). `.env` and `.env.local` point at it; the old
+  `oyvgyhuzvxepteldlghn` lines are commented out in both. **The old
+  migration-history landmine is GONE** — that chain described a database that no
+  longer exists. `prisma/migrations/` now holds one init plus
+  `20260903000000_journal_number_unique`.
+- Treat it as PRODUCTION anyway. `prisma.config.ts` does `import "dotenv/config"`,
+  so every bare `prisma` CLI command targets it. Verify the printed host each time.
+- **NEVER `prisma db push`** — it silently drops columns to make the database match.
+- **pglite (in-process, `npm test`) is the only dev database.** No local Postgres,
+  no Docker, no `pg_dump` on this machine. `.env.claude.local` belongs to a
+  DIFFERENT project — never point kasir's schema at it.
+- Take a backup at `/admin/backup` before any DB work. `backup-*.json` is
+  gitignored; it holds real transactions, staff and salaries.
 
 ## ☠ A test once hit production (2026-07-28)
+
 Modules under `app/actions/**` close over the Prisma singleton, which reads
-`DATABASE_URL` = PROD, and vitest auto-loads `.env`. A test imported one and ran
-real read-only SELECTs against production. **`test/env-guard.ts`** (a vitest
-`setupFile`) now neutralizes those vars before any test module loads, and also
-releases each file's pglite instance so the suite stops OOMing. **Do not remove
-it to make a test pass.** Query-layer functions take an injectable
-`db: PrismaClient = prisma` — test the `lib/` function, never the `"use server"`
-wrapper.
+`DATABASE_URL`, and vitest auto-loads `.env`. A test imported one and ran real
+SELECTs against production. **`test/env-guard.ts`** (a vitest `setupFile`) now
+neutralizes those vars before any test module loads, and releases each file's
+pglite instance so the suite stops OOMing. **Do not remove it to make a test
+pass.** Query-layer functions take an injectable `db: PrismaClient = prisma` —
+test the `lib/` function, never the `"use server"` wrapper.
 
 ## Rules that keep biting if forgotten
-- Every export of a `"use server"` file is a **callable POST endpoint**. Pure
-  logic lives in `lib/` (injectable `db`); `app/actions/admin/queries/*` are thin
-  `requireOwner()` wrappers. Every such file needs `"use server"` on line 1 and
-  only async exports, or `prisma`/`pg` leaks into the client bundle and the
-  Turbopack build dies on `pg/lib/connection-parameters.js`.
+
+- Every export of a `"use server"` file is a **callable POST endpoint**. Pure logic
+  lives in `lib/` (injectable `db`); `app/actions/admin/queries/*` are thin
+  `requireOwner()` wrappers. Every such file needs `"use server"` on line 1 and only
+  async exports, or `prisma`/`pg` leaks into the client bundle and the Turbopack
+  build dies on `pg/lib/connection-parameters.js`.
 - `app/actions/admin/queries.ts` is a SEPARATE compat re-export from
   `queries/index.ts`. Adding a query module means updating **both**.
 - ⚠ `queries/_shared.ts` has no `"use server"` and must stay that way — adding it
   would silently turn `reconcileCashDates` into an unauthenticated endpoint.
+- **Never import the `sequences` table from a backup.** That is what rewound the
+  journal counter and produced two live entries numbered 9 (UAT, 2026-09-03).
+  `journal_entries.number` is now UNIQUE in the database.
 - Any column of figures on screen must add up to the total shown against it. That
   has been a real bug three times (laporan Gaji, Neraca Ekuitas, Laba Rugi).
 - A retained React error boundary replays old errors forever — judge console
   cleanliness in a **fresh tab**, or you will chase a fixed bug.
-
-## Cutover — two consequences already live
-- **Laporan reads the LEDGER only.** Pre-cutover pengeluaran still sitting in the
-  dormant `Expense` table no longer appear in any report. Rows are intact and
-  backed up, just invisible. Re-enter what matters via Saldo Awal / pengeluaran,
-  or accept the gap.
-- **Locked month vs tutup kas:** if a month is locked and a cashier closes a
-  register dated inside it, the kas closes normally but the entry does NOT reach
-  the buku besar — the day shows "Belum tercatat ke buku besar" on Kas Harian,
-  recoverable by the owner button after unlocking. By design, and documented in
-  the petunjuk.
-
-Cutover itself: pick a date, count real cash, enter via **Saldo Awal**, and let
-postings flow from there. Correct mistakes by **voiding** — the ledger is
-append-only; never delete journal rows.
+- Correct mistakes by **voiding**; the ledger is append-only. Never delete journal rows.
 
 ## The money gate on the cashier sync (2026-08-31)
-`pushTransaction` used to accept ANY payload with no auth and no validation. It
-now runs `requireAuth()` + `lib/kasir-payload.ts` (zod shapes) +
-`lib/kasir-money.ts` (the money model). Two rules keep that from eating real
-sales, both regression-tested in `test/money-parity.test.ts`:
-- **Cashier identity is NOT enforced.** An offline sale is often synced after a
-  shift change by whoever is signed in; requiring the pusher to be the cashier
-  named on the sale stranded it forever.
-- **The subtotal-vs-items check only applies to a FRESH payment**
-  (`origin: "payment"`). `retryUnsyncedTransactions` re-reads the item list at
-  retry time, so a drifted retry is recorded and logged, never rejected.
-The sync path only retries and `console.error`s, so **any rejection is a
-silently lost sale** — never tighten this gate without extending that suite.
 
-## State
-`npm test` 263 passed + 1 skipped · tsc, lint, build clean.
-Backup coverage includes all 10 WB tables plus the dormant ones. The
-backup→restore round-trip is **still unverified end-to-end** (no ledger rows
-existed during the build) — it is in the UAT.
-`prisma/sql/2026-08-add-transaction-indexes.sql` is written but NOT applied;
-apply it by the reviewed-file procedure above, never by `migrate deploy`.
+`pushTransaction` runs `requireAuth()` + `lib/kasir-payload.ts` (zod) +
+`lib/kasir-money.ts`. Two rules keep it from eating real sales, both regression-tested
+in `test/money-parity.test.ts`:
+- **Cashier identity is NOT enforced.** An offline sale is often synced after a shift
+  change by whoever is signed in; requiring a match stranded sales forever.
+- **The subtotal-vs-items check only applies to a FRESH payment** (`origin: "payment"`),
+  because `retryUnsyncedTransactions` re-reads the item list at retry time.
+The sync path only retries and `console.error`s, so **any rejection is a silently lost
+sale** — never tighten this gate without extending that suite.
+
+## Environment traps
+
+- `prisma generate` while the dev server runs half-writes the client, and the whole
+  pglite suite then OOMs with "Fatal process out of memory" that looks like a code
+  bug. Stop the server first.
+- A stale `.next/types` from an old production build reports phantom tsc errors about
+  deleted layouts; `rm -rf .next/types` clears it.
+- Plain `npx tsc` OOMs here. Use
+  `node --max-old-space-size=8192 node_modules/typescript/lib/tsc.js --noEmit`.
+
+## Verify with
+
+`npm run lint`, `npm test`, the tsc command above. Last known green: 337 passed +
+1 skipped, lint and tsc clean (2026-09-03), plus the migration dry run.
