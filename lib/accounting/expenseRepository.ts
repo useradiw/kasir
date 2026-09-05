@@ -2,8 +2,10 @@
  * expenseRepository.ts — Pengeluaran + Kategori Pengeluaran persistence.
  *
  * Adapted from Padu for tokokencana (single-store; Padu's `storeId` and the
- * COGS/ingredient bahan-linking are dropped — HPP is a plain expense bucket fed
- * by hargaModal at the sale seam, never a quantity-tracked asset here).
+ * COGS/ingredient bahan-linking are dropped). HPP is a plain expense bucket fed
+ * by the pengeluaran recorded here — bahan baku purchases, on a cash basis —
+ * and NEVER by a per-sale cost: kasir has no hargaModal concept, and nothing is
+ * tracked as a quantity-bearing asset. See lib/accounting/chart-of-accounts.ts.
  *
  * Design invariants:
  * - ExpenseCategory is a module-owned table; pengeluaran posts through the

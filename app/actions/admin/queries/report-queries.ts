@@ -52,7 +52,6 @@ export async function getReportData(opts: {
         },
       },
       orderBy: { paidAt: "desc" },
-      // cogs is included automatically via Prisma include
     }),
     prisma.cashRegister.findMany({
       where: { date: { gte: start, lt: end } },
