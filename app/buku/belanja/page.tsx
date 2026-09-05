@@ -40,7 +40,7 @@ export default async function BukuBelanjaPage() {
       <div className="px-4 pb-1 pt-5">
         {/* No "← Buku" link: a cashier cannot open /buku, so it links back to
             /beranda instead, unlike every other page in this folder. */}
-        <Link href="/beranda" className="text-[12.5px] font-bold text-muted-foreground">
+        <Link href="/beranda" className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">
           ← Beranda
         </Link>
         <h1 className="font-display mt-2 text-[17px] font-bold">Catat Pengeluaran</h1>

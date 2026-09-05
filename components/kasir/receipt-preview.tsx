@@ -117,7 +117,7 @@ export function ReceiptPreview({
         <button
           type="button"
           onClick={onClose}
-          className="absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600"
+          className="cursor-pointer absolute top-2 right-2 p-1 text-gray-400 hover:text-gray-600"
         >
           <X className="size-4" />
         </button>

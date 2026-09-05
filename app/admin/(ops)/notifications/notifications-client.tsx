@@ -242,7 +242,7 @@ export default function NotificationsClient({
               // A whole Row is the tap target here, so <Button> would force a pill
               // shape onto a full-width row. The focus ring it would have given
               // is added explicitly instead.
-              className="rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="cursor-pointer rounded-2xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Row
                 title={n.title}

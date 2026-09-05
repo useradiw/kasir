@@ -80,7 +80,7 @@ export default async function BukuPengeluaranPage({
   return (
     <AppShell role={staff.role}>
       <div className="px-4 pb-1 pt-5">
-        <Link href="/buku" className="text-[12.5px] font-bold text-muted-foreground">
+        <Link href="/buku" className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">
           ← Buku
         </Link>
         <h1 className="font-display mt-2 text-[17px] font-bold">{VARIANT_TITLE[jenis]}</h1>
@@ -92,7 +92,7 @@ export default async function BukuPengeluaranPage({
             <Link
               key={j}
               href={`/buku/pengeluaran?jenis=${j}`}
-              className={cn(
+              className={cn("cursor-pointer", 
                 "flex-1 rounded-xl px-2 py-2.5 text-center text-[12px] font-bold",
                 j === jenis ? "bg-primary text-primary-foreground" : "text-muted-foreground",
               )}

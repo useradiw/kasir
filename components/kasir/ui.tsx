@@ -31,7 +31,7 @@ export function KasirTopBar({
       className="sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b border-border bg-background px-3 py-2"
     >
       {onBack && (
-        <button type="button" onClick={onBack} className="p-2.5 -ml-2.5" aria-label="Kembali">
+        <button type="button" onClick={onBack} className="cursor-pointer p-2.5 -ml-2.5" aria-label="Kembali">
           <ArrowLeft className="size-5" />
         </button>
       )}
@@ -45,7 +45,7 @@ export function KasirTopBar({
       </span>
       {children}
       {onHome && (
-        <button type="button" onClick={onHome} className="p-2.5" aria-label="Daftar sesi">
+        <button type="button" onClick={onHome} className="cursor-pointer p-2.5" aria-label="Daftar sesi">
           <LayoutList className="size-5 text-muted-foreground" />
         </button>
       )}

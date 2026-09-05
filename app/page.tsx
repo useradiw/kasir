@@ -43,7 +43,7 @@ export default async function Home() {
           <form action={signOut} className="mt-4">
             <button
               type="submit"
-              className="flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card-2 text-[14px] font-bold transition-all duration-150 active:scale-[0.98]"
+              className="cursor-pointer flex h-11 w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-card-2 text-[14px] font-bold transition-all duration-150 active:scale-[0.98]"
             >
               <LogOut className="size-4" />
               Keluar

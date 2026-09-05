@@ -21,7 +21,7 @@ export function Segmented<T extends string>({
           key={o.value}
           type="button"
           onClick={() => onChange?.(o.value)}
-          className={cn(
+          className={cn("cursor-pointer", 
             "flex-1 rounded-xl px-3 py-2.5 text-[13px] font-bold",
             value === o.value
               ? "bg-primary text-primary-foreground"
@@ -46,7 +46,7 @@ export function NumKeypad({
   onConfirm?: () => void;
 }) {
   const key =
-    "rounded-xl border border-border bg-card py-3.5 text-center font-display text-lg font-bold active:scale-[0.98] transition-all duration-150";
+    "cursor-pointer rounded-xl border border-border bg-card py-3.5 text-center font-display text-lg font-bold active:scale-[0.98] transition-all duration-150";
   return (
     <div className="grid grid-cols-3 gap-2">
       {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
@@ -54,7 +54,7 @@ export function NumKeypad({
           {d}
         </button>
       ))}
-      <button type="button" className={cn(key, "text-xs font-bold text-muted-foreground")} onClick={onBackspace}>
+      <button type="button" className={cn("cursor-pointer", key, "text-xs font-bold text-muted-foreground")} onClick={onBackspace}>
         ← hapus
       </button>
       <button type="button" className={key} onClick={() => onDigit("0")}>
@@ -62,7 +62,7 @@ export function NumKeypad({
       </button>
       <button
         type="button"
-        className={cn(key, "border-primary bg-primary text-primary-foreground")}
+        className={cn("cursor-pointer", key, "border-primary bg-primary text-primary-foreground")}
         onClick={onConfirm}
       >
         ✓
@@ -86,7 +86,7 @@ export function QuickCash({
       <button
         type="button"
         onClick={() => onPick("exact")}
-        className="rounded-lg border border-primary bg-primary-soft px-1 py-3.5 text-center font-display text-[13px] font-bold text-primary"
+        className="cursor-pointer rounded-lg border border-primary bg-primary-soft px-1 py-3.5 text-center font-display text-[13px] font-bold text-primary"
       >
         {exactLabel}
       </button>
@@ -95,7 +95,7 @@ export function QuickCash({
           key={a}
           type="button"
           onClick={() => onPick(a)}
-          className="rounded-lg border border-border bg-card px-1 py-3.5 text-center font-display text-[13px] font-bold"
+          className="cursor-pointer rounded-lg border border-border bg-card px-1 py-3.5 text-center font-display text-[13px] font-bold"
         >
           {a.toLocaleString("id-ID")}
         </button>
@@ -125,7 +125,7 @@ export function Dock({
       <button
         type="button"
         onClick={onAction}
-        className="ml-auto rounded-xl bg-primary px-5 py-3.5 text-[14.5px] font-extrabold text-primary-foreground active:scale-[0.98] transition-all duration-150"
+        className="cursor-pointer ml-auto rounded-xl bg-primary px-5 py-3.5 text-[14.5px] font-extrabold text-primary-foreground active:scale-[0.98] transition-all duration-150"
       >
         {actionLabel}
       </button>

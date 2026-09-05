@@ -454,7 +454,7 @@ function SettlementCard({
     <div className="rounded-lg border bg-card">
       <button
         type="button"
-        className="w-full p-3 text-left"
+        className="cursor-pointer w-full p-3 text-left"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center justify-between">

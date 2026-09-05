@@ -99,7 +99,7 @@ export function AkunClient({ accounts }: { accounts: Account[] }) {
           <button
             type="button"
             onClick={() => setAdding(true)}
-            className="flex w-full items-center justify-between text-left"
+            className="cursor-pointer flex w-full items-center justify-between text-left"
           >
             <div>
               <CardLabel>Akun kas</CardLabel>

@@ -27,7 +27,7 @@ export default async function BukuSetupPage() {
   return (
     <AppShell role={staff.role}>
       <div className="px-4 pb-1 pt-5">
-        <Link href="/buku" className="text-[12.5px] font-bold text-muted-foreground">
+        <Link href="/buku" className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">
           ← Buku
         </Link>
         <h1 className="font-display mt-2 text-[17px] font-bold">Persiapan Buku</h1>
@@ -59,11 +59,11 @@ export default async function BukuSetupPage() {
           <p className="text-xs font-semibold leading-relaxed text-muted-foreground">
             Urutan wajib: akun dulu, lalu akun kas, lalu pemetaan kanal, lalu
             kategori. Setelah semuanya selesai, buat bulan pertama di{" "}
-            <Link href="/buku/bulan" className="font-bold text-primary">
+            <Link href="/buku/bulan" className="cursor-pointer font-bold text-primary">
               Bulan
             </Link>
             , hitung uang riil, dan catat lewat{" "}
-            <Link href="/buku/pengeluaran?jenis=saldo-awal" className="font-bold text-primary">
+            <Link href="/buku/pengeluaran?jenis=saldo-awal" className="cursor-pointer font-bold text-primary">
               Saldo Awal
             </Link>
             . Tidak ada apa pun yang tercatat ke buku besar sebelum langkah 3
@@ -78,7 +78,7 @@ export default async function BukuSetupPage() {
         ) : (
           <Link
             href="/buku"
-            className="rounded-2xl bg-primary py-4 text-center text-[15px] font-extrabold text-primary-foreground"
+            className="cursor-pointer rounded-2xl bg-primary py-4 text-center text-[15px] font-extrabold text-primary-foreground"
           >
             Setup lengkap — kembali ke Buku
           </Link>

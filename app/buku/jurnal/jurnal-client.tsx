@@ -131,7 +131,7 @@ export function JurnalClient({ entries }: { entries: JurnalRow[] }) {
             type="button"
             onClick={() => setFilter(f)}
             className={
-              "shrink-0 rounded-xl px-3 py-2.5 text-[12px] font-bold " +
+              "cursor-pointer shrink-0 rounded-xl px-3 py-2.5 text-[12px] font-bold " +
               (f === filter ? "bg-primary text-primary-foreground" : "text-muted-foreground")
             }
           >
@@ -153,7 +153,7 @@ export function JurnalClient({ entries }: { entries: JurnalRow[] }) {
             const expanded = expandedId === e.id;
             return (
               <div key={e.id} className="flex flex-col gap-2">
-                <button type="button" className="text-left" onClick={() => setExpandedId(expanded ? null : e.id)}>
+                <button type="button" className="cursor-pointer text-left" onClick={() => setExpandedId(expanded ? null : e.id)}>
                   <Row
                     title={`#${e.number ?? "—"} · ${e.narration}`}
                     meta={`${e.date}${label ? ` · ${label}` : ""}`}

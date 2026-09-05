@@ -85,7 +85,7 @@ function PackageCard({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full p-3 text-left active:bg-accent transition-colors rounded-2xl"
+        className="cursor-pointer w-full p-3 text-left active:bg-accent transition-colors rounded-2xl"
       >
         <p className="text-[13.5px] font-bold leading-tight">{pkg.name}</p>
         <p className="font-display mt-1 text-[14.5px] font-bold tabular-nums text-muted-foreground">

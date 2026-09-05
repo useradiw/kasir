@@ -35,7 +35,7 @@ export default async function SessionsPage() {
     <AppShell role={staff.role}>
       <div className="flex items-start justify-between px-4 pb-1 pt-6">
         <div>
-          <Link href="/admin" className="text-[12.5px] font-bold text-muted-foreground">
+          <Link href="/admin" className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">
             ← Admin
           </Link>
           <h1 className="font-display mt-2 text-[17px] font-bold">Sesi Login</h1>

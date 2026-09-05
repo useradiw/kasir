@@ -19,7 +19,7 @@ export default async function BukuAkunPage() {
   return (
     <AppShell role={staff.role}>
       <div className="px-4 pb-1 pt-5">
-        <Link href="/buku" className="text-[12.5px] font-bold text-muted-foreground">
+        <Link href="/buku" className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">
           ← Buku
         </Link>
         <h1 className="font-display mt-2 text-[17px] font-bold">Akun Kas</h1>

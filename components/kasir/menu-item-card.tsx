@@ -114,7 +114,7 @@ const MenuItemCard = memo(function MenuItemCard({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full p-3 text-left active:bg-accent active:scale-[0.98] transition-all duration-150 rounded-2xl"
+        className="cursor-pointer w-full p-3 text-left active:bg-accent active:scale-[0.98] transition-all duration-150 rounded-2xl"
       >
         <p className="text-[13.5px] font-bold leading-tight">{item.name}</p>
         <p className="font-display mt-1 text-[14.5px] font-bold tabular-nums text-muted-foreground">
@@ -130,7 +130,7 @@ const MenuItemCard = memo(function MenuItemCard({
               <button
                 type="button"
                 onClick={() => setSelectedVariant(null)}
-                className={cn(
+                className={cn("cursor-pointer", 
                   "rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors",
                   !selectedVariant
                     ? "bg-primary text-primary-foreground"
@@ -144,7 +144,7 @@ const MenuItemCard = memo(function MenuItemCard({
                   key={v.id}
                   type="button"
                   onClick={() => setSelectedVariant(v)}
-                  className={cn(
+                  className={cn("cursor-pointer", 
                     "rounded-full px-3 py-1.5 text-[12px] font-bold transition-colors",
                     selectedVariant?.id === v.id
                       ? "bg-primary text-primary-foreground"

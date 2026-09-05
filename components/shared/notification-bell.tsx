@@ -95,7 +95,7 @@ export function NotificationBell({
                     key={n.id}
                     type="button"
                     onClick={() => handleItemClick(n.id, n.readAt)}
-                    className={cn(
+                    className={cn("cursor-pointer", 
                       "block w-full border-b px-3 py-2 text-left text-sm last:border-b-0 hover:bg-accent",
                       !n.readAt && "bg-primary/5"
                     )}
@@ -117,7 +117,7 @@ export function NotificationBell({
             <Link
               href="/admin/notifications"
               onClick={() => setOpen(false)}
-              className="block border-t px-3 py-2 text-center text-xs text-muted-foreground hover:text-foreground"
+              className="cursor-pointer block border-t px-3 py-2 text-center text-xs text-muted-foreground hover:text-foreground"
             >
               Lihat semua
             </Link>

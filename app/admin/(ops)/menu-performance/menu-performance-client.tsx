@@ -35,7 +35,7 @@ function SortBtn({
   return (
     <button
       onClick={() => onSort(col)}
-      className={`flex items-center gap-1 hover:text-primary transition-colors ${sortKey === col ? "text-primary font-semibold" : ""}`}
+      className={`cursor-pointer flex items-center gap-1 hover:text-primary transition-colors ${sortKey === col ? "text-primary font-semibold" : ""}`}
     >
       {label}
       <span className="text-xs">{sortKey === col ? (sortAsc ? "↑" : "↓") : "↕"}</span>

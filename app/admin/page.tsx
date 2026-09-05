@@ -76,7 +76,7 @@ export default async function AdminPage() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="flex items-center rounded-2xl border border-border bg-card px-4 py-4 active:scale-[0.99] transition-all duration-150"
+                className="cursor-pointer flex items-center rounded-2xl border border-border bg-card px-4 py-4 active:scale-[0.99] transition-all duration-150"
               >
                 <div>
                   <p className="text-[14px] font-bold">{l.label}</p>

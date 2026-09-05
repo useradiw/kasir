@@ -114,7 +114,7 @@ export function SessionCard({
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); startEdit(e); }}
-              className="p-3 -m-2 text-muted-foreground hover:text-foreground"
+              className="cursor-pointer p-3 -m-2 text-muted-foreground hover:text-foreground"
               aria-label="Ubah nama meja"
             >
               <Pencil className="size-3" />
@@ -141,7 +141,7 @@ export function SessionCard({
             <button
               type="button"
               onClick={() => { setIsEditingService(true); setIsEditing(false); }}
-              className="focus:outline-none"
+              className="cursor-pointer focus:outline-none"
               aria-label="Ubah tipe sesi"
             >
               <Badge className={getServiceColor(session.service)}>
@@ -183,7 +183,7 @@ export function SessionCard({
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setDraftOrderId(session.externalOrderId ?? ""); setIsEditingOrderId(true); }}
-                className="p-2.5 -m-1.5 text-muted-foreground hover:text-foreground"
+                className="cursor-pointer p-2.5 -m-1.5 text-muted-foreground hover:text-foreground"
                 aria-label="Ubah ID pesanan"
               >
                 <Pencil className="size-3" />

@@ -190,7 +190,7 @@ export function EntryForm({
               : (
                 <>
                   Tambahkan minimal satu akun kas dulu di{" "}
-                  <Link href="/buku/akun" className="underline">halaman Akun Kas</Link>.
+                  <Link href="/buku/akun" className="cursor-pointer underline">halaman Akun Kas</Link>.
                 </>
               )}
           </p>
@@ -230,7 +230,7 @@ export function EntryForm({
                       <button
                         type="button"
                         onClick={() => removeLine(i)}
-                        className="text-[11.5px] font-bold text-destructive"
+                        className="cursor-pointer text-[11.5px] font-bold text-destructive"
                       >
                         Hapus
                       </button>
@@ -262,7 +262,7 @@ export function EntryForm({
               <button
                 type="button"
                 onClick={addLine}
-                className="rounded-2xl border border-dashed border-primary/50 p-3 text-center text-[13px] font-bold text-primary"
+                className="cursor-pointer rounded-2xl border border-dashed border-primary/50 p-3 text-center text-[13px] font-bold text-primary"
               >
                 ＋ Tambah item
               </button>

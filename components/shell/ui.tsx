@@ -85,7 +85,7 @@ export function AlertRow({
   children?: React.ReactNode;
 }) {
   const btn =
-    "shrink-0 rounded-xl px-3.5 py-2.5 text-[12.5px] font-extrabold " +
+    "cursor-pointer shrink-0 rounded-xl px-3.5 py-2.5 text-[12.5px] font-extrabold " +
     (tone === "bad"
       ? "bg-destructive text-white"
       : "bg-primary text-primary-foreground");

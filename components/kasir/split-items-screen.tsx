@@ -101,7 +101,7 @@ export function SplitItemsScreen({
                   key={g}
                   type="button"
                   onClick={() => !isPaid && setSelectedGroup(g)}
-                  className={cn(
+                  className={cn("cursor-pointer", 
                     "rounded-2xl border p-2 text-xs font-medium transition-colors",
                     isPaid
                       ? "border-success/40 bg-success-soft text-success opacity-70"
@@ -147,7 +147,7 @@ export function SplitItemsScreen({
                 key={item.id}
                 type="button"
                 onClick={() => handleItemTap(item)}
-                className={cn(
+                className={cn("cursor-pointer", 
                   "w-full rounded-2xl border p-3 text-left transition-colors",
                   itemGroup > 0 ? colorClass : "bg-card text-foreground border-border opacity-60"
                 )}

@@ -101,10 +101,10 @@ export function SessionList({
       <KasirTopBar title="Kasir" sub={staffName}>
         {/* Both links point at migrated routes: /kas and "/" replaced the
             old hub-and-spoke doors (design.md section 4). */}
-        <Link href="/kas" className="p-2.5" aria-label="Kas">
+        <Link href="/kas" className="cursor-pointer p-2.5" aria-label="Kas">
           <Landmark className="size-5 text-muted-foreground" />
         </Link>
-        <Link href="/beranda" className="p-2.5" aria-label="Beranda">
+        <Link href="/beranda" className="cursor-pointer p-2.5" aria-label="Beranda">
           <Home className="size-5 text-muted-foreground" />
         </Link>
       </KasirTopBar>

@@ -90,7 +90,7 @@ function KebabMenu({ onCSV, onPDF }: { onCSV?: () => void; onPDF?: () => void })
           {onCSV && (
             <button
               role="menuitem"
-              className="block w-full rounded-lg px-3 py-2 text-left hover:bg-card-2"
+              className="cursor-pointer block w-full rounded-lg px-3 py-2 text-left hover:bg-card-2"
               onClick={() => {
                 setOpen(false);
                 onCSV();
@@ -102,7 +102,7 @@ function KebabMenu({ onCSV, onPDF }: { onCSV?: () => void; onPDF?: () => void })
           {onPDF && (
             <button
               role="menuitem"
-              className="block w-full rounded-lg px-3 py-2 text-left hover:bg-card-2"
+              className="cursor-pointer block w-full rounded-lg px-3 py-2 text-left hover:bg-card-2"
               onClick={() => {
                 setOpen(false);
                 onPDF();

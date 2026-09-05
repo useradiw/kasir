@@ -99,7 +99,7 @@ export default async function BerandaPage() {
               {canOpenBuku ? (
                 <Link
                   href="/buku"
-                  className="rounded-2xl border border-border bg-card px-4 py-4 text-center active:scale-[0.98] transition-all duration-150"
+                  className="cursor-pointer rounded-2xl border border-border bg-card px-4 py-4 text-center active:scale-[0.98] transition-all duration-150"
                 >
                   <p className="text-[14px] font-bold">Buku</p>
                   <p className="mt-0.5 text-[11.5px] font-semibold text-muted-foreground">
@@ -109,7 +109,7 @@ export default async function BerandaPage() {
               ) : null}
               <Link
                 href="/admin"
-                className={`rounded-2xl border border-border bg-card px-4 py-4 text-center active:scale-[0.98] transition-all duration-150 ${
+                className={`cursor-pointer rounded-2xl border border-border bg-card px-4 py-4 text-center active:scale-[0.98] transition-all duration-150 ${
                   canOpenBuku ? "" : "col-span-2"
                 }`}
               >
@@ -142,7 +142,7 @@ export default async function BerandaPage() {
                 <Link
                   key={a.l}
                   href={a.href}
-                  className="flex flex-col items-center gap-1.5 rounded-xl py-1 text-[11.5px] font-bold"
+                  className="cursor-pointer flex flex-col items-center gap-1.5 rounded-xl py-1 text-[11.5px] font-bold"
                 >
                   <span className="grid size-9 place-items-center rounded-xl bg-primary-soft text-[15px]">
                     {a.ic}

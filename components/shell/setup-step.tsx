@@ -67,7 +67,7 @@ export function SetupStep({
               await seedStructuralChart();
             })
           }
-          className="shrink-0 self-center rounded-xl bg-primary px-3.5 py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-50"
+          className="cursor-pointer shrink-0 self-center rounded-xl bg-primary px-3.5 py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-50"
         >
           {isPending ? "…" : "Isi default"}
         </button>
@@ -81,7 +81,7 @@ export function SetupStep({
               await seedDefaultCategories();
             })
           }
-          className="shrink-0 self-center rounded-xl bg-primary px-3.5 py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-50"
+          className="cursor-pointer shrink-0 self-center rounded-xl bg-primary px-3.5 py-2.5 text-xs font-extrabold text-primary-foreground disabled:opacity-50"
         >
           {isPending ? "…" : "Isi default"}
         </button>

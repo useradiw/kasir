@@ -45,7 +45,7 @@ export function BottomNav({ role, hidden }: { role: RoleEnum; hidden?: boolean }
           <Link
             key={t.key}
             href={t.href}
-            className={`flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10.5px] font-bold ${
+            className={`cursor-pointer flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10.5px] font-bold ${
               active ? "text-primary" : "text-muted-foreground"
             }`}
           >

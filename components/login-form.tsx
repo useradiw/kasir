@@ -73,7 +73,7 @@ export function LoginForm() {
                             type="button"
                             onClick={() => setShowPassword((v) => !v)}
                             disabled={isPending}
-                            className="absolute right-1.5 rounded-lg px-2 py-2 text-[12px] font-semibold text-muted-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
+                            className="cursor-pointer absolute right-1.5 rounded-lg px-2 py-2 text-[12px] font-semibold text-muted-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:opacity-50"
                         >
                             {showPassword ? "sembunyikan" : "lihat"}
                         </button>
@@ -83,7 +83,7 @@ export function LoginForm() {
                 <button
                     type="submit"
                     disabled={isPending}
-                    className="mt-6 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-primary text-[15px] font-bold text-primary-foreground outline-none transition-all duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.98] disabled:opacity-50"
+                    className="cursor-pointer mt-6 flex h-11 w-full items-center justify-center gap-1.5 rounded-xl bg-primary text-[15px] font-bold text-primary-foreground outline-none transition-all duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.98] disabled:opacity-50"
                 >
                     {isPending ? (
                         <>
