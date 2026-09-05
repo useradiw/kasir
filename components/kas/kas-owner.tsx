@@ -424,7 +424,7 @@ export function KasOwner({
           <Button variant="outline" size="sm" className="flex-1" onClick={() => downloadDayCsv(r)}>
             Unduh CSV
           </Button>
-          <Button variant="outline" size="sm" className="flex-1" render={<Link href="/admin/keuangan/buku-kas" />}>
+          <Button variant="outline" size="sm" className="flex-1" render={<Link href="/buku/kas" />}>
             Lihat di Buku Kas →
           </Button>
         </div>

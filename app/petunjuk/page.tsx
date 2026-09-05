@@ -56,7 +56,7 @@ export default async function PetunjukPage() {
   return (
     <AppShell role={role}>
       <div id="top" className="px-4 pb-1 pt-6">
-        <Link href="/akun" className="text-[12.5px] font-bold text-muted-foreground">
+        <Link href="/akun" className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">
           ← Akun
         </Link>
         <h1 className="font-display mt-2 text-[17px] font-bold">Petunjuk Penggunaan</h1>
@@ -104,7 +104,7 @@ export default async function PetunjukPage() {
       </BentoCard>
 
       {/* ── KASIR ── */}
-      <section id="kasir">
+      <section>
         <SectionHeading id="kasir">Kasir (POS)</SectionHeading>
         <p className="text-sm text-muted-foreground mb-4">
           Halaman utama untuk melayani transaksi pelanggan. Kasir bekerja secara{" "}
@@ -114,7 +114,7 @@ export default async function PetunjukPage() {
 
         <SubHeading id="kasir-sesi">Membuat sesi baru</SubHeading>
         <Steps>
-          <li>Buka halaman <Link href="/kasir" className="text-primary hover:underline">Kasir</Link> dari menu utama.</li>
+          <li>Buka halaman <Link href="/kasir" className="cursor-pointer text-primary hover:underline">Kasir</Link> dari menu utama.</li>
           <li>Ketuk <strong>Sesi Baru</strong>.</li>
           <li>Isi nama alias pelanggan (misal: &quot;Meja 3&quot; atau nama tamu), nomor HP opsional, dan pilih tipe layanan: <em>Dine-in, Take Away, GoFood, ShopeeFood, atau GrabFood</em>.</li>
           <li>Ketuk <strong>Buat Sesi</strong>.</li>
@@ -147,14 +147,14 @@ export default async function PetunjukPage() {
       <hr className="border-border my-8" />
 
       {/* ── PENGELUARAN ── */}
-      <section id="pengeluaran">
+      <section>
         <SectionHeading id="pengeluaran">Pengeluaran</SectionHeading>
         <p className="text-sm text-muted-foreground mb-4">
           Catat pengeluaran operasional harian. Tersedia untuk semua peran —
           catatan langsung masuk ke buku besar (ledger).
         </p>
         <Steps>
-          <li>Buka <Link href="/buku/belanja" className="text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
+          <li>Buka <Link href="/buku/belanja" className="cursor-pointer text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
           <li>Pilih <strong>Akun kas</strong> — dari mana uangnya keluar (mis. Kas Laci, Kas Pak Har).</li>
           <li>Pilih <strong>Kategori</strong> pengeluaran.</li>
           <li>Isi nama item, <strong>Qty</strong>, dan <strong>Harga satuan</strong> — jumlah total terisi otomatis (boleh disunting).</li>
@@ -167,7 +167,7 @@ export default async function PetunjukPage() {
           <hr className="border-border my-8" />
 
           {/* ── KAS HARIAN ── */}
-          <section id="kas-harian">
+          <section>
             <SectionHeading id="kas-harian">Kas Harian</SectionHeading>
             <p className="text-sm text-muted-foreground mb-4">
               Catat saldo kas di awal dan akhir hari.
@@ -175,7 +175,7 @@ export default async function PetunjukPage() {
 
             <SubHeading id="kas-harian-buka">Membuka kas</SubHeading>
             <Steps>
-              <li>Buka <Link href="/kas" className="text-primary hover:underline">Kas</Link> dari menu utama.</li>
+              <li>Buka <Link href="/kas" className="cursor-pointer text-primary hover:underline">Kas</Link> dari menu utama.</li>
               <li>Ketuk <strong>Buka Kas</strong>.</li>
               <li>Isi jumlah uang per denominasi yang ada di laci kas.</li>
               <li>Ketuk <strong>Simpan</strong> — total saldo awal akan tercatat.</li>
@@ -197,13 +197,13 @@ export default async function PetunjukPage() {
           <hr className="border-border my-8" />
 
           {/* ── PENCAIRAN ONLINE ── */}
-          <section id="pencairan-online">
+          <section>
             <SectionHeading id="pencairan-online">Pencairan Online</SectionHeading>
             <p className="text-sm text-muted-foreground mb-4">
               Catat dan rekonsiliasi pencairan dari platform pesan-antar (GoFood, ShopeeFood, GrabFood).
             </p>
             <Steps>
-              <li>Buka <Link href="/settlement" className="text-primary hover:underline">Pencairan Online</Link> dari menu utama.</li>
+              <li>Buka <Link href="/settlement" className="cursor-pointer text-primary hover:underline">Pencairan Online</Link> dari menu utama.</li>
               <li>Ketuk <strong>Tambah Pencairan</strong>, pilih platform dan tanggal periode.</li>
               <li>Isi jumlah yang diterima dari platform.</li>
               <li>Tambahkan potongan jika ada (komisi, biaya marketing, dll.).</li>
@@ -223,7 +223,7 @@ export default async function PetunjukPage() {
             <SectionHeading id="admin">Panel Admin</SectionHeading>
             <p className="text-sm text-muted-foreground mb-6">
               Akses panel admin melalui{" "}
-              <Link href="/admin" className="text-primary hover:underline">/admin</Link>.
+              <Link href="/admin" className="cursor-pointer text-primary hover:underline">/admin</Link>.
               Dashboard menampilkan ringkasan hari ini (pendapatan, jumlah transaksi, item terlaris) secara otomatis.
             </p>
 
@@ -235,7 +235,7 @@ export default async function PetunjukPage() {
 
             <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Menambah item menu baru</p>
             <Steps>
-              <li>Buka <Link href="/admin/inventory" className="text-primary hover:underline">Inventori Menu</Link>.</li>
+              <li>Buka <Link href="/admin/inventory" className="cursor-pointer text-primary hover:underline">Inventori Menu</Link>.</li>
               <li>Pilih kategori atau buat kategori baru dengan tombol <strong>+ Kategori</strong>.</li>
               <li>Ketuk <strong>+ Item</strong>, isi nama dan harga dasar.</li>
               <li>Tambahkan varian harga jika ada (misal: Kecil / Besar).</li>
@@ -255,7 +255,7 @@ export default async function PetunjukPage() {
               Daftar penjual/toko langganan. Saat catat pengeluaran, pilih supplier dari dropdown — riwayat pembelian per supplier tersimpan otomatis.
             </p>
             <Steps>
-              <li>Buka <Link href="/admin/suppliers" className="text-primary hover:underline">Supplier</Link>.</li>
+              <li>Buka <Link href="/admin/suppliers" className="cursor-pointer text-primary hover:underline">Supplier</Link>.</li>
               <li>Ketuk <strong>+ Tambah</strong>, isi nama (wajib), nomor HP dan catatan (opsional).</li>
               <li>Untuk mengubah atau menonaktifkan: ketuk <strong>Edit</strong> atau <strong>Hapus</strong> di baris supplier.</li>
             </Steps>
@@ -263,7 +263,7 @@ export default async function PetunjukPage() {
             {/* Transaksi */}
             <SubHeading id="admin-transaksi">Transaksi</SubHeading>
             <Steps>
-              <li>Buka <Link href="/admin/transactions" className="text-primary hover:underline">Transaksi</Link>.</li>
+              <li>Buka <Link href="/admin/transactions" className="cursor-pointer text-primary hover:underline">Transaksi</Link>.</li>
               <li>Gunakan filter tanggal, metode pembayaran, atau status untuk mempersempit hasil.</li>
               <li>Ketuk baris transaksi untuk melihat detail lengkap (item, pembayaran, kasir).</li>
               <li>Untuk membatalkan transaksi, ketuk <strong>Void</strong> di halaman detail, isi alasan pembatalan, lalu konfirmasi. Notifikasi akan dikirim ke Owner.</li>
@@ -281,7 +281,7 @@ export default async function PetunjukPage() {
               <>
                 <SubHeading id="admin-performa-menu">Performa Menu</SubHeading>
                 <Steps>
-                  <li>Buka <Link href="/admin/menu-performance" className="text-primary hover:underline">Performa Menu</Link>.</li>
+                  <li>Buka <Link href="/admin/menu-performance" className="cursor-pointer text-primary hover:underline">Performa Menu</Link>.</li>
                   <li>Pilih periode (harian / mingguan / bulanan / tahunan) dan navigasi tanggal dengan tombol panah atau date picker.</li>
                   <li>Tabel menampilkan setiap item menu beserta jumlah terjual dan pendapatan.</li>
                   <li>Ketuk judul kolom untuk mengurutkan. Gunakan kolom pencarian untuk memfilter nama menu.</li>
@@ -293,7 +293,7 @@ export default async function PetunjukPage() {
                   bulan: saldo awal, setiap transaksi yang masuk/keluar, dan saldo akhir.
                 </p>
                 <Steps>
-                  <li>Buka <Link href="/admin/keuangan/buku-kas" className="text-primary hover:underline">Buku Kas</Link>.</li>
+                  <li>Buka <Link href="/buku/kas" className="cursor-pointer text-primary hover:underline">Buku Kas</Link>.</li>
                   <li>Tab <strong>Buku Kas</strong>: lihat mutasi tiap akun kas untuk bulan yang dipilih di pemilih bulan.</li>
                   <li>
                     Tab <strong>Cek Saldo</strong>: hitung uang fisik di setiap akun kas, lalu
@@ -310,7 +310,7 @@ export default async function PetunjukPage() {
                   dipetakan ke akun kasnya. Pemetaan ini cukup dilakukan sekali.
                 </p>
                 <Steps>
-                  <li>Buka <Link href="/admin/keuangan/akun-penjualan" className="text-primary hover:underline">Akun Penjualan</Link>.</li>
+                  <li>Buka <Link href="/buku/akun-penjualan" className="cursor-pointer text-primary hover:underline">Akun Penjualan</Link>.</li>
                   <li>Petakan ketiga saluran ke akun kas: <strong>Tunai</strong> (mis. Kas Laci), <strong>Elektronik (QRIS/transfer)</strong> (mis. Bank), dan <strong>Online</strong>.</li>
                   <li>Simpan. Selama masih ada yang belum dipetakan, penjualan tetap jalan seperti biasa — hanya belum masuk ke jurnal.</li>
                 </Steps>
@@ -322,7 +322,7 @@ export default async function PetunjukPage() {
                   tersebut sudah final.
                 </p>
                 <Steps>
-                  <li>Buka <Link href="/admin/keuangan/bulan" className="text-primary hover:underline">Bulan</Link>.</li>
+                  <li>Buka <Link href="/buku/bulan" className="cursor-pointer text-primary hover:underline">Bulan</Link>.</li>
                   <li>Ketuk <strong>Tutup Buku</strong> pada bulan yang ingin dikunci.</li>
                   <li>
                     Jika ada pemeriksaan validasi yang gagal, penguncian akan ditolak dan alasan
@@ -346,15 +346,15 @@ export default async function PetunjukPage() {
                 <p className="text-sm text-muted-foreground mb-2">
                   Halaman Kas Pak Har yang terpisah sudah tidak ada lagi. Uang
                   Pak Har sekarang dicatat sebagai pengeluaran biasa di{" "}
-                  <Link href="/buku/belanja" className="text-primary hover:underline">Pengeluaran</Link>{" "}
+                  <Link href="/buku/belanja" className="cursor-pointer text-primary hover:underline">Pengeluaran</Link>{" "}
                   dengan memilih akun kas &quot;Kas Pak Har&quot; — saldonya
                   bisa dilihat dari buku besar di{" "}
-                  <Link href="/admin/keuangan" className="text-primary hover:underline">Jurnal</Link>.
+                  <Link href="/buku/jurnal" className="cursor-pointer text-primary hover:underline">Jurnal</Link>.
                 </p>
 
                 <SubHeading id="admin-laporan">Laporan</SubHeading>
                 <Steps>
-                  <li>Buka <Link href="/admin/reports" className="text-primary hover:underline">Laporan</Link>.</li>
+                  <li>Buka <Link href="/admin/reports" className="cursor-pointer text-primary hover:underline">Laporan</Link>.</li>
                   <li>Pilih rentang tanggal menggunakan date picker.</li>
                   <li>Grafik menampilkan pendapatan harian, breakdown per metode pembayaran, dan tipe layanan.</li>
                   <li>HPP dihitung dari pengeluaran bahan baku di buku besar, bukan dari harga per item.</li>
@@ -374,7 +374,7 @@ export default async function PetunjukPage() {
                   selalu cocok dengan Jurnal, Buku Kas, dan tutup kas.
                 </p>
                 <Steps>
-                  <li>Buka <Link href="/admin/keuangan/laporan" className="text-primary hover:underline">Laporan Keuangan</Link>.</li>
+                  <li>Buka <Link href="/buku/laporan" className="cursor-pointer text-primary hover:underline">Laporan Keuangan</Link>.</li>
                   <li>Pilih bulan di pemilih bulan, lalu pilih tab yang dibutuhkan di bagian atas.</li>
                   <li>Ketuk <strong>Unduh CSV</strong> untuk mengunduh laporan bulan yang sedang dibuka.</li>
                 </Steps>
@@ -389,7 +389,7 @@ export default async function PetunjukPage() {
 
                 <SubHeading id="admin-staff">Kelola Staff</SubHeading>
                 <Steps>
-                  <li>Buka <Link href="/admin/staff" className="text-primary hover:underline">Kelola Staff</Link>.</li>
+                  <li>Buka <Link href="/admin/staff" className="cursor-pointer text-primary hover:underline">Kelola Staff</Link>.</li>
                   <li>Ketuk <strong>+ Staff</strong> untuk menambah anggota baru — isi nama, peran, dan email.</li>
                   <li>Sistem akan membuat akun login. Staff menggunakan email tersebut untuk masuk.</li>
                   <li>Untuk menonaktifkan staff, buka detail staff dan matikan toggle <strong>Aktif</strong>.</li>
@@ -397,7 +397,7 @@ export default async function PetunjukPage() {
 
                 <SubHeading id="admin-backup">Backup &amp; Restore</SubHeading>
                 <Steps>
-                  <li>Buka <Link href="/admin/backup" className="text-primary hover:underline">Backup DB</Link>.</li>
+                  <li>Buka <Link href="/admin/backup" className="cursor-pointer text-primary hover:underline">Backup DB</Link>.</li>
                   <li>Ketuk <strong>Export</strong> untuk mengunduh snapshot penuh database (format JSON).</li>
                   <li>Untuk restore: pilih tab <strong>Restore</strong>, unggah file backup JSON yang sebelumnya diunduh, lalu konfirmasi.</li>
                   <li>Lakukan backup secara berkala sebagai cadangan data bisnis.</li>
@@ -405,7 +405,7 @@ export default async function PetunjukPage() {
 
                 <SubHeading id="admin-pengaturan">Pengaturan</SubHeading>
                 <Steps>
-                  <li>Buka <Link href="/settings" className="text-primary hover:underline">Pengaturan</Link>.</li>
+                  <li>Buka <Link href="/settings" className="cursor-pointer text-primary hover:underline">Pengaturan</Link>.</li>
                   <li>Edit nama toko, alamat, dan nomor telepon yang tampil di struk.</li>
                   <li>Atur persentase <strong>Pajak</strong> dan <strong>Service Charge</strong> default.</li>
                   <li>Simpan perubahan.</li>
@@ -424,7 +424,7 @@ export default async function PetunjukPage() {
       <hr className="border-border my-8" />
 
       {/* ── AKSES PERAN ── */}
-      <section id="akses-peran">
+      <section>
         <SectionHeading id="akses-peran">Akses Peran</SectionHeading>
         <div className="overflow-x-auto">
           <table className="w-full text-sm border-collapse">

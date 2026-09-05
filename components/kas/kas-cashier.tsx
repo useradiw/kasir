@@ -308,12 +308,12 @@ export function KasCashier({
           <AlertRow tone="bad" title="Belum tercatat ke buku besar" detail="Kemungkinan bulan sedang terkunci saat kas ditutup — owner bisa mencatatnya kembali." />
         ) : null}
 
+        {/* No "Lihat di Buku Kas" link here, unlike kas-owner.tsx: /buku/kas is
+            requireOwner()-gated, and this component only ever renders for a
+            CASHIER. Linking there would trade a 404 for a permission error. */}
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="flex-1" onClick={() => downloadDayCsv(r)}>
             Unduh CSV
-          </Button>
-          <Button variant="outline" size="sm" className="flex-1" render={<Link href="/admin/keuangan/buku-kas" />}>
-            Lihat di Buku Kas →
           </Button>
         </div>
       </div>
