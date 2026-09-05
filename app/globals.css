@@ -173,3 +173,30 @@
     scrollbar-width: none;
   }
 }
+/* Respect the OS "reduce motion" setting.
+ *
+ * Added 2026-09-05: the app had NO prefers-reduced-motion handling anywhere,
+ * which the UI audit classes as a hard fail — every card press, Button
+ * translate, chip transition and base-ui dialog enter/exit animated
+ * unconditionally. Motion-sensitive users get vestibular symptoms from exactly
+ * this kind of scale/slide.
+ *
+ * Kept to near-zero durations rather than `animation: none`, because base-ui
+ * (Dialog, Popover) waits for animationend before unmounting — killing the
+ * animation outright can leave a dialog mounted forever. Opacity still changes,
+ * which conveys the state without movement.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Press feedback is movement; drop it entirely rather than making it instant. */
+  *:active {
+    transform: none !important;
+  }
+}

@@ -51,10 +51,22 @@ export default function RootLayout({
     // resolves --font-sans from --font-geist-sans inside `@theme`, which Tailwind
     // emits at :root. Declared one level lower, that lookup found nothing and
     // every screen fell back to the browser serif.
+    //
+    // `dark` ALSO belongs here, for the same class of reason (found 2026-09-05).
+    // It used to sit only on the wrapper div inside each screen (app-shell.tsx,
+    // page.tsx, error.tsx...). Anything rendered through a PORTAL — every
+    // base-ui Dialog and every Sonner toast — mounts on document.body, OUTSIDE
+    // those wrappers, so it resolved the tokens from :root and came out with
+    // the LIGHT palette: `--popover` is oklch(1 0 0), pure white. That is why
+    // dialogs appeared as a white card on the dark UI.
+    //
+    // The app is dark-only (no theme toggle exists), so this is unconditional.
+    // The `dark` classes on the wrappers are now redundant but harmless; leave
+    // them until someone removes them deliberately.
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${sora.variable} ${jakarta.variable}`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} ${sora.variable} ${jakarta.variable}`}
     >
       <body className="antialiased">
         <ConfirmDialogProvider>
