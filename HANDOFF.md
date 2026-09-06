@@ -38,12 +38,13 @@ Repeating it means a fresh backup, raising `CUTOFF_DATE`, extending
 `LOAD_MONTHS`, then wipe + reload — the loader is a bulk `createMany` and
 cannot top up an existing database.
 
-Two things the reload does NOT supply:
-- **August and September pengeluaran.** `warungbooks-events.json` still stops at
-  July, so September currently reports Rp 1.672.000 income and ZERO expenses.
-  Hand entry from Warung Books.
-- **Attendance after 29 August.** The old export has none either, so this is a
-  gap in the old system, not a migration fault. Worth checking there.
+Two things the reload does not supply, both known and neither a fault:
+- The books after July. `warungbooks-events.json` covers April-July only, so
+  September shows Rp 1.672.000 income and no expenses. Adi enters those in
+  Warung Books on his own schedule — this is NOT an open task for Claude and
+  does not need raising again.
+- Attendance after 29 August. The old export has none either, so the gap is in
+  the old system, not the migration.
 
 The old menu was imported **as-is** (54 items, 11 categories), including the
 "Bawa Pulang" category of 10 duplicate items Adi built in the old system. That
@@ -91,8 +92,7 @@ Adi does the merges. No work is in progress. Open threads, all his:
    everyone.
 3. Set the real online commission rates — still needed for future settlements,
    no longer tied to a wipe.
-4. Enter August's books by hand, then lock April-July in `/buku/bulan`
-   (all five months are currently open).
+4. Lock April-July in `/buku/bulan` when ready (all six months are open).
 
 Adi runs the old system in parallel for at least a week before cutover, so
 these are not all due at once.
