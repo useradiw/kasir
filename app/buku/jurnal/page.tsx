@@ -4,22 +4,9 @@ import { requireOwner } from "@/lib/admin-auth";
 import { listJurnal } from "@/app/actions/admin/queries";
 import { getSelectedMonth, monthRange } from "@/lib/keuangan-month";
 import { JurnalClient } from "./jurnal-client";
+import { formatMonth } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-const MONTH_NAMES = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
-
-/** Local copy of the "YYYY-MM" -> "Agustus 2026" formatter (same duplication
- *  bulan-client.tsx and pengeluaran/page.tsx already carry on purpose —
- *  app/admin/keuangan is slated for deletion once every /buku equivalent
- *  exists). */
-function formatMonth(m: string): string {
-  const [y, mo] = m.split("-").map(Number);
-  return `${MONTH_NAMES[(mo ?? 1) - 1]} ${y}`;
-}
 
 /**
  * /buku/jurnal — the Jurnal entry list (SPEC #11), replaces

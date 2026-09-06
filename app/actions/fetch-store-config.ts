@@ -1,6 +1,7 @@
 "use server";
 
 import { getSettings, SETTING_DEFAULTS } from "@/lib/settings";
+import { requireAuth } from "@/lib/admin-auth";
 import type { StoreInfo } from "@/lib/settings";
 
 export type StoreConfig = {
@@ -9,7 +10,11 @@ export type StoreConfig = {
   defaultServicePct: number;
 };
 
+/** Gated for the same reason as syncProducts: a "use server" export is a public
+ *  POST endpoint, and this one returned store details and the default tax and
+ *  service percentages to anyone. Called only from the authenticated shell. */
 export async function fetchStoreConfig(): Promise<StoreConfig> {
+  await requireAuth();
   const s = await getSettings();
   return {
     storeInfo: {

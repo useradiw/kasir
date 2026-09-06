@@ -1,5 +1,19 @@
 # Open-items plan (drafted 2026-09-01, revised after Adi's feedback)
 
+> **STATUS 2026-09-06 — COMPLETE except one item.** Sections 1, 2, 3, 4 and 5 all
+> shipped. The single thing never built is SPEC #10's "rows become drill-downs to
+> jurnal entries" on `/buku/laporan`; the reason is recorded in
+> `app/buku/laporan/laba-rugi-tab.tsx`.
+>
+> This file is KEPT, despite being a finished plan, because ~23 comments across
+> `app/buku/**`, `components/kas/**` and `test/**` cite it by section as their
+> rationale. Deleting it would strand every one of them.
+>
+> **One statement below is now false.** Section 5 says the dormant models
+> "remain in `schema.prisma` with data intact". They do NOT: the 2026-09-02
+> schema squash dropped `Ingredient*`, `Recipe*`, `StockOpname*`, `Expense`,
+> `ExpenseItem`, `ExpenseTemplate` and `KasPakHar`. Only `Supplier` survives.
+
 Five items: (1) rebuild keuangan on `/buku`, (2) login brute-force lockout,
 (3) `/kas` Phase 3, (4) admin navigation, (5) retiring the dead HPP-era
 features. Section 6 records what was verified.

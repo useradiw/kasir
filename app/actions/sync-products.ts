@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/admin-auth";
 import type {
   Category,
   MenuItem,
@@ -19,7 +20,15 @@ export interface ProductSnapshot {
   onlinePrices: OnlinePrice[];
 }
 
+/**
+ * Every export of a "use server" file is a callable POST endpoint, so this ran
+ * unauthenticated: it returned the whole catalogue INCLUDING the per-service
+ * price overrides (GoFood/ShopeeFood/GrabFood/Bawa Pulang) to any caller.
+ * Its only caller is the cashier shell, which is already behind auth, so the
+ * gate costs nothing.
+ */
 export async function syncProducts(): Promise<ProductSnapshot> {
+  await requireAuth();
   const [categories, menuItems, menuVariants, packages, packageItems, onlinePrices] =
     await Promise.all([
       prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),

@@ -36,7 +36,7 @@ type StaffRow = {
 
 const ROLES = ["OWNER", "MANAGER", "CASHIER", "STAFF", "DEVELOPER"] as const;
 
-export default function StaffClient({ staffList, isOwner }: { staffList: StaffRow[]; isOwner: boolean }) {
+export default function StaffClient({ staffList, isOwner, inviteCode }: { staffList: StaffRow[]; isOwner: boolean; inviteCode: string }) {
   const { isPending, run, error, setError } = useAdminAction();
   const confirm = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
@@ -45,13 +45,15 @@ export default function StaffClient({ staffList, isOwner }: { staffList: StaffRo
   const [linkEmail, setLinkEmail] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // The code turns the public /auth/daftar page into an invite-only one. Without
+  // it anyone on the internet could create Supabase auth users on this project.
   const copyRegisterLink = useCallback(() => {
-    const url = `${window.location.origin}/auth/daftar`;
+    const url = `${window.location.origin}/auth/daftar?kode=${encodeURIComponent(inviteCode)}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
-  }, []);
+  }, [inviteCode]);
 
   return (
     <>

@@ -12,9 +12,41 @@ const daftarSchema = z.object({
     password: z.string().min(8, { message: "Password minimal 8 karakter." }),
 });
 
-export default function Daftar() {
+/**
+ * Invite-only. /auth/* is deliberately reachable without a session (the proxy
+ * lets it through so people can log in), which left this page open to the
+ * internet: anyone could call supabase.auth.signUp on this project. A
+ * self-registered user cannot actually sign in — app/actions/login.ts requires
+ * a matching Staff row — but unbounded signups still burn Supabase quota and
+ * turn the confirmation mail into a spam relay aimed at any address.
+ *
+ * The gate is a shared code in the invite link the owner copies from
+ * /admin/staff. It is checked TWICE on purpose: once to decide whether to
+ * render the form, and again inside the server action, because a "use server"
+ * function is a POST endpoint that never has to load this page first.
+ */
+function inviteCodeValid(supplied: string | undefined): boolean {
+    const expected = process.env.STAFF_INVITE_CODE;
+    // Fail CLOSED. A missing or empty env var disables registration rather
+    // than silently reopening it to everyone.
+    if (!expected) return false;
+    return supplied === expected;
+}
+
+export default async function Daftar({
+    searchParams,
+}: {
+    searchParams: Promise<{ kode?: string }>;
+}) {
+    const { kode } = await searchParams;
+    const allowed = inviteCodeValid(kode);
+
     const handleClick = async (formData: FormData) => {
         "use server";
+
+        if (!inviteCodeValid(formData.get("kode")?.toString())) {
+            throw new Error("Link pendaftaran tidak berlaku. Minta link baru ke pemilik.");
+        }
 
         const parsed = daftarSchema.safeParse({
             email: formData.get("email"),
@@ -55,9 +87,13 @@ export default function Daftar() {
                     Sate Kambing Sido Mampir
                 </h1>
                 <p className="mt-1 text-[11.5px] font-semibold text-muted-foreground">
-                    Daftar dengan email dan password.
+                    {allowed
+                        ? "Daftar dengan email dan password."
+                        : "Halaman ini hanya bisa dibuka lewat link undangan dari pemilik. Minta link pendaftaran yang baru."}
                 </p>
+                {!allowed ? null : (
                 <Form action={handleClick} className="mt-4 flex flex-col gap-3">
+                    <input type="hidden" name="kode" value={kode ?? ""} />
                     <div className="space-y-1.5">
                         <Label htmlFor="email">Email</Label>
                         <Input
@@ -76,6 +112,7 @@ export default function Daftar() {
                         Daftar
                     </Button>
                 </Form>
+                )}
             </BentoCard>
         </div>
     );

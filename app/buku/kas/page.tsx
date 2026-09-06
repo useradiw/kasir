@@ -5,21 +5,9 @@ import { getBukuKas, getCekSaldo, listCashAccounts } from "@/app/actions/admin/q
 import { getSelectedMonth } from "@/lib/keuangan-month";
 import { getBukuSetupStatus, isBukuSetupComplete } from "@/lib/shell-queries";
 import { KasClient } from "./kas-client";
+import { formatMonth } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-const MONTH_NAMES = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
-
-/** Local copy of the "YYYY-MM" -> "Agustus 2026" formatter (same duplication
- *  every other rebuilt /buku screen carries on purpose — app/admin/keuangan
- *  is slated for deletion once every /buku equivalent exists). */
-function formatMonth(m: string): string {
-  const [y, mo] = m.split("-").map(Number);
-  return `${MONTH_NAMES[(mo ?? 1) - 1]} ${y}`;
-}
 
 /**
  * /buku/kas — Buku Kas + Cek Saldo (SPEC #12), replaces

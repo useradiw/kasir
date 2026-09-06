@@ -9,21 +9,9 @@ import type { CatatSourceType } from "@/lib/accounting/catatRepository";
 import { EntryForm } from "./entry-form";
 import { JENIS_VALUES, PILL_LABEL, VARIANT_TITLE, type Jenis } from "./variants";
 import { EntryList } from "./entry-list";
+import { formatMonth } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
-
-const MONTH_NAMES = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
-
-/** Local copy of the "YYYY-MM" -> "Agustus 2026" formatter (same duplication
- *  bulan-client.tsx already carries on purpose — app/admin/keuangan is
- *  slated for deletion once every /buku equivalent exists). */
-function formatMonth(m: string): string {
-  const [y, mo] = m.split("-").map(Number);
-  return `${MONTH_NAMES[(mo ?? 1) - 1]} ${y}`;
-}
 
 function parseJenis(raw: string | string[] | undefined): Jenis {
   const value = Array.isArray(raw) ? raw[0] : raw;

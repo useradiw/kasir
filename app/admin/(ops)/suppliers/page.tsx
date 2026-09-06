@@ -5,6 +5,18 @@ import { requireRole } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import SuppliersClient from "./suppliers-client";
 
+/**
+ * /admin/suppliers is INTENTIONALLY UNWIRED — do not delete it as dead code.
+ *
+ * Nothing reads supplier data today: it was the counterparty on the dormant
+ * IngredientPurchase, and the COGS system that used it is retired. Adi decided
+ * on 2026-09-01 to KEEP the screen because it is the starting point for the
+ * purchasing work planned after the first deploy. It sits under Menu in the
+ * admin index rather than Keuangan, because it no longer touches the ledger.
+ *
+ * This comment exists so the next audit stops re-flagging it, as required by
+ * docs/redesign/plan-open-items.md section 5.
+ */
 export default async function SuppliersPage() {
   const staff = await requireRole("OWNER", "MANAGER");
 

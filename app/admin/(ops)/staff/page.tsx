@@ -26,7 +26,11 @@ export default async function StaffPage() {
       </div>
 
       <div className="flex flex-1 flex-col gap-3 px-4 pb-6 pt-3">
-        <StaffClient staffList={staffList} isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"} />
+        <StaffClient
+          staffList={staffList}
+          isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"}
+          inviteCode={process.env.STAFF_INVITE_CODE ?? ""}
+        />
       </div>
     </AppShell>
   );
