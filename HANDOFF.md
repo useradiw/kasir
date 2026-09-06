@@ -1,5 +1,46 @@
 # HANDOFF
 
+## 2026-09-06 (later) — WORKTREE MERGED, BRANCHES CLEANED
+
+The parallel `kasir-wt-menu-management` worktree and the `zcode` branch are both
+folded into `feat/warungbooks` and deleted. Branches are now exactly
+`master` -> `develop` -> `june` -> `feat/warungbooks`, and `git worktree list`
+shows only the main checkout. Adi merges warungbooks -> june -> develop himself.
+
+**What came from the worktree** (10 files, uncommitted there; committed as
+747aad0 then merged as d5c1760): a Bawa Pulang pricing tab. The online-pricing
+block was EXTRACTED into a shared `ServicePricingCard` that both tabs render,
+so they cannot drift. `Take_Away` joined `onlinePriceSchema` — no migration
+needed, it was already a `ServiceEnum` value and `MenuItemOnlinePrice.service`
+uses that enum. "Inventori Menu" became "Menu Management" everywhere including
+the petunjuk permission table. `SERVICE_LABELS` keeps the raw `Take_Away` off
+the screen.
+
+**A money-path behaviour change rode along, deliberately.** `calcItemPrice` no
+longer hardcodes the three online vendors; it applies whatever override matches
+the session's service. The old test asserting a `Take_Away` row must be IGNORED
+was inverted on purpose and a fallback test added beside it. Consequence worth
+remembering: a stray `Take_Away` or `Unknown` price row now moves checkout
+totals where it used to be silently discarded.
+
+**What came from zcode** (cherry-picked as 44448b8): one file,
+`prisma/sql/2026-08-add-transaction-indexes.sql` — an UNAPPLIED additive
+proposal, `CREATE INDEX IF NOT EXISTS` only. zcode had no other change against
+its merge-base. It was force-deleted because a cherry-pick gives a new SHA, so
+`git branch -d` could not see it as merged; the file was diffed against zcode's
+copy first to prove the content landed.
+
+**Two stale references the merge exposed, both fixed in 187b544:** CLAUDE.md
+still called the bucket `Expenses:HPP:*`, and the index proposal told the reader
+to verify the host is `oyvgyhuzvxepteldlghn` — the RETIRED project. Following
+that literally would send someone hunting for a database that no longer exists.
+
+**Verified after the merge:** lint clean, tsc clean, 373 passed + 1 skipped
+across 35 files (up one — the new fallback test). Seen rendered: the Bawa Pulang
+tab, the Harga Online tab unchanged after the extraction, and April's Laba Rugi
+still reporting the same figures. Console clean in a FRESH tab (the retained tab
+showed only stale HMR socket errors from the server restart).
+
 ## 2026-09-06 — BUCKET RENAME + DATABASE RELOAD (done, NOT committed)
 
 Renamed both Laba Rugi buckets across all four layers, then wiped and reloaded
