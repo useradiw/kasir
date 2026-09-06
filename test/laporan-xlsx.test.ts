@@ -41,9 +41,9 @@ const laporan = {
       online: 0,
       total: 7_439_000,
     },
-    hpp: { lines: [line("Daging", 3_900_000)], total: 6_408_500 },
+    pengeluaran_bahan_baku: { lines: [line("Daging", 3_900_000)], total: 6_408_500 },
     laba_kotor: 1_030_500,
-    biaya_operasional: { lines: [line("Gaji", 4_850_000)], total: 7_812_900 },
+    pengeluaran_operasional: { lines: [line("Gaji", 4_850_000)], total: 7_812_900 },
     laba_bersih: -6_782_400,
   },
   neraca: {
@@ -137,8 +137,8 @@ describe("LABA RUGI body", () => {
     const sections = rows.filter((r) => r.kind === "section").map((r) => r.text);
     expect(sections).toEqual([
       "PENDAPATAN",
-      "HARGA POKOK PENJUALAN (HPP)",
-      "BIAYA OPERASIONAL",
+      "PENGELUARAN BAHAN BAKU",
+      "PENGELUARAN OPERASIONAL",
     ]);
   });
 
@@ -153,9 +153,9 @@ describe("LABA RUGI body", () => {
     const totals = rows.filter((r) => r.kind === "total").map((r) => r.label);
     expect(totals).toEqual([
       "Total Pendapatan",
-      "Total HPP",
+      "Total Pengeluaran Bahan Baku",
       "LABA KOTOR",
-      "Total Biaya Operasional",
+      "Total Pengeluaran Operasional",
       "LABA BERSIH",
     ]);
   });

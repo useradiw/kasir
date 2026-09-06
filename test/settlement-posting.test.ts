@@ -52,14 +52,14 @@ describe("postSettlement", () => {
 
     const cashLine = posted.lines.find((l) => l.account === CASH);
     expect(cashLine?.amount).toBe(750_000n);
-    const komisiLine = posted.lines.find((l) => l.account === "Expenses:OpEx:KomisiOnline");
+    const komisiLine = posted.lines.find((l) => l.account === "Expenses:Operasional:KomisiOnline");
     expect(komisiLine?.amount).toBe(250_000n);
     const incomeLine = posted.lines.find((l) => l.account === "Income:Sales:Online");
     expect(incomeLine?.amount).toBe(-1_000_000n);
 
     const book = await acc.loadBook();
     expect(book.balance(CASH)).toBe(750_000n);
-    expect(book.balance("Expenses:OpEx:KomisiOnline")).toBe(250_000n);
+    expect(book.balance("Expenses:Operasional:KomisiOnline")).toBe(250_000n);
     expect(book.balance("Income:Sales:Online")).toBe(-1_000_000n);
     expect(book.equationResidual()).toBe(0n);
   });
@@ -75,7 +75,7 @@ describe("postSettlement", () => {
       spec({ commissionAmount: 0n, deductionsTotal: 0n, finalAmount: 1_000_000n }),
     );
     expect(posted.lines).toHaveLength(2);
-    expect(posted.lines.some((l) => l.account === "Expenses:OpEx:KomisiOnline")).toBe(false);
+    expect(posted.lines.some((l) => l.account === "Expenses:Operasional:KomisiOnline")).toBe(false);
   });
 
   it("rejects negative input", async () => {

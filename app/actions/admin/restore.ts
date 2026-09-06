@@ -523,13 +523,13 @@ async function upsertRow(table: string, row: Record<string, unknown>): Promise<v
           id:        row.id as string,
           code:      row.code as string,
           name:      row.name as string,
-          bucket:    row.bucket as "HPP" | "OPEX",
+          bucket:    row.bucket as "BAHAN_BAKU" | "OPERASIONAL",
           active:    row.active as boolean ?? true,
           createdAt: toDate(row.createdAt) ?? undefined,
         },
         update: {
           name:   row.name as string,
-          bucket: row.bucket as "HPP" | "OPEX",
+          bucket: row.bucket as "BAHAN_BAKU" | "OPERASIONAL",
           active: row.active as boolean ?? true,
         },
       });

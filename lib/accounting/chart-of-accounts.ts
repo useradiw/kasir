@@ -8,11 +8,12 @@
  *
  * Accounting decisions (Warung Books defaults — cash-basis, expense-on-purchase,
  * no capitalized inventory): kasir's cost of goods is bahan baku (ingredients).
- * HPP is an expense bucket fed by bahan baku purchases recorded as Pengeluaran,
+ * Pengeluaran Bahan Baku is an expense bucket fed by bahan baku purchases
+ * recorded as Pengeluaran,
  * NOT by a per-sale cost (kasir has no hargaModal concept — that is a
  * tokokencana retail-goods idea). Structure:
  *   Assets:Cash:*   ·  Income:Sales:{Tunai,QRIS,Online}
- *   Expenses:HPP:*  ·  Expenses:OpEx:*  ·  Equity:*  ·  SelisihKas (cash-drawer
+ *   Expenses:BahanBaku:*  ·  Expenses:Operasional:*  ·  Equity:*  ·  SelisihKas (cash-drawer
  *   over/short from kasir shift closes — used from a later slice)
  */
 
@@ -46,7 +47,7 @@ export function accountTypeFor(name: string): AccountType {
 
 /**
  * Minimal STRUCTURAL starter accounts — only the ones the automated posting
- * seams reference by name (sales-tender split, HPP, equity). Everything else,
+ * seams reference by name (sales-tender split, bahan baku, equity). Everything else,
  * including your real cash/bank accounts and any income/expense account, is
  * created freely in the account registry (Slice 1); the registry is fully
  * user-extensible and this seed never deletes or constrains it. Cash accounts
@@ -58,12 +59,12 @@ export const KASIR_CHART_OF_ACCOUNTS: readonly ChartAccountSeed[] = [
   { code: "sales-qris", name: "Income:Sales:QRIS" },
   { code: "sales-online", name: "Income:Sales:Online" },
 
-  // HPP — cost of goods sold, fed by bahan baku purchases recorded as
+  // Pengeluaran Bahan Baku — fed by bahan baku purchases recorded as
   // Pengeluaran (never a per-sale cost)
-  { code: "hpp-bahan", name: "Expenses:HPP:Bahan" },
+  { code: "bahan-baku", name: "Expenses:BahanBaku:Bahan" },
 
-  // OpEx — fed by online-settlement commission + deductions (Slice 3a)
-  { code: "opex-komisi-online", name: "Expenses:OpEx:KomisiOnline" },
+  // Pengeluaran Operasional — fed by online-settlement commission + deductions (Slice 3a)
+  { code: "operasional-komisi-online", name: "Expenses:Operasional:KomisiOnline" },
 
   // Ekuitas — Modal / Saldo Awal / Prive screens (Slice 1 & 5)
   { code: "equity-modal", name: "Equity:Modal" },

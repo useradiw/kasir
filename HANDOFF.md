@@ -1,5 +1,115 @@
 # HANDOFF
 
+## 2026-09-06 — BUCKET RENAME + DATABASE RELOAD (done, NOT committed)
+
+Renamed both Laba Rugi buckets across all four layers, then wiped and reloaded
+the database through the renamed code.
+
+    HPP               -> Pengeluaran Bahan Baku
+    Biaya Operasional -> Pengeluaran Operasional
+
+**Identifiers.** `ExpenseBucket` enum `HPP|OPEX` -> `BAHAN_BAKU|OPERASIONAL`;
+`ExpenseBucketKey` likewise; ledger prefixes `Expenses:HPP:*` ->
+`Expenses:BahanBaku:*` and `Expenses:OpEx:*` -> `Expenses:Operasional:*`;
+`labaRugi.hpp`/`.biaya_operasional` -> `.pengeluaran_bahan_baku`/
+`.pengeluaran_operasional`; `getLedgerExpenseTotals` returns
+`bahanBaku`/`operasional`; report-queries' summary fields
+`cogs`/`grossProfit`/`grossMarginPct` -> `bahanBaku`/`labaKotor`/`labaKotorPct`;
+seeded accounts `hpp-bahan` -> `bahan-baku` and `opex-komisi-online` ->
+`operasional-komisi-online`. `bucketPrefix()` kept its name — it was already
+bucket-neutral; only its return values changed.
+
+**`Transaction.cogs` (the per-sale column) is untouched** and is a DIFFERENT
+thing from the renamed summary field. The retired per-item COGS docs
+(`docs/cogs-feature.md`, `docs/cogs-redesign-plan.md`, README line 69) describe
+that dead design and were deliberately left alone.
+
+**The "everything that is not HPP" rule is preserved exactly.**
+`incomeStatement.ts` still walks every `Expenses:*` account and skips only the
+bahan-baku prefix, so `Expenses:SelisihKas`, `KasKeluar` and `Diskon` keep
+landing in the operational bucket. Only the prefix string changed; the
+why-comment was rewritten, not dropped. Its two guard tests in
+`test/statements.test.ts` caught a missed rename during this session, which is
+exactly what they exist for.
+
+**Two external inputs were NOT renamed, on purpose.**
+`scripts/migrasi/warungbooks-events.json` keeps Warung Books' own `"HPP"|"OpEx"`
+bucket spelling and is mapped at the seam in `loader.ts:215`.
+`warungbooks-reports.json` keeps its `"Total HPP"` row label, so
+`laporan-check.mts` still looks it up by that key while printing and comparing
+the renamed kasir field. Renaming either would have broken the comparison that
+proves the rename moved no number.
+
+**Schema.** `prisma/migrations/20260906000000_rename_expense_bucket/` holds two
+`ALTER TYPE ... RENAME VALUE` statements. Applied to the live database with
+`prisma db execute` on a `BEGIN;...COMMIT;`-wrapped copy, then
+`prisma migrate resolve --applied`. `prisma migrate status` now reports the
+schema up to date. A rename relabels the enum member only — it rewrites no row
+and touches no money column. `wipe-db.ts` is data-only and never delivers DDL,
+which is why the ALTER was still required despite the wipe.
+
+**Database wiped and reloaded.** Project `ktcaaasmrryoxinsutzt`, confirmed by
+both the env check and wipe-db's own guard. 7881 rows deleted (the 5 `dev.*`
+staff preserved), then reloaded with `run.mts --yes` and
+`MIGRASI_DATABASE_URL` set to `DIRECT_URL` on **5432** — the 6543 pooler breaks
+the repositories' interactive transactions. **Zero rejections**, same counts as
+the previous load: 823 transactions, 1675 order items, 778 pengeluaran, 97
+transfers, 2 modal, 130 tutup kas, 5 settlements (the 29 Aug GoFood one with its
+Rp 211 adjustment).
+
+**Verified — the rename moved no number.** `laporan-check.mts` was captured
+before the first edit and again after the reload. Diffed with only the two
+renamed row labels normalised: **identical, line for line**. Neraca balances and
+Validasi passes 12/12 in all four months; April-July's remaining gaps are the
+same input differences documented below, unchanged to the rupiah.
+
+Post-reload database state: 688 `Expenses:BahanBaku` journal lines, 95
+`Expenses:Operasional`, **0 stale old-prefix lines**, 42 categories in
+`BAHAN_BAKU` and 25 in `OPERASIONAL`. Note the live data contains no
+`Expenses:SelisihKas` lines, so the not-bahan-baku rule is exercised by the unit
+tests rather than by this dataset. `ledger_accounts` holds only the 3 cash
+accounts, same as before the wipe — the structural chart of accounts is seeded
+from the UI, and will create the new `bahan-baku` /
+`operasional-komisi-online` codes when Adi runs it.
+
+**Also verified:** lint clean, tsc clean (raised heap), `npx vitest run` 372
+passed + 1 skipped across 35 files — the same count as the last known green.
+The pglite suite replays every migration folder, so it proved the new enum DDL
+too. NOT seen rendered — the buku routes are owner-gated and Claude has no
+login.
+
+**Dev server was stopped** (it was running on port 4000) so `prisma generate`
+would not half-write the client. Restart it with `npm run dev`.
+
+**Seen rendered and verified in the browser (Adi logged the dev account in).**
+Laba Rugi April shows both new headings with every figure matching the baseline,
+and BOTH columns add up to their own totals (34 bahan baku rows = 6.408.500;
+14 operasional rows = 7.812.900) — the column-adds-up rule that has broken three
+times here. CALK, petunjuk, `/buku`, `/buku/kategori` and `/admin/reports` all
+render the new terms with no old ones. Validasi 12/12 in the UI. No console
+errors on any screen.
+
+Exports were verified by capturing the REAL generated Blob in the page, not by
+trusting the unit tests: the CSV carries `Total Pengeluaran Bahan Baku,6408500`
+and `Total Pengeluaran Operasional,7812900`, and the 14.8 KB XLSX (6 sheets)
+carries `PENGELUARAN BAHAN BAKU` / `PENGELUARAN OPERASIONAL` with no old terms.
+
+`/admin/reports` Tahunan 2026 gives an independent cross-check: Pengeluaran
+Bahan Baku Rp 26.421.000 is exactly April+May+June+July (6.408.500 + 7.008.000
++ 5.968.500 + 7.036.000), and Laba Kotor 14.499.395 at 35.4% reconciles.
+
+**One regression found and fixed by looking.** `/buku/pengeluaran`'s kategori
+dropdown rendered the raw enum, so it read `Arang (BAHAN_BAKU)` — the old
+`(HPP)`/`(OPEX)` had read acceptably, but the underscore leaked a database
+identifier into the UI. `entry-form.tsx` now maps it to `(Bahan Baku)` /
+`(Operasional)`. Grepped for the same pattern elsewhere: this was the only one.
+
+**NEXT:** say the word to commit. Nothing is committed.
+
+**Note on branch:** something switched the checkout to `zcode` early in the
+session; it was moved back to `feat/warungbooks` at `c59bc02` (which is
+`fedfa91` amended). All work above is on `feat/warungbooks`.
+
 ## 2026-09-04 (later) — LINK + BUTTON AUDIT
 
 Swept every link and button in `app/` and `components/`. Two classes of fix, both

@@ -137,7 +137,7 @@ describe("getCashAccountBalances", () => {
       date: "2026-07-05",
       narration: "Pengeluaran yang di-void",
       lines: [
-        { account: "Expenses:OpEx:Test", amount: 50_000n },
+        { account: "Expenses:Operasional:Test", amount: 50_000n },
         { account: LACI, amount: -50_000n },
       ],
     });

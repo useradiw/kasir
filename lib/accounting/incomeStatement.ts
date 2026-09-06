@@ -2,11 +2,11 @@
  * Laba Rugi (Income Statement) - period report.
  * Mirrors Warung Books income_statement.py.
  *
- * Pendapatan (Income) = -S("Income:")            [credits are negative]
- * HPP                  = +S("Expenses:HPP:")
- * Laba Kotor          = Pendapatan - HPP
- * Biaya Operasional   = +S("Expenses:OpEx:")
- * Laba Bersih         = Laba Kotor - Biaya Operasional
+ * Pendapatan (Income)          = -S("Income:")   [credits are negative]
+ * Pengeluaran Bahan Baku       = +S("Expenses:BahanBaku:")
+ * Laba Kotor                   = Pendapatan - Pengeluaran Bahan Baku
+ * Pengeluaran Operasional      = every other Expenses: account (see below)
+ * Laba Bersih                  = Laba Kotor - Pengeluaran Operasional
  */
 
 import { Book } from "./book";
@@ -38,9 +38,9 @@ export interface IncomeStatementResult {
     online: bigint;
     total: bigint;
   };
-  hpp: { lines: IncomeLine[]; total: bigint };
+  pengeluaran_bahan_baku: { lines: IncomeLine[]; total: bigint };
   laba_kotor: bigint;
-  biaya_operasional: { lines: IncomeLine[]; total: bigint };
+  pengeluaran_operasional: { lines: IncomeLine[]; total: bigint };
   laba_bersih: bigint;
 }
 
@@ -68,42 +68,42 @@ export function incomeStatement(
   const qris = -book.balance("Income:Sales:QRIS", dateFrom, dateTo);
   const online = -book.balance("Income:Sales:Online", dateFrom, dateTo);
 
-  // HPP
-  const hppLines: IncomeLine[] = [];
-  for (const acct of book.accounts("Expenses:HPP:")) {
+  // Pengeluaran Bahan Baku
+  const bahanBakuLines: IncomeLine[] = [];
+  for (const acct of book.accounts("Expenses:BahanBaku:")) {
     const amt = book.balance(acct, dateFrom, dateTo);
     if (amt !== 0n) {
-      hppLines.push({ account: acct, label: catName(acct), amount: amt });
+      bahanBakuLines.push({ account: acct, label: catName(acct), amount: amt });
     }
   }
-  const totalHpp = book.balancePrefix("Expenses:HPP:", dateFrom, dateTo);
+  const totalBahanBaku = book.balancePrefix("Expenses:BahanBaku:", dateFrom, dateTo);
 
-  const labaKotor = totalPendapatan - totalHpp;
+  const labaKotor = totalPendapatan - totalBahanBaku;
 
-  // Biaya Operasional — EVERY expense account that is not HPP.
+  // Pengeluaran Operasional — EVERY expense account that is not bahan baku.
   //
-  // This deliberately does NOT filter on the "Expenses:OpEx:" prefix. Doing so
+  // This deliberately does NOT filter on the "Expenses:Operasional:" prefix. Doing so
   // silently dropped every expense account living outside the two known
   // prefixes — in kasir that is `Expenses:SelisihKas` (cash-drawer shortages at
   // tutup kas), so laba bersih was overstated by the full amount of every
   // shortage and nothing on the Laba Rugi screen revealed it. Caught 2026-07-28
   // when Perubahan Modal, Neraca and Arus Kas all independently reported
   // 5.275.000 while Laba Rugi claimed 5.300.000 on a book containing a 25.000
-  // selisih. Taking "all Expenses: except HPP" also makes this agree with
+  // selisih. Taking "all Expenses: except bahan baku" also makes this agree with
   // getLedgerExpenseTotals in lib/ledger-queries.ts, which /admin/reports uses,
   // so the two screens can no longer disagree about laba bersih.
-  const opexLines: IncomeLine[] = [];
-  let totalOpex = 0n;
+  const operasionalLines: IncomeLine[] = [];
+  let totalOperasional = 0n;
   for (const acct of book.accounts("Expenses:")) {
-    if (acct.startsWith("Expenses:HPP:")) continue;
+    if (acct.startsWith("Expenses:BahanBaku:")) continue;
     const amt = book.balance(acct, dateFrom, dateTo);
-    totalOpex += amt;
+    totalOperasional += amt;
     if (amt !== 0n) {
-      opexLines.push({ account: acct, label: catName(acct), amount: amt });
+      operasionalLines.push({ account: acct, label: catName(acct), amount: amt });
     }
   }
 
-  const labaBersih = labaKotor - totalOpex;
+  const labaBersih = labaKotor - totalOperasional;
 
   return {
     title: "Laba Rugi",
@@ -115,9 +115,9 @@ export function incomeStatement(
       online,
       total: totalPendapatan,
     },
-    hpp: { lines: hppLines, total: totalHpp },
+    pengeluaran_bahan_baku: { lines: bahanBakuLines, total: totalBahanBaku },
     laba_kotor: labaKotor,
-    biaya_operasional: { lines: opexLines, total: totalOpex },
+    pengeluaran_operasional: { lines: operasionalLines, total: totalOperasional },
     laba_bersih: labaBersih,
   };
 }

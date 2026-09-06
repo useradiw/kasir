@@ -2,7 +2,8 @@
  * expenseRepository.ts — Pengeluaran + Kategori Pengeluaran persistence.
  *
  * Adapted from Padu for tokokencana (single-store; Padu's `storeId` and the
- * COGS/ingredient bahan-linking are dropped). HPP is a plain expense bucket fed
+ * COGS/ingredient bahan-linking are dropped). Pengeluaran Bahan Baku is a plain
+ * expense bucket fed
  * by the pengeluaran recorded here — bahan baku purchases, on a cash basis —
  * and NEVER by a per-sale cost: kasir has no hargaModal concept, and nothing is
  * tracked as a quantity-bearing asset. See lib/accounting/chart-of-accounts.ts.
@@ -10,7 +11,7 @@
  * Design invariants:
  * - ExpenseCategory is a module-owned table; pengeluaran posts through the
  *   EXISTING engine (postEntryTx / voidEntry) — the ledger core is untouched.
- * - Posting shape: Dr Expenses:{HPP|OpEx}:{KODE} / Cr Assets:Cash:{akun},
+ * - Posting shape: Dr Expenses:{BahanBaku|Operasional}:{KODE} / Cr Assets:Cash:{akun},
  *   narration "Beban {KODE} ({akun})". sourceType="pengeluaran"; sourceMeta
  *   stashes the form fields the list view renders.
  * - Edit = void original + post corrected, ONE $transaction, linked via
@@ -78,7 +79,7 @@ export class PengeluaranNotFoundError extends DomainError {
 // Types
 // ---------------------------------------------------------------------------
 
-export type ExpenseBucketKey = "HPP" | "OPEX";
+export type ExpenseBucketKey = "BAHAN_BAKU" | "OPERASIONAL";
 
 export interface ExpenseCategoryRow {
   id: string;
@@ -165,12 +166,12 @@ interface PengeluaranSourceMeta {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_CATEGORIES: Array<{ code: string; name: string; bucket: ExpenseBucketKey }> = [
-  { code: "KULAKAN", name: "Kulakan (stok barang)", bucket: "HPP" },
-  { code: "LISTRIK", name: "Listrik", bucket: "OPEX" },
-  { code: "GAJI", name: "Gaji", bucket: "OPEX" },
-  { code: "SEWA", name: "Sewa", bucket: "OPEX" },
-  { code: "ONGKIR", name: "Ongkir", bucket: "OPEX" },
-  { code: "LAIN", name: "Lain-lain", bucket: "OPEX" },
+  { code: "KULAKAN", name: "Kulakan (stok barang)", bucket: "BAHAN_BAKU" },
+  { code: "LISTRIK", name: "Listrik", bucket: "OPERASIONAL" },
+  { code: "GAJI", name: "Gaji", bucket: "OPERASIONAL" },
+  { code: "SEWA", name: "Sewa", bucket: "OPERASIONAL" },
+  { code: "ONGKIR", name: "Ongkir", bucket: "OPERASIONAL" },
+  { code: "LAIN", name: "Lain-lain", bucket: "OPERASIONAL" },
 ];
 
 // ---------------------------------------------------------------------------
@@ -178,7 +179,7 @@ const DEFAULT_CATEGORIES: Array<{ code: string; name: string; bucket: ExpenseBuc
 // ---------------------------------------------------------------------------
 
 function bucketPrefix(bucket: ExpenseBucketKey): string {
-  return bucket === "HPP" ? "Expenses:HPP" : "Expenses:OpEx";
+  return bucket === "BAHAN_BAKU" ? "Expenses:BahanBaku" : "Expenses:Operasional";
 }
 
 function mapCategory(row: {
@@ -459,7 +460,7 @@ export class ExpenseRepository {
     };
 
     let categoryName = "";
-    let categoryBucket: ExpenseBucketKey = "OPEX";
+    let categoryBucket: ExpenseBucketKey = "OPERASIONAL";
 
     await this.accounting.warmLock();
     const result = await this.prisma.$transaction(async (tx) => {

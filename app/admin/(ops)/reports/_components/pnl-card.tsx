@@ -5,18 +5,18 @@ import { formatRupiah } from "@/lib/format";
 import type { ReportData } from "@/app/actions/admin/queries";
 
 export function PnLCard({ data }: { data: ReportData }) {
-  const showCogs = data.cogs > 0;
+  const showBahanBaku = data.bahanBaku > 0;
   return (
     <BentoCard className="flex flex-col gap-0.5">
       <CardLabel>Profitabilitas</CardLabel>
       <div className="mt-1 flex flex-col">
         <PnLRow label="Pendapatan" value={data.revenue.total} />
-        {showCogs && <PnLRow label="HPP (dari pengeluaran bahan baku)" value={-data.cogs} negative />}
-        {showCogs && (
+        {showBahanBaku && <PnLRow label="Pengeluaran Bahan Baku" value={-data.bahanBaku} negative />}
+        {showBahanBaku && (
           <PnLRow
             label="Laba Kotor"
-            value={data.grossProfit}
-            extra={data.grossMarginPct !== null ? `${data.grossMarginPct}%` : undefined}
+            value={data.labaKotor}
+            extra={data.labaKotorPct !== null ? `${data.labaKotorPct}%` : undefined}
             divider
             emphasis
           />

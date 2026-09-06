@@ -98,7 +98,7 @@ function ExpensesCard({
     <BentoCard>
       <CardLabel>Pengeluaran Operasional</CardLabel>
       <p className="mt-0.5 text-[11px] text-muted-foreground">
-        Dari buku besar (pengeluaran). HPP (bahan baku) ditampilkan terpisah di kartu Profitabilitas.
+        Dari buku besar (pengeluaran). Pengeluaran Bahan Baku ditampilkan terpisah di kartu Profitabilitas.
       </p>
       <div className="mt-1 divide-y divide-border">
         {expenses.map((e) => (

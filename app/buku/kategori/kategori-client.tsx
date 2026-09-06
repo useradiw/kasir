@@ -15,7 +15,7 @@ import {
   seedDefaultCategories,
 } from "@/app/actions/admin/keuangan";
 
-type Category = { id: string; code: string; name: string; bucket: "HPP" | "OPEX"; active: boolean };
+type Category = { id: string; code: string; name: string; bucket: "BAHAN_BAKU" | "OPERASIONAL"; active: boolean };
 
 export function KategoriClient({ categories }: { categories: Category[] }) {
   const router = useRouter();
@@ -24,7 +24,7 @@ export function KategoriClient({ categories }: { categories: Category[] }) {
   const [adding, setAdding] = useState(false);
   const [code, setCode] = useState("");
   const [name, setName] = useState("");
-  const [bucket, setBucket] = useState<"HPP" | "OPEX">("OPEX");
+  const [bucket, setBucket] = useState<"BAHAN_BAKU" | "OPERASIONAL">("OPERASIONAL");
 
   function create(e: React.FormEvent) {
     e.preventDefault();
@@ -97,10 +97,10 @@ export function KategoriClient({ categories }: { categories: Category[] }) {
             <AdminSelect
               className="w-full"
               value={bucket}
-              onChange={(e) => setBucket(e.target.value as "HPP" | "OPEX")}
+              onChange={(e) => setBucket(e.target.value as "BAHAN_BAKU" | "OPERASIONAL")}
             >
-              <option value="OPEX">Biaya Operasional (OpEx)</option>
-              <option value="HPP">Harga Pokok (HPP)</option>
+              <option value="OPERASIONAL">Pengeluaran Operasional</option>
+              <option value="BAHAN_BAKU">Pengeluaran Bahan Baku</option>
             </AdminSelect>
             {error ? <p className="text-xs font-semibold text-destructive">{error}</p> : null}
             <div className="flex gap-2">
@@ -125,7 +125,9 @@ export function KategoriClient({ categories }: { categories: Category[] }) {
             <Row key={c.id} title={c.name} meta={<span className="font-mono">{c.code}</span>}>
               <div className="flex shrink-0 flex-col items-end gap-1.5">
                 <div className="flex gap-1">
-                  <Tag tone={c.bucket === "HPP" ? "acc" : "mut"}>{c.bucket === "HPP" ? "HPP" : "OpEx"}</Tag>
+                  <Tag tone={c.bucket === "BAHAN_BAKU" ? "acc" : "mut"}>
+                    {c.bucket === "BAHAN_BAKU" ? "Bahan Baku" : "Operasional"}
+                  </Tag>
                   {!c.active ? <Tag tone="mut">Nonaktif</Tag> : null}
                 </div>
                 <div className="flex gap-1.5">

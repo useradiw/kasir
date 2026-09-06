@@ -62,19 +62,19 @@ describe("ensureDefaultCategories", () => {
 
 describe("kategori CRUD", () => {
   it("uppercases code and rejects duplicates", async () => {
-    const cat = await expenses.createCategory({ code: "air", name: "Air", bucket: "OPEX" });
+    const cat = await expenses.createCategory({ code: "air", name: "Air", bucket: "OPERASIONAL" });
     expect(cat.code).toBe("AIR");
     await expect(
-      expenses.createCategory({ code: "AIR", name: "Air PDAM", bucket: "OPEX" }),
+      expenses.createCategory({ code: "AIR", name: "Air PDAM", bucket: "OPERASIONAL" }),
     ).rejects.toThrow(DuplicateCategoryCodeError);
   });
 
   it("deletes an unused category but blocks one in use", async () => {
-    const unused = await expenses.createCategory({ code: "UNUSED", name: "Unused", bucket: "OPEX" });
+    const unused = await expenses.createCategory({ code: "UNUSED", name: "Unused", bucket: "OPERASIONAL" });
     await expenses.deleteCategory(unused.id);
     expect(await prisma.expenseCategory.findUnique({ where: { id: unused.id } })).toBeNull();
 
-    const used = await expenses.createCategory({ code: "LISTRIK", name: "Listrik", bucket: "OPEX" });
+    const used = await expenses.createCategory({ code: "LISTRIK", name: "Listrik", bucket: "OPERASIONAL" });
     await expenses.recordPengeluaran({
       date: "2026-07-01", akun: UTAMA, item: "PLN", qty: 1, hargaSatuan: 90_000n, jumlah: 90_000n, kategoriCode: "LISTRIK",
     });
@@ -84,14 +84,14 @@ describe("kategori CRUD", () => {
 
 describe("recordPengeluaran", () => {
   it("posts Dr Expenses:{bucket}:{code} / Cr kas, balanced", async () => {
-    await expenses.createCategory({ code: "KULAKAN", name: "Kulakan", bucket: "HPP" });
+    await expenses.createCategory({ code: "KULAKAN", name: "Kulakan", bucket: "BAHAN_BAKU" });
     const row = await expenses.recordPengeluaran({
       date: "2026-07-01", akun: UTAMA, item: "Kabel", qty: 10, hargaSatuan: 5_000n, jumlah: 50_000n, kategoriCode: "KULAKAN",
     });
-    expect(row.kategoriBucket).toBe("HPP");
+    expect(row.kategoriBucket).toBe("BAHAN_BAKU");
 
     const book = await acc.loadBook();
-    expect(book.balance("Expenses:HPP:KULAKAN")).toBe(50_000n);
+    expect(book.balance("Expenses:BahanBaku:KULAKAN")).toBe(50_000n);
     expect(book.balance(UTAMA)).toBe(-50_000n);
     expect(book.equationResidual()).toBe(0n);
   });
@@ -101,13 +101,13 @@ describe("recordPengeluaran", () => {
       expenses.recordPengeluaran({ date: "2026-07-01", akun: UTAMA, item: "x", qty: 1, hargaSatuan: 1n, jumlah: 1n, kategoriCode: "NOPE" }),
     ).rejects.toThrow(CategoryNotFoundError);
 
-    const cat = await expenses.createCategory({ code: "MATI", name: "Mati", bucket: "OPEX" });
+    const cat = await expenses.createCategory({ code: "MATI", name: "Mati", bucket: "OPERASIONAL" });
     await expenses.updateCategory(cat.id, { active: false });
     await expect(
       expenses.recordPengeluaran({ date: "2026-07-01", akun: UTAMA, item: "x", qty: 1, hargaSatuan: 1n, jumlah: 1n, kategoriCode: "MATI" }),
     ).rejects.toThrow(CategoryInactiveError);
 
-    await expenses.createCategory({ code: "LAIN", name: "Lain", bucket: "OPEX" });
+    await expenses.createCategory({ code: "LAIN", name: "Lain", bucket: "OPERASIONAL" });
     await expect(
       expenses.recordPengeluaran({ date: "2026-07-01", akun: "Equity:Modal", item: "x", qty: 1, hargaSatuan: 1n, jumlah: 1n, kategoriCode: "LAIN" }),
     ).rejects.toThrow(InvalidPengeluaranError);
@@ -116,7 +116,7 @@ describe("recordPengeluaran", () => {
 
 describe("edit + void pengeluaran", () => {
   it("edit voids original and reposts with the new amount", async () => {
-    await expenses.createCategory({ code: "LISTRIK", name: "Listrik", bucket: "OPEX" });
+    await expenses.createCategory({ code: "LISTRIK", name: "Listrik", bucket: "OPERASIONAL" });
     const row = await expenses.recordPengeluaran({
       date: "2026-07-01", akun: UTAMA, item: "PLN", qty: 1, hargaSatuan: 90_000n, jumlah: 90_000n, kategoriCode: "LISTRIK",
     });
@@ -125,20 +125,20 @@ describe("edit + void pengeluaran", () => {
     });
     expect(edited.replacesId).toBe(row.id);
     const book = await acc.loadBook();
-    expect(book.balance("Expenses:OpEx:LISTRIK")).toBe(120_000n);
+    expect(book.balance("Expenses:Operasional:LISTRIK")).toBe(120_000n);
 
     const listed = await expenses.listPengeluaran();
     expect(listed).toHaveLength(1); // the VOID original is excluded
   });
 
   it("void removes the expense from the ledger (net zero)", async () => {
-    await expenses.createCategory({ code: "LAIN", name: "Lain", bucket: "OPEX" });
+    await expenses.createCategory({ code: "LAIN", name: "Lain", bucket: "OPERASIONAL" });
     const row = await expenses.recordPengeluaran({
       date: "2026-07-01", akun: UTAMA, item: "x", qty: 1, hargaSatuan: 10_000n, jumlah: 10_000n, kategoriCode: "LAIN",
     });
     await expenses.voidPengeluaran(row.id);
     const book = await acc.loadBook();
-    expect(book.balance("Expenses:OpEx:LAIN")).toBe(0n);
+    expect(book.balance("Expenses:Operasional:LAIN")).toBe(0n);
     expect(book.balance(UTAMA)).toBe(0n);
     expect(await expenses.listPengeluaran()).toHaveLength(0);
   });

@@ -178,8 +178,8 @@ describe("buildCalk", () => {
     period: { dateFrom: "2026-07-01", dateTo: "2026-07-31" },
     labaRugi: {
       pendapatan: { tunai: 300_000, qris: 200_000, online: 100_000, total: 600_000 },
-      hpp: { lines: [{ label: "Kulakan", amount: 120_000 }], total: 120_000 },
-      biaya_operasional: { lines: [{ label: "Sewa", amount: 50_000 }], total: 50_000 },
+      pengeluaran_bahan_baku: { lines: [{ label: "Kulakan", amount: 120_000 }], total: 120_000 },
+      pengeluaran_operasional: { lines: [{ label: "Sewa", amount: 50_000 }], total: 50_000 },
     },
     neraca: {
       aset: { lines: [{ account: "Assets:Cash:Utama", label: "Kas Utama", amount: 900_000 }] },

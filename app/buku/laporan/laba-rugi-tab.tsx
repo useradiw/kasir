@@ -32,20 +32,20 @@ export function LabaRugiTab({ laporan, isEmpty, setupComplete }: { laporan: Lapo
       </BentoCard>
 
       <BentoCard className="flex flex-col gap-0.5">
-        <CardLabel>HPP</CardLabel>
-        {labaRugi.hpp.lines.map((l) => (
+        <CardLabel>Pengeluaran Bahan Baku</CardLabel>
+        {labaRugi.pengeluaran_bahan_baku.lines.map((l) => (
           <StatementRow key={l.account} label={l.label} value={-l.amount} indent negative />
         ))}
-        <StatementRow label="Total HPP" value={-labaRugi.hpp.total} negative divider />
+        <StatementRow label="Total Pengeluaran Bahan Baku" value={-labaRugi.pengeluaran_bahan_baku.total} negative divider />
         <StatementRow label="Laba Kotor" value={labaRugi.laba_kotor} divider emphasis />
       </BentoCard>
 
       <BentoCard className="flex flex-col gap-0.5">
-        <CardLabel>Beban Operasional</CardLabel>
-        {labaRugi.biaya_operasional.lines.map((l) => (
+        <CardLabel>Pengeluaran Operasional</CardLabel>
+        {labaRugi.pengeluaran_operasional.lines.map((l) => (
           <StatementRow key={l.account} label={l.label} value={-l.amount} indent negative />
         ))}
-        <StatementRow label="Total Beban" value={-labaRugi.biaya_operasional.total} negative divider />
+        <StatementRow label="Total Pengeluaran Operasional" value={-labaRugi.pengeluaran_operasional.total} negative divider />
       </BentoCard>
 
       <BentoCard>

@@ -32,8 +32,8 @@ function isBookEmpty(laporan: LaporanKeuangan): boolean {
   const { labaRugi, neraca, arusKas } = laporan;
   return (
     labaRugi.pendapatan.total === 0 &&
-    labaRugi.hpp.total === 0 &&
-    labaRugi.biaya_operasional.total === 0 &&
+    labaRugi.pengeluaran_bahan_baku.total === 0 &&
+    labaRugi.pengeluaran_operasional.total === 0 &&
     neraca.aset.total === 0 &&
     arusKas.kas_awal === 0 &&
     arusKas.kas_akhir === 0

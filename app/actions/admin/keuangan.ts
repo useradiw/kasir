@@ -270,7 +270,7 @@ export async function setSalesChannelAccount(input: { channel: string; account: 
   });
 }
 
-/** Idempotent — seeds the structural chart of accounts (sales/HPP/equity roots)
+/** Idempotent — seeds the structural chart of accounts (sales/bahan baku/equity roots)
  *  that the posting seams reference by name. Safe to click repeatedly. */
 export async function seedStructuralChart() {
   return runAction(async () => {

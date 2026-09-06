@@ -64,7 +64,7 @@ export function AkunClient({ accounts }: { accounts: Account[] }) {
           <div className="min-w-0">
             <CardLabel>Struktur Akun</CardLabel>
             <p className="mt-1 text-[11.5px] font-semibold leading-snug text-muted-foreground">
-              Isi akun struktural (Pendapatan, HPP, Ekuitas) untuk posting otomatis. Aman diklik
+              Isi akun struktural (Pendapatan, Bahan Baku, Ekuitas) untuk posting otomatis. Aman diklik
               berulang — tidak menduplikasi atau menghapus data.
             </p>
           </div>

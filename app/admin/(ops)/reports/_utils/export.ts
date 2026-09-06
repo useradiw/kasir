@@ -28,9 +28,9 @@ export function downloadCSV(data: ReportData, period: Period, date: string, date
         ["Jumlah Transaksi", data.revenue.count],
         ["Rata-rata Transaksi", formatRupiah(data.revenue.average)],
         ["Total Pengeluaran", formatRupiah(data.totalExpenses)],
-        ["HPP (COGS)", formatRupiah(data.cogs)],
-        ["Laba Kotor", formatRupiah(data.grossProfit)],
-        ["Margin Kotor", data.grossMarginPct !== null ? `${data.grossMarginPct}%` : "-"],
+        ["Pengeluaran Bahan Baku", formatRupiah(data.bahanBaku)],
+        ["Laba Kotor", formatRupiah(data.labaKotor)],
+        ["Margin Kotor", data.labaKotorPct !== null ? `${data.labaKotorPct}%` : "-"],
         ["Laba Bersih", formatRupiah(data.netProfit)],
         ["Transaksi Void", data.voidedCount],
       ],
@@ -89,8 +89,8 @@ export async function downloadPDF(data: ReportData, period: Period, dateRangeLab
     { label: "Total Pendapatan", value: formatRupiah(data.revenue.total) },
     { label: "Transaksi", value: String(data.revenue.count) },
     { label: "Pengeluaran", value: formatRupiah(data.totalExpenses) },
-    { label: "HPP (COGS)", value: formatRupiah(data.cogs) },
-    { label: "Laba Kotor", value: formatRupiah(data.grossProfit) },
+    { label: "Pengeluaran Bahan Baku", value: formatRupiah(data.bahanBaku) },
+    { label: "Laba Kotor", value: formatRupiah(data.labaKotor) },
     { label: "Laba Bersih", value: formatRupiah(data.netProfit) },
   ];
   const sections = [

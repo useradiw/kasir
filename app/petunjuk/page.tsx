@@ -357,7 +357,7 @@ export default async function PetunjukPage() {
                   <li>Buka <Link href="/admin/reports" className="cursor-pointer text-primary hover:underline">Laporan</Link>.</li>
                   <li>Pilih rentang tanggal menggunakan date picker.</li>
                   <li>Grafik menampilkan pendapatan harian, breakdown per metode pembayaran, dan tipe layanan.</li>
-                  <li>HPP dihitung dari pengeluaran bahan baku di buku besar, bukan dari harga per item.</li>
+                  <li>Pengeluaran Bahan Baku dihitung dari pengeluaran bahan baku di buku besar, bukan dari harga per item.</li>
                   <li>Gaji karyawan yang ditampilkan adalah perkiraan (gaji harian x hari hadir) — tidak dikurangkan dari laba bersih. Catat gaji sebagai pengeluaran agar ikut masuk buku besar dan laba bersih.</li>
                   <li>Ketuk <strong>Export PDF</strong> atau <strong>Export CSV</strong> untuk mengunduh laporan.</li>
                 </Steps>
@@ -379,7 +379,7 @@ export default async function PetunjukPage() {
                   <li>Ketuk <strong>Unduh CSV</strong> untuk mengunduh laporan bulan yang sedang dibuka.</li>
                 </Steps>
                 <Tips>
-                  <li><strong>Laba Rugi</strong> — untung atau rugi bulan itu: penjualan dikurangi HPP dan pengeluaran.</li>
+                  <li><strong>Laba Rugi</strong> — untung atau rugi bulan itu: penjualan dikurangi Pengeluaran Bahan Baku dan Pengeluaran Operasional.</li>
                   <li><strong>Neraca</strong> — harta, utang, dan modal toko pada akhir bulan.</li>
                   <li><strong>Arus Kas</strong> — dari mana uang masuk dan ke mana uang keluar selama sebulan.</li>
                   <li><strong>Perubahan Modal</strong> — berapa modal toko bertambah atau berkurang dibanding bulan sebelumnya.</li>

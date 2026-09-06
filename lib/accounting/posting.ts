@@ -7,7 +7,7 @@
  *
  * Account names are Beancount-style colon hierarchies, e.g.
  *   "Assets:Cash:Mandiri" | "Equity:Opening" | "Income:Sales:QRIS" |
- *   "Expenses:HPP:DAGING" | "Expenses:OpEx:GAJI"
+ *   "Expenses:BahanBaku:DAGING" | "Expenses:Operasional:GAJI"
  */
 
 export interface JournalLine {

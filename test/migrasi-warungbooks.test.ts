@@ -324,7 +324,7 @@ describe("migrasi warungbooks — kasir vs Warung Books measurement run", () => 
     md.push(
       `${migrasi.excludedKomisi.count} baris ev_expense berkategori KOMISI dikecualikan dari posting, total ` +
         `Rp ${migrasi.excludedKomisi.total.toLocaleString("id-ID")} — kasir sudah membukukan komisi online sendiri ` +
-        "lewat SettlementPostingRepository ke akun Expenses:OpEx:KomisiOnline, jadi memuat baris KOMISI Warung " +
+        "lewat SettlementPostingRepository ke akun Expenses:Operasional:KomisiOnline, jadi memuat baris KOMISI Warung " +
         "Books juga akan menghitungnya dua kali (docs/migrasi-data.md keputusan 5).",
     );
 

@@ -4,7 +4,7 @@
  *
  * Posts real pengeluaran through ExpenseRepository/AccountingRepository rather
  * than hand-inserting JournalLine rows, so the tests exercise the same posting
- * shape production uses (Dr Expenses:{HPP|OpEx}:{KODE} / Cr Assets:Cash:{akun}).
+ * shape production uses (Dr Expenses:{BahanBaku|Operasional}:{KODE} / Cr Assets:Cash:{akun}).
  */
 
 import { describe, it, expect, beforeAll, afterEach } from "vitest";
@@ -34,12 +34,12 @@ afterEach(async () => {
 });
 
 async function seedCategories() {
-  await expenses.createCategory({ code: "KULAKAN", name: "Kulakan", bucket: "HPP" });
-  await expenses.createCategory({ code: "LISTRIK", name: "Listrik", bucket: "OPEX" });
+  await expenses.createCategory({ code: "KULAKAN", name: "Kulakan", bucket: "BAHAN_BAKU" });
+  await expenses.createCategory({ code: "LISTRIK", name: "Listrik", bucket: "OPERASIONAL" });
 }
 
 describe("getLedgerExpenseTotals", () => {
-  it("sums HPP-only pengeluaran into hpp, leaves opex at 0", async () => {
+  it("sums bahan-baku-only pengeluaran into bahanBaku, leaves operasional at 0", async () => {
     await seedCategories();
     await expenses.recordPengeluaran({
       date: "2026-07-05", akun: UTAMA, item: "Beras", qty: 10, hargaSatuan: 10_000n,
@@ -47,12 +47,12 @@ describe("getLedgerExpenseTotals", () => {
     });
 
     const totals = await getLedgerExpenseTotals("2026-07-01", "2026-07-31", prisma);
-    expect(totals.hpp).toBe(100_000);
-    expect(totals.opex).toBe(0);
-    expect(totals.hpp + totals.opex).toBe(100_000);
+    expect(totals.bahanBaku).toBe(100_000);
+    expect(totals.operasional).toBe(0);
+    expect(totals.bahanBaku + totals.operasional).toBe(100_000);
   });
 
-  it("sums OpEx-only pengeluaran into opex, leaves hpp at 0", async () => {
+  it("sums operasional-only pengeluaran into operasional, leaves bahanBaku at 0", async () => {
     await seedCategories();
     await expenses.recordPengeluaran({
       date: "2026-07-05", akun: UTAMA, item: "PLN", qty: 1, hargaSatuan: 250_000n,
@@ -60,11 +60,11 @@ describe("getLedgerExpenseTotals", () => {
     });
 
     const totals = await getLedgerExpenseTotals("2026-07-01", "2026-07-31", prisma);
-    expect(totals.hpp).toBe(0);
-    expect(totals.opex).toBe(250_000);
+    expect(totals.bahanBaku).toBe(0);
+    expect(totals.operasional).toBe(250_000);
   });
 
-  it("splits a mix of HPP and OpEx correctly, hpp + opex == grand total", async () => {
+  it("splits a mix of both buckets correctly, bahanBaku + operasional == grand total", async () => {
     await seedCategories();
     await expenses.recordPengeluaran({
       date: "2026-07-05", akun: UTAMA, item: "Beras", qty: 10, hargaSatuan: 10_000n,
@@ -76,17 +76,17 @@ describe("getLedgerExpenseTotals", () => {
     });
 
     const totals = await getLedgerExpenseTotals("2026-07-01", "2026-07-31", prisma);
-    expect(totals.hpp).toBe(100_000);
-    expect(totals.opex).toBe(250_000);
+    expect(totals.bahanBaku).toBe(100_000);
+    expect(totals.operasional).toBe(250_000);
 
     // Grand total of every Expenses:* line, computed independently from the
-    // repository's own return, must equal hpp + opex — no account double
+    // repository's own return, must equal bahanBaku + operasional — no account double
     // counted or dropped.
     const grandTotal = Object.values(totals.byAccount).reduce((s, v) => s + v, 0);
-    expect(grandTotal).toBe(totals.hpp + totals.opex);
+    expect(grandTotal).toBe(totals.bahanBaku + totals.operasional);
   });
 
-  it("counts Expenses:SelisihKas and Expenses:OpEx:KomisiOnline as opex", async () => {
+  it("counts Expenses:SelisihKas and Expenses:Operasional:KomisiOnline as operasional", async () => {
     await acc.postEntry({
       date: "2026-07-10",
       narration: "Selisih kas kurang",
@@ -99,16 +99,16 @@ describe("getLedgerExpenseTotals", () => {
       date: "2026-07-11",
       narration: "Komisi GoFood",
       lines: [
-        { account: "Expenses:OpEx:KomisiOnline", amount: 8_000n },
+        { account: "Expenses:Operasional:KomisiOnline", amount: 8_000n },
         { account: "Income:Sales:Online", amount: -8_000n },
       ],
     });
 
     const totals = await getLedgerExpenseTotals("2026-07-01", "2026-07-31", prisma);
-    expect(totals.hpp).toBe(0);
-    expect(totals.opex).toBe(13_000);
+    expect(totals.bahanBaku).toBe(0);
+    expect(totals.operasional).toBe(13_000);
     expect(totals.byAccount["Expenses:SelisihKas"]).toBe(5_000);
-    expect(totals.byAccount["Expenses:OpEx:KomisiOnline"]).toBe(8_000);
+    expect(totals.byAccount["Expenses:Operasional:KomisiOnline"]).toBe(8_000);
   });
 
   it("nets a VOIDED pengeluaran plus its reversal to zero", async () => {
@@ -120,8 +120,8 @@ describe("getLedgerExpenseTotals", () => {
     await expenses.voidPengeluaran(row.id);
 
     const totals = await getLedgerExpenseTotals("2026-07-01", "2026-07-31", prisma);
-    expect(totals.hpp).toBe(0);
-    expect(totals.opex).toBe(0);
+    expect(totals.bahanBaku).toBe(0);
+    expect(totals.operasional).toBe(0);
   });
 
   it("is inclusive on both ends of the date range", async () => {
@@ -144,7 +144,7 @@ describe("getLedgerExpenseTotals", () => {
     });
 
     const totals = await getLedgerExpenseTotals("2026-07-01", "2026-07-31", prisma);
-    expect(totals.hpp).toBe(30_000);
+    expect(totals.bahanBaku).toBe(30_000);
   });
 
   it("never counts Income or Assets accounts", async () => {
@@ -163,8 +163,8 @@ describe("getLedgerExpenseTotals", () => {
     });
 
     const totals = await getLedgerExpenseTotals("2026-07-01", "2026-07-31", prisma);
-    expect(totals.hpp).toBe(10_000);
-    expect(totals.opex).toBe(0);
+    expect(totals.bahanBaku).toBe(10_000);
+    expect(totals.operasional).toBe(0);
     expect(totals.byAccount[UTAMA]).toBeUndefined();
     expect(totals.byAccount["Income:Sales:Tunai"]).toBeUndefined();
   });

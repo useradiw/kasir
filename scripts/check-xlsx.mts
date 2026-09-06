@@ -31,9 +31,9 @@ const laporan = {
       lines: [l("Penjualan Tunai", 6_008_000), l("Penjualan QRIS", 1_431_000)],
       tunai: 6_008_000, qris: 1_431_000, online: 0, total: 7_439_000,
     },
-    hpp: { lines: [l("Arang", 350_000), l("Daging", 3_900_000)], total: 6_408_500 },
+    pengeluaran_bahan_baku: { lines: [l("Arang", 350_000), l("Daging", 3_900_000)], total: 6_408_500 },
     laba_kotor: 1_030_500,
-    biaya_operasional: { lines: [l("Gaji", 4_850_000)], total: 7_812_900 },
+    pengeluaran_operasional: { lines: [l("Gaji", 4_850_000)], total: 7_812_900 },
     laba_bersih: -6_782_400,
   },
   neraca: {

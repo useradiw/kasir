@@ -71,7 +71,7 @@ export function runValidations(
   // off the Laba Rugi result. It used to be `ls.laba_bersih`, which made check
   // (3) below compare a value to itself: a tautology that could never fail
   // despite its name promising an independent cross-check. That is why the
-  // incomeStatement bug where non-HPP/non-OpEx expense accounts were dropped
+  // incomeStatement bug where expense accounts outside both bucket prefixes were dropped
   // slipped past it (2026-07-28) and was only caught by check (4), which is
   // genuinely independent. Income balances are credit (negative), Expenses are
   // debit (positive), so profit = -(Income + Expenses).

@@ -13,7 +13,7 @@
  *       (GoFood, 29 Aug, residual Rp 211) gets one extra settlement_deductions
  *       row inserted to absorb the gap, clearly labelled (decision 8).
  *   (c) KOMISI-category ev_expense rows are excluded from posting — kasir's
- *       settlement posting already books Expenses:OpEx:KomisiOnline itself,
+ *       settlement posting already books Expenses:Operasional:KomisiOnline itself,
  *       so importing Warung Books' KOMISI rows too would double-count it
  *       (decision 5).
  *   (d) the five online settlements are posted through
@@ -68,6 +68,7 @@ const RESIDUAL_ADJUSTMENT_MAX = 1000;
 interface WbCategory {
   category_code: string;
   category_name: string;
+  /** Warung Books' own spelling, kept verbatim — mapped at load time. */
   bucket: "HPP" | "OpEx";
 }
 
@@ -211,7 +212,7 @@ export async function runMigrasi(prisma: PrismaClient, opts: RunMigrasiOptions =
       await expenseRepo.createCategory({
         code: c.category_code,
         name: c.category_name,
-        bucket: c.bucket === "HPP" ? "HPP" : "OPEX",
+        bucket: c.bucket === "HPP" ? "BAHAN_BAKU" : "OPERASIONAL",
       });
     } catch (e) {
       rejections.push({ stage: "category", input: c, error: errMsg(e) });
@@ -423,7 +424,7 @@ export async function runMigrasi(prisma: PrismaClient, opts: RunMigrasiOptions =
   //
   // (c) KOMISI-category ev_expense rows are excluded from posting — kasir's
   // settlement posting (below, step d) already books
-  // Expenses:OpEx:KomisiOnline itself for the online commission, so
+  // Expenses:Operasional:KomisiOnline itself for the online commission, so
   // importing Warung Books' KOMISI expense rows too would double-count it
   // (decision 5).
   // -----------------------------------------------------------------------

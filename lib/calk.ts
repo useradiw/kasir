@@ -33,8 +33,8 @@ export interface CalkInput {
   period: { dateFrom: string; dateTo: string };
   labaRugi: {
     pendapatan: { tunai: number; qris: number; online: number; total: number };
-    hpp: { lines: { label: string; amount: number }[]; total: number };
-    biaya_operasional: { lines: { label: string; amount: number }[]; total: number };
+    pengeluaran_bahan_baku: { lines: { label: string; amount: number }[]; total: number };
+    pengeluaran_operasional: { lines: { label: string; amount: number }[]; total: number };
   };
   neraca: {
     aset: { lines: { account: string; label: string; amount: number }[] };
@@ -76,7 +76,7 @@ export function buildCalk(laporan: CalkInput, notes: Record<string, string> = {}
       title: "Ikhtisar Kebijakan Akuntansi Penting",
       generated: [
         { label: "Pengakuan beban", value: "Beban dicatat langsung saat terjadi, bukan sebagai persediaan/aset" },
-        { label: "HPP (Harga Pokok Penjualan)", value: "Berasal dari pembelian bahan baku yang dicatat sebagai pengeluaran" },
+        { label: "Pengeluaran Bahan Baku", value: "Berasal dari pembelian bahan baku yang dicatat sebagai pengeluaran" },
         { label: "Pengakuan pendapatan", value: "Diakui saat kas diterima; penjualan online diakui saat pencairan dana, bukan saat pesanan dibuat" },
       ],
       note: noteFor("kebijakan-akuntansi"),
@@ -102,10 +102,10 @@ export function buildCalk(laporan: CalkInput, notes: Record<string, string> = {}
       key: "rincian-beban",
       title: "Rincian Beban",
       generated: [
-        ...laporan.labaRugi.hpp.lines.map((l) => ({ label: `HPP - ${l.label}`, value: l.amount })),
-        { label: "Total HPP", value: laporan.labaRugi.hpp.total },
-        ...laporan.labaRugi.biaya_operasional.lines.map((l) => ({ label: l.label, value: l.amount })),
-        { label: "Total Biaya Operasional", value: laporan.labaRugi.biaya_operasional.total },
+        ...laporan.labaRugi.pengeluaran_bahan_baku.lines.map((l) => ({ label: `Bahan Baku - ${l.label}`, value: l.amount })),
+        { label: "Total Pengeluaran Bahan Baku", value: laporan.labaRugi.pengeluaran_bahan_baku.total },
+        ...laporan.labaRugi.pengeluaran_operasional.lines.map((l) => ({ label: l.label, value: l.amount })),
+        { label: "Total Pengeluaran Operasional", value: laporan.labaRugi.pengeluaran_operasional.total },
       ],
       note: noteFor("rincian-beban"),
     },

@@ -366,8 +366,8 @@ enum EntryState {
 }
 
 enum ExpenseBucket {
-  HPP
-  OPEX
+  BAHAN_BAKU
+  OPERASIONAL
 }
 
 /// Chart-of-accounts registry (Beancount-style names, e.g. "Assets:Cash:Utama").
@@ -501,7 +501,7 @@ model SalesChannelAccount {
 
 /// Generic key/value settings for Warung Books config. Today holds a single
 /// key, "purchase-cash-account" — the Beancount kas account name that bahan
-/// baku purchases (pengeluaran) are paid from (Expenses:HPP:Bahan leg's
+/// baku purchases (pengeluaran) are paid from (Expenses:BahanBaku:Bahan leg's
 /// counterpart).
 model AccountingSetting {
   id        String   @id @default(cuid())

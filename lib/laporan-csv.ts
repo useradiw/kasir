@@ -32,11 +32,11 @@ export function buildLaporanSections(laporan: LaporanKeuangan): CsvSection[] {
     rows: [
       ...labaRugi.pendapatan.lines.map((l) => [l.label, l.amount]),
       ["Total Pendapatan", labaRugi.pendapatan.total],
-      ...labaRugi.hpp.lines.map((l) => [l.label, l.amount]),
-      ["Total HPP", labaRugi.hpp.total],
+      ...labaRugi.pengeluaran_bahan_baku.lines.map((l) => [l.label, l.amount]),
+      ["Total Pengeluaran Bahan Baku", labaRugi.pengeluaran_bahan_baku.total],
       ["Laba Kotor", labaRugi.laba_kotor],
-      ...labaRugi.biaya_operasional.lines.map((l) => [l.label, l.amount]),
-      ["Total Biaya Operasional", labaRugi.biaya_operasional.total],
+      ...labaRugi.pengeluaran_operasional.lines.map((l) => [l.label, l.amount]),
+      ["Total Pengeluaran Operasional", labaRugi.pengeluaran_operasional.total],
       ["Laba Bersih", labaRugi.laba_bersih],
     ],
   });

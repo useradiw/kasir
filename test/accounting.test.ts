@@ -44,7 +44,7 @@ const cashSaleLine = (amount: bigint = 100_000n) => [
 
 /** A balanced set: debit Expense, credit Cash */
 const expenseLine = (amount: bigint = 50_000n) => [
-  { account: "Expenses:OpEx:Listrik", amount },
+  { account: "Expenses:Operasional:Listrik", amount },
   { account: "Assets:Cash:Mandiri", amount: -amount },
 ];
 
@@ -263,7 +263,7 @@ describe("Book-from-DB equals derived sums (bug #3)", () => {
       date: "2024-01-03",
       narration: "Bayar listrik",
       lines: [
-        { account: "Expenses:OpEx:Listrik", amount: 50_000n },
+        { account: "Expenses:Operasional:Listrik", amount: 50_000n },
         { account: "Assets:Cash:Mandiri", amount: -50_000n },
       ],
     });
@@ -275,12 +275,12 @@ describe("Book-from-DB equals derived sums (bug #3)", () => {
     // Equity:Modal = -(-5_000_000) = debit-credit sign convention: amount stored as -5_000_000 (credit)
     //   balance() sums amounts; -5_000_000 → balance = -5_000_000 (credit balance)
     // Income:Sales = -200_000 (credit balance)
-    // Expenses:OpEx:Listrik = 50_000 (debit balance)
+    // Expenses:Operasional:Listrik = 50_000 (debit balance)
 
     expect(book.balance("Assets:Cash:Mandiri")).toBe(5_150_000n);
     expect(book.balance("Equity:Modal")).toBe(-5_000_000n);
     expect(book.balance("Income:Sales")).toBe(-200_000n);
-    expect(book.balance("Expenses:OpEx:Listrik")).toBe(50_000n);
+    expect(book.balance("Expenses:Operasional:Listrik")).toBe(50_000n);
   });
 
   it("loadBook respects dateFrom/dateTo filter", async () => {
@@ -489,7 +489,7 @@ describe("Accounting equation from Book (WB port)", () => {
       date: "2024-01-03",
       narration: "Pengeluaran",
       lines: [
-        { account: "Expenses:OpEx:Sewa", amount: 100_000n },
+        { account: "Expenses:Operasional:Sewa", amount: 100_000n },
         { account: "Assets:Cash:Mandiri", amount: -100_000n },
       ],
     });

@@ -207,10 +207,10 @@ export async function getReportData(opts: {
   const totalSalary = staffSalaryBreakdown.reduce((s, x) => s + x.total, 0);
 
   // --- Expense summary (ledger-based, Slice 3b) ---
-  // opex = every Expenses:* account except Expenses:HPP:* — see
+  // operasional = every Expenses:* account except Expenses:BahanBaku:* — see
   // getLedgerExpenseTotals for why this deliberately includes
-  // Expenses:OpEx:KomisiOnline and Expenses:SelisihKas (real costs).
-  const totalExpenses = ledgerExpenseTotals.opex;
+  // Expenses:Operasional:KomisiOnline and Expenses:SelisihKas (real costs).
+  const totalExpenses = ledgerExpenseTotals.operasional;
 
   // --- Cash register summary — rebuilt from the buku besar (Slice 3a's
   // formula, shared via reconcileCashDates) so laporan, tutup kas, and
@@ -309,17 +309,16 @@ export async function getReportData(opts: {
     byService: Object.entries(onlineByService).map(([service, v]) => ({ service, ...v })),
   };
 
-  // --- HPP summary (ledger-based, Slice 3b) ---
-  // HPP is not a per-sale cost under Warung Books — it's the Expenses:HPP:*
-  // bucket fed by pengeluaran (bahan baku purchases). Transaction.cogs has
-  // been null since Slice 1 stopped writing it; the field names below
-  // (cogs/grossProfit/grossMarginPct) are kept unchanged so existing
-  // clients (PnLCard, export.ts) keep working.
-  const totalCogs = ledgerExpenseTotals.hpp;
+  // --- Pengeluaran Bahan Baku summary (ledger-based, Slice 3b) ---
+  // It is not a per-sale cost under Warung Books — it's the
+  // Expenses:BahanBaku:* bucket fed by pengeluaran (bahan baku purchases).
+  // Transaction.cogs (the per-sale column) has been null since Slice 1 stopped
+  // writing it and is a DIFFERENT thing from the summary field below.
+  const totalBahanBaku = ledgerExpenseTotals.bahanBaku;
   const totalRevenueCombined = recognisedRevenue(totalRevenue, disbursedRevenue);
-  const grossProfit = totalRevenueCombined - totalCogs;
-  const grossMarginPct = totalRevenueCombined > 0
-    ? Math.round((grossProfit / totalRevenueCombined) * 1000) / 10
+  const labaKotor = totalRevenueCombined - totalBahanBaku;
+  const labaKotorPct = totalRevenueCombined > 0
+    ? Math.round((labaKotor / totalRevenueCombined) * 1000) / 10
     : null;
 
   return {
@@ -343,10 +342,10 @@ export async function getReportData(opts: {
     // not reflected in laba bersih until it is.
     totalSalary: isOwner ? totalSalary : 0,
     staffSalary: isOwner ? staffSalaryBreakdown : [],
-    netProfit: isOwner ? totalRevenueCombined - totalCogs - totalExpenses : 0,
-    cogs: isOwner ? totalCogs : 0,
-    grossProfit: isOwner ? grossProfit : 0,
-    grossMarginPct: isOwner ? grossMarginPct : null,
+    netProfit: isOwner ? totalRevenueCombined - totalBahanBaku - totalExpenses : 0,
+    bahanBaku: isOwner ? totalBahanBaku : 0,
+    labaKotor: isOwner ? labaKotor : 0,
+    labaKotorPct: isOwner ? labaKotorPct : null,
     onlineOrdersSummary,
     revenueByDay,
     paymentMethods,

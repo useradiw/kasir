@@ -11,7 +11,7 @@ const kasAccount = z.string().startsWith("Assets:Cash:", "Akun kas tidak valid")
 export const categorySchema = z.object({
   code: z.string().min(1, "Kode wajib diisi"),
   name: z.string().min(1, "Nama wajib diisi"),
-  bucket: z.enum(["HPP", "OPEX"]),
+  bucket: z.enum(["BAHAN_BAKU", "OPERASIONAL"]),
 });
 export const updateCategorySchema = z.object({
   id: z.string().min(1),

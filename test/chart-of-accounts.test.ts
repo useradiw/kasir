@@ -26,7 +26,7 @@ describe("accountTypeFor", () => {
   it("maps Beancount roots to AccountType", () => {
     expect(accountTypeFor("Assets:Cash:Utama")).toBe("ASSET");
     expect(accountTypeFor("Income:Sales:Tunai")).toBe("INCOME");
-    expect(accountTypeFor("Expenses:HPP:Bahan")).toBe("EXPENSE");
+    expect(accountTypeFor("Expenses:BahanBaku:Bahan")).toBe("EXPENSE");
     expect(accountTypeFor("Equity:Modal")).toBe("EQUITY");
   });
 
@@ -47,9 +47,9 @@ describe("seedChartOfAccounts", () => {
     expect(tunai?.type).toBe("INCOME");
     expect(tunai?.active).toBe(true);
 
-    const hppBahan = await prisma.ledgerAccount.findUnique({ where: { code: "hpp-bahan" } });
-    expect(hppBahan?.name).toBe("Expenses:HPP:Bahan");
-    expect(hppBahan?.type).toBe("EXPENSE");
+    const bahanBaku = await prisma.ledgerAccount.findUnique({ where: { code: "bahan-baku" } });
+    expect(bahanBaku?.name).toBe("Expenses:BahanBaku:Bahan");
+    expect(bahanBaku?.type).toBe("EXPENSE");
 
     const selisihExpense = await prisma.ledgerAccount.findUnique({
       where: { code: "selisih-kas-expense" },

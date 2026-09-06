@@ -364,7 +364,7 @@ describe("Kas totals invariant", () => {
       date: "2026-08-10",
       narration: "Beli gas",
       lines: [
-        { account: "Expenses:OpEx:Gas", amount: 35_000n },
+        { account: "Expenses:Operasional:Gas", amount: 35_000n },
         { account: TUNAI, amount: -35_000n },
       ],
     });
@@ -465,7 +465,7 @@ describe("Kas totals invariant", () => {
       date: "2026-08-13",
       narration: "Pengeluaran gas",
       lines: [
-        { account: "Expenses:OpEx:Gas", amount: 35_000n },
+        { account: "Expenses:Operasional:Gas", amount: 35_000n },
         { account: TUNAI, amount: -35_000n },
       ],
     });

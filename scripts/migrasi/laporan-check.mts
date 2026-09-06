@@ -56,9 +56,19 @@ async function main(): Promise<void> {
       "baris".padEnd(26) + "Warung Books".padStart(14) + "kasir".padStart(14) + "selisih".padStart(12),
     );
     console.log(line("Total Pendapatan", wbFigure(month, "LABA RUGI", "Total Pendapatan"), l.labaRugi.pendapatan.total));
-    console.log(line("Total HPP", wbFigure(month, "LABA RUGI", "Total HPP"), l.labaRugi.hpp.total));
+    // The Warung Books baseline JSON keeps its own "Total HPP" label — it is the
+    // external report being compared against and is never renamed.
+    console.log(
+      line("Total Bahan Baku", wbFigure(month, "LABA RUGI", "Total HPP"), l.labaRugi.pengeluaran_bahan_baku.total),
+    );
     console.log(line("Laba Kotor", wbFigure(month, "LABA RUGI", "LABA KOTOR"), l.labaRugi.laba_kotor));
-    console.log(line("Total Biaya Operasional", wbFigure(month, "LABA RUGI", "Total Biaya Operasional"), l.labaRugi.biaya_operasional.total));
+    console.log(
+      line(
+        "Total Operasional",
+        wbFigure(month, "LABA RUGI", "Total Biaya Operasional"),
+        l.labaRugi.pengeluaran_operasional.total,
+      ),
+    );
     console.log(line("Laba Bersih", wbFigure(month, "LABA RUGI", "LABA BERSIH"), l.labaRugi.laba_bersih));
     console.log(line("Total Aset", wbFigure(month, "NERACA", "Total Aset"), l.neraca.aset.total));
     console.log(line("Total Ekuitas", wbFigure(month, "NERACA", "Total Ekuitas"), l.neraca.ekuitas.total));

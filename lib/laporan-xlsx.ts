@@ -90,18 +90,18 @@ export function buildLaporanWorkbook(
     ),
     { kind: "total", label: "Total Pendapatan", amount: labaRugi.pendapatan.total },
     { kind: "blank" },
-    { kind: "section", text: "HARGA POKOK PENJUALAN (HPP)" },
-    ...labaRugi.hpp.lines.map(
+    { kind: "section", text: "PENGELUARAN BAHAN BAKU" },
+    ...labaRugi.pengeluaran_bahan_baku.lines.map(
       (l): XlsxRow => ({ kind: "detail", label: indent(l.label), amount: l.amount }),
     ),
-    { kind: "total", label: "Total HPP", amount: labaRugi.hpp.total },
+    { kind: "total", label: "Total Pengeluaran Bahan Baku", amount: labaRugi.pengeluaran_bahan_baku.total },
     { kind: "total", label: "LABA KOTOR", amount: labaRugi.laba_kotor },
     { kind: "blank" },
-    { kind: "section", text: "BIAYA OPERASIONAL" },
-    ...labaRugi.biaya_operasional.lines.map(
+    { kind: "section", text: "PENGELUARAN OPERASIONAL" },
+    ...labaRugi.pengeluaran_operasional.lines.map(
       (l): XlsxRow => ({ kind: "detail", label: indent(l.label), amount: l.amount }),
     ),
-    { kind: "total", label: "Total Biaya Operasional", amount: labaRugi.biaya_operasional.total },
+    { kind: "total", label: "Total Pengeluaran Operasional", amount: labaRugi.pengeluaran_operasional.total },
     { kind: "total", label: "LABA BERSIH", amount: labaRugi.laba_bersih },
   ];
 

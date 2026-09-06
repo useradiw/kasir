@@ -29,9 +29,9 @@ export default async function BukuPage() {
   const remaining = steps.filter((s) => !s.done).length;
   const labaBersih = Number(laporan.labaRugi.laba_bersih ?? 0);
   const pendapatan = Number(laporan.labaRugi.pendapatan.total ?? 0);
-  const hpp = Number(laporan.labaRugi.hpp.total ?? 0);
-  const beban = Number(laporan.labaRugi.biaya_operasional.total ?? 0);
-  const max = Math.max(pendapatan, hpp, beban, 1);
+  const bahanBaku = Number(laporan.labaRugi.pengeluaran_bahan_baku.total ?? 0);
+  const operasional = Number(laporan.labaRugi.pengeluaran_operasional.total ?? 0);
+  const max = Math.max(pendapatan, bahanBaku, operasional, 1);
 
   return (
     <AppShell role={staff.role}>
@@ -65,8 +65,8 @@ export default async function BukuPage() {
           <div className="mt-4 flex flex-col gap-2.5">
             {[
               { l: "Pendapatan", v: pendapatan, w: (pendapatan / max) * 100, dim: false },
-              { l: "HPP", v: hpp, w: (hpp / max) * 100, dim: true },
-              { l: "Beban", v: beban, w: (beban / max) * 100, dim: true },
+              { l: "Bahan Baku", v: bahanBaku, w: (bahanBaku / max) * 100, dim: true },
+              { l: "Operasional", v: operasional, w: (operasional / max) * 100, dim: true },
             ].map((r) => (
               <div key={r.l} className="flex items-center gap-2.5">
                 <span className="w-20 text-xs font-semibold text-muted-foreground">{r.l}</span>

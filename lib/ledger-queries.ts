@@ -115,18 +115,20 @@ export async function getNonSalesCashMovementByDate(
 }
 
 /**
- * Ledger-based HPP/OpEx totals for laporan (Slice 3b) — replaces the old
+ * Ledger-based bahan baku / operasional totals for laporan (Slice 3b) — replaces the old
  * per-sale `Transaction.cogs` figure (dead since Slice 1) and the private
- * `Expense`-table sum. HPP is not a per-sale cost under Warung Books; it is
- * the `Expenses:HPP:*` bucket, fed by pengeluaran (bahan baku purchases).
+ * `Expense`-table sum. Pengeluaran Bahan Baku is not a per-sale cost under
+ * Warung Books; it is the `Expenses:BahanBaku:*` bucket, fed by pengeluaran
+ * (bahan baku purchases).
  *
  * - Sums every `Expenses:*` line in [dateFrom, dateTo] (both inclusive).
  * - Includes both POSTED and VOID: a voided pengeluaran plus its reversal
  *   nets to zero (same invariant as getNonSalesCashMovementByDate above) —
  *   excluding VOID would strand the reversal leg and produce garbage.
- * - hpp = accounts under "Expenses:HPP:*"; opex = every other Expenses:*
- *   account (OpEx, SelisihKas, KomisiOnline, ...) — real costs, all counted
- *   once, so hpp + opex always equals the grand total of Expenses:* lines.
+ * - bahanBaku = accounts under "Expenses:BahanBaku:*"; operasional = every
+ *   other Expenses:* account (Operasional, SelisihKas, KomisiOnline, ...) —
+ *   real costs, all counted once, so bahanBaku + operasional always equals
+ *   the grand total of Expenses:* lines.
  *
  * `db` defaults to the production-pointing singleton (`@/lib/prisma`) for
  * real call sites (report-queries.ts) — tests inject the pglite test client
@@ -137,8 +139,8 @@ export async function getLedgerExpenseTotals(
   dateTo: string,
   db: PrismaClient = prisma,
 ): Promise<{
-  hpp: number;
-  opex: number;
+  bahanBaku: number;
+  operasional: number;
   byAccount: Record<string, number>;
   byDate: Record<string, number>;
 }> {
@@ -153,8 +155,8 @@ export async function getLedgerExpenseTotals(
     select: { account: true, amount: true, entry: { select: { date: true } } },
   });
 
-  let hpp = 0;
-  let opex = 0;
+  let bahanBaku = 0;
+  let operasional = 0;
   const byAccount: Record<string, number> = {};
   const byDate: Record<string, number> = {};
 
@@ -162,14 +164,14 @@ export async function getLedgerExpenseTotals(
     const amount = Number(line.amount);
     byAccount[line.account] = (byAccount[line.account] ?? 0) + amount;
     byDate[line.entry.date] = (byDate[line.entry.date] ?? 0) + amount;
-    if (line.account.startsWith("Expenses:HPP:")) {
-      hpp += amount;
+    if (line.account.startsWith("Expenses:BahanBaku:")) {
+      bahanBaku += amount;
     } else {
-      opex += amount;
+      operasional += amount;
     }
   }
 
-  return { hpp, opex, byAccount, byDate };
+  return { bahanBaku, operasional, byAccount, byDate };
 }
 
 /**

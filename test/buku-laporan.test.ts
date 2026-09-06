@@ -27,14 +27,14 @@ import { buildCalk } from "../lib/calk";
 // ---------------------------------------------------------------------------
 
 const pendapatan = { tunai: 4_500_000, qris: 2_100_000, online: 980_000, total: 7_580_000 };
-const hpp = { lines: [{ account: "Expenses:HPP:BahanBaku", label: "Bahan baku terjual", amount: 2_940_000 }], total: 2_940_000 };
-const labaKotor = pendapatan.total - hpp.total; // 4.640.000
+const bahanBaku = { lines: [{ account: "Expenses:BahanBaku:Bahan", label: "Bahan baku terjual", amount: 2_940_000 }], total: 2_940_000 };
+const labaKotor = pendapatan.total - bahanBaku.total; // 4.640.000
 const biayaOperasional = {
   lines: [
-    { account: "Expenses:OpEx:Gaji", label: "Gaji", amount: 1_200_000 },
-    { account: "Expenses:OpEx:Sewa", label: "Sewa", amount: 500_000 },
-    { account: "Expenses:OpEx:Utilitas", label: "Listrik & air", amount: 180_000 },
-    { account: "Expenses:OpEx:Komisi", label: "Komisi online", amount: 98_000 },
+    { account: "Expenses:Operasional:Gaji", label: "Gaji", amount: 1_200_000 },
+    { account: "Expenses:Operasional:Sewa", label: "Sewa", amount: 500_000 },
+    { account: "Expenses:Operasional:Utilitas", label: "Listrik & air", amount: 180_000 },
+    { account: "Expenses:Operasional:Komisi", label: "Komisi online", amount: 98_000 },
     { account: "Expenses:SelisihKas", label: "Selisih kas", amount: 10_000 },
   ],
   total: 1_988_000,
@@ -43,9 +43,9 @@ const labaBersih = labaKotor - biayaOperasional.total; // 2.652.000
 
 const labaRugi = {
   pendapatan,
-  hpp,
+  pengeluaran_bahan_baku: bahanBaku,
   laba_kotor: labaKotor,
-  biaya_operasional: biayaOperasional,
+  pengeluaran_operasional: biayaOperasional,
   laba_bersih: labaBersih,
 };
 
@@ -101,18 +101,18 @@ describe("Laba Rugi — the screen's rows add up to the totals shown against the
     );
   });
 
-  it("hpp.lines (every row the tab maps over) sum to Total HPP", () => {
-    const sum = labaRugi.hpp.lines.reduce((s, l) => s + l.amount, 0);
-    expect(sum).toBe(labaRugi.hpp.total);
+  it("pengeluaran_bahan_baku.lines (every row the tab maps over) sum to the total", () => {
+    const sum = labaRugi.pengeluaran_bahan_baku.lines.reduce((s, l) => s + l.amount, 0);
+    expect(sum).toBe(labaRugi.pengeluaran_bahan_baku.total);
   });
 
-  it("biaya_operasional.lines (every row the tab maps over) sum to Total Beban", () => {
-    const sum = labaRugi.biaya_operasional.lines.reduce((s, l) => s + l.amount, 0);
-    expect(sum).toBe(labaRugi.biaya_operasional.total);
+  it("pengeluaran_operasional.lines (every row the tab maps over) sum to the total", () => {
+    const sum = labaRugi.pengeluaran_operasional.lines.reduce((s, l) => s + l.amount, 0);
+    expect(sum).toBe(labaRugi.pengeluaran_operasional.total);
   });
 
-  it("pendapatan - HPP - beban = laba bersih", () => {
-    expect(labaRugi.pendapatan.total - labaRugi.hpp.total - labaRugi.biaya_operasional.total).toBe(
+  it("pendapatan - bahan baku - operasional = laba bersih", () => {
+    expect(labaRugi.pendapatan.total - labaRugi.pengeluaran_bahan_baku.total - labaRugi.pengeluaran_operasional.total).toBe(
       labaRugi.laba_bersih,
     );
   });

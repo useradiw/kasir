@@ -56,7 +56,7 @@ const SIMPLE_FIELDS: Record<Exclude<Jenis, "belanja">, SimpleFieldKey[]> = {
 };
 
 type CashAccount = { name: string; label: string };
-type Category = { code: string; name: string; bucket: "HPP" | "OPEX" };
+type Category = { code: string; name: string; bucket: "BAHAN_BAKU" | "OPERASIONAL" };
 type Line = { qty: string; hargaSatuan: string };
 
 export function EntryForm({
@@ -209,7 +209,11 @@ export function EntryForm({
             </Field>
             <Field label="Kategori">
               <AdminSelect className="w-full" value={kategoriCode} onChange={(e) => setKategoriCode(e.target.value)} required>
-                {categories.map((c) => <option key={c.code} value={c.code}>{c.name} ({c.bucket})</option>)}
+                {categories.map((c) => (
+                  <option key={c.code} value={c.code}>
+                    {c.name} ({c.bucket === "BAHAN_BAKU" ? "Bahan Baku" : "Operasional"})
+                  </option>
+                ))}
               </AdminSelect>
             </Field>
             <Field label="Nama / keterangan">

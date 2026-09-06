@@ -57,7 +57,7 @@ describe("Neraca (balanceSheet)", () => {
     await catat.recordSaldoAwal({ date: "2026-07-01", akun: UTAMA, jumlah: 200_000n });
     await postCashSale("2026-07-05", "Income:Sales:Tunai", 500_000n);
 
-    await expenses.createCategory({ code: "LISTRIK", name: "Listrik", bucket: "OPEX" });
+    await expenses.createCategory({ code: "LISTRIK", name: "Listrik", bucket: "OPERASIONAL" });
     await expenses.recordPengeluaran({
       date: "2026-07-06", akun: UTAMA, item: "PLN", qty: 1, hargaSatuan: 150_000n, jumlah: 150_000n, kategoriCode: "LISTRIK",
     });
@@ -72,13 +72,13 @@ describe("Neraca (balanceSheet)", () => {
 });
 
 describe("Laba Rugi (incomeStatement)", () => {
-  it("ties to ledger sums: pendapatan, HPP, laba kotor/bersih, tunai/qris/online split", async () => {
+  it("ties to ledger sums: pendapatan, bahan baku, laba kotor/bersih, tunai/qris/online split", async () => {
     await postCashSale("2026-07-05", "Income:Sales:Tunai", 300_000n);
     await postCashSale("2026-07-06", "Income:Sales:QRIS", 200_000n);
     await postCashSale("2026-07-07", "Income:Sales:Online", 100_000n);
 
-    await expenses.createCategory({ code: "KULAKAN", name: "Kulakan", bucket: "HPP" });
-    await expenses.createCategory({ code: "SEWA", name: "Sewa", bucket: "OPEX" });
+    await expenses.createCategory({ code: "KULAKAN", name: "Kulakan", bucket: "BAHAN_BAKU" });
+    await expenses.createCategory({ code: "SEWA", name: "Sewa", bucket: "OPERASIONAL" });
     await expenses.recordPengeluaran({
       date: "2026-07-08", akun: UTAMA, item: "Barang", qty: 1, hargaSatuan: 120_000n, jumlah: 120_000n, kategoriCode: "KULAKAN",
     });
@@ -95,10 +95,10 @@ describe("Laba Rugi (incomeStatement)", () => {
     expect(ls.pendapatan.qris).toBe(200_000n);
     expect(ls.pendapatan.online).toBe(100_000n);
     expect(ls.pendapatan.total).toBe(600_000n);
-    expect(ls.hpp.total).toBe(120_000n);
-    expect(ls.laba_kotor).toBe(ls.pendapatan.total - ls.hpp.total);
-    expect(ls.biaya_operasional.total).toBe(50_000n);
-    expect(ls.laba_bersih).toBe(ls.laba_kotor - ls.biaya_operasional.total);
+    expect(ls.pengeluaran_bahan_baku.total).toBe(120_000n);
+    expect(ls.laba_kotor).toBe(ls.pendapatan.total - ls.pengeluaran_bahan_baku.total);
+    expect(ls.pengeluaran_operasional.total).toBe(50_000n);
+    expect(ls.laba_bersih).toBe(ls.laba_kotor - ls.pengeluaran_operasional.total);
   });
 });
 
@@ -106,7 +106,7 @@ describe("Arus Kas (cashFlow)", () => {
   it("reconciles kas_akhir - kas_awal == kenaikan_kas_bersih, delta_cash_check == 0", async () => {
     await catat.recordModal({ date: "2026-07-01", nama: "Adi", akun: UTAMA, jumlah: 1_000_000n });
     await postCashSale("2026-07-05", "Income:Sales:Tunai", 300_000n);
-    await expenses.createCategory({ code: "LAIN", name: "Lain", bucket: "OPEX" });
+    await expenses.createCategory({ code: "LAIN", name: "Lain", bucket: "OPERASIONAL" });
     await expenses.recordPengeluaran({
       date: "2026-07-06", akun: UTAMA, item: "x", qty: 1, hargaSatuan: 100_000n, jumlah: 100_000n, kategoriCode: "LAIN",
     });
@@ -123,7 +123,7 @@ describe("Arus Kas (cashFlow)", () => {
     await catat.recordSaldoAwal({ date: "2026-07-01", akun: UTAMA, jumlah: 200_000n });
     await postCashSale("2026-07-02", "Income:Sales:Tunai", 100_000n);
     await catat.recordPrive({ date: "2026-07-03", akun: UTAMA, jumlah: 50_000n });
-    await expenses.createCategory({ code: "LAIN", name: "Lain", bucket: "OPEX" });
+    await expenses.createCategory({ code: "LAIN", name: "Lain", bucket: "OPERASIONAL" });
     await expenses.recordPengeluaran({
       date: "2026-07-04", akun: UTAMA, item: "x", qty: 1, hargaSatuan: 20_000n, jumlah: 20_000n, kategoriCode: "LAIN",
     });
@@ -242,10 +242,10 @@ describe("runValidations", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Regression: expense accounts outside Expenses:HPP:/Expenses:OpEx: (2026-07-28)
+// Regression: expense accounts outside Expenses:BahanBaku:/Expenses:Operasional: (2026-07-28)
 // ---------------------------------------------------------------------------
 
-describe("Laba Rugi — expense accounts outside the HPP/OpEx prefixes", () => {
+describe("Laba Rugi — expense accounts outside both bucket prefixes", () => {
   /** Post a cash shortage the way tutup kas does: Dr Expenses:SelisihKas / Cr kas. */
   async function postSelisihKas(date: string, amount: bigint) {
     await acc.postEntry({
@@ -265,10 +265,10 @@ describe("Laba Rugi — expense accounts outside the HPP/OpEx prefixes", () => {
     const book = await acc.loadBook({ dateTo: "2026-07-31" });
     const ls = incomeStatement(book, "2026-07-01", "2026-07-31");
 
-    // Was the bug: biaya_operasional summed only "Expenses:OpEx:", so a
+    // Was the bug: pengeluaran_operasional summed only "Expenses:Operasional:", so a
     // SelisihKas shortage vanished and laba bersih came out 25.000 too high.
-    expect(ls.biaya_operasional.total).toBe(25_000n);
-    expect(ls.biaya_operasional.lines.some((l) => l.account === "Expenses:SelisihKas")).toBe(true);
+    expect(ls.pengeluaran_operasional.total).toBe(25_000n);
+    expect(ls.pengeluaran_operasional.lines.some((l) => l.account === "Expenses:SelisihKas")).toBe(true);
     expect(ls.laba_bersih).toBe(975_000n);
   });
 
@@ -276,7 +276,7 @@ describe("Laba Rugi — expense accounts outside the HPP/OpEx prefixes", () => {
     await postSelisihKas("2026-07-06", 10_000n);
     const book = await acc.loadBook({ dateTo: "2026-07-31" });
     const ls = incomeStatement(book, "2026-07-01", "2026-07-31");
-    const line = ls.biaya_operasional.lines.find((l) => l.account === "Expenses:SelisihKas");
+    const line = ls.pengeluaran_operasional.lines.find((l) => l.account === "Expenses:SelisihKas");
     expect(line?.label).toBe("Selisih Kas");
   });
 

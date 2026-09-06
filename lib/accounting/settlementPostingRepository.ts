@@ -132,7 +132,7 @@ function buildLines(spec: SettlementSpec): { account: string; amount: bigint }[]
 
   const komisi = spec.commissionAmount + spec.deductionsTotal;
   if (komisi > 0n) {
-    lines.push({ account: "Expenses:OpEx:KomisiOnline", amount: komisi });
+    lines.push({ account: "Expenses:Operasional:KomisiOnline", amount: komisi });
   }
 
   if (spec.totalGross > 0n) {

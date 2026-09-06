@@ -44,7 +44,7 @@ describe("getBukuKas", () => {
     await acc.postEntry({
       date: "2026-07-10",
       narration: "Expense",
-      lines: [{ account: "Expenses:OpEx:Listrik", amount: 50_000n }, { account: UTAMA, amount: -50_000n }],
+      lines: [{ account: "Expenses:Operasional:Listrik", amount: 50_000n }, { account: UTAMA, amount: -50_000n }],
     });
 
     const [row] = await getBukuKas("2026-07", prisma);
