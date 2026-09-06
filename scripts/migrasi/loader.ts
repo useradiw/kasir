@@ -44,17 +44,25 @@ import { sumDaySales, type DaySalesInput } from "../../lib/day-close";
 // ---------------------------------------------------------------------------
 
 const DEFAULT_EVENTS_PATH = new URL("./warungbooks-events.json", import.meta.url);
-const DEFAULT_BACKUP_PATH = new URL("../../backup-2026-09-03.json", import.meta.url);
+const DEFAULT_BACKUP_PATH = new URL("../../backup-2026-09-06.json", import.meta.url);
 
 /** Every month operational data + books events are loaded for. Independent
  *  of which months a caller later chooses to compare/report on — August is
  *  always loaded and always day-closed here (decision 3/10 in
- *  docs/migrasi-data.md), only its REPORT is out of scope for the WB diff. */
-const LOAD_MONTHS = ["2026-04", "2026-05", "2026-06", "2026-07", "2026-08"] as const;
+ *  docs/migrasi-data.md), only its REPORT is out of scope for the WB diff.
+ *
+ *  2026-09 added 2026-09-06: each month here creates its AccountingMonth row,
+ *  and a day-close cannot post without an open month, so September's days
+ *  would be silently unposted without it. */
+const LOAD_MONTHS = ["2026-04", "2026-05", "2026-06", "2026-07", "2026-08", "2026-09"] as const;
 
-/** Inclusive cap on every operational row — Adi asked for data through the
- *  end of August only; backup-2026-09-03.json runs to 2026-09-03. */
-const CUTOFF_DATE = "2026-08-31";
+/** Inclusive cap on every operational row. Raised to 2026-09-06 so the new
+ *  database catches up with the old production system, which stays in use
+ *  during the parallel run. backup-2026-09-06.json actually ends on
+ *  2026-09-05 (no sales had been rung on the 6th when it was exported), so
+ *  this cap currently excludes nothing — it is the intended boundary, not a
+ *  description of the data. */
+const CUTOFF_DATE = "2026-09-06";
 
 /** A settlement residual in this range gets one adjusting deduction row
  *  instead of being treated as a real discrepancy (decision 8). */
@@ -294,11 +302,11 @@ export async function runMigrasi(prisma: PrismaClient, opts: RunMigrasiOptions =
   const allSettlementItems = t.settlementItems;
   const keptSettlementItems = allSettlementItems.filter((si) => keptTransactionIds.has(si.transactionId as string));
 
-  rowCounts["transaksi dilewati (setelah 2026-08-31)"] = allTransactions.length - keptTransactions.length;
-  rowCounts["sesi meja dilewati (setelah 2026-08-31)"] = allTableSessions.length - keptTableSessions.length;
+  rowCounts[`transaksi dilewati (setelah ${CUTOFF_DATE})`] = allTransactions.length - keptTransactions.length;
+  rowCounts[`sesi meja dilewati (setelah ${CUTOFF_DATE})`] = allTableSessions.length - keptTableSessions.length;
   rowCounts["order item dilewati (sesi meja dilewati)"] = allOrderItems.length - keptOrderItems.length;
-  rowCounts["cash register dilewati (setelah 2026-08-31)"] = allCashRegisters.length - keptCashRegisters.length;
-  rowCounts["absensi dilewati (setelah 2026-08-31)"] = allAttendance.length - keptAttendance.length;
+  rowCounts[`cash register dilewati (setelah ${CUTOFF_DATE})`] = allCashRegisters.length - keptCashRegisters.length;
+  rowCounts[`absensi dilewati (setelah ${CUTOFF_DATE})`] = allAttendance.length - keptAttendance.length;
   rowCounts["settlement item dilewati (transaksi dilewati)"] =
     allSettlementItems.length - keptSettlementItems.length;
 

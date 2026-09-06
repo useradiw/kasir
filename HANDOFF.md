@@ -19,6 +19,39 @@ Last green: lint clean, tsc clean (raised heap), 373 passed + 1 skipped / 35 fil
 3. **Worktree + zcode merged and deleted** (d5c1760, 44448b8): Bawa Pulang
    pricing tab, "Menu Management" rename, an unapplied index proposal.
 
+## Data currency — reloaded to 2026-09-05 (2026-09-06 session)
+
+The database was rebuilt from `backup-2026-09-06.json` so it matches the old
+production system through **5 September**. That backup was exported at 15:40
+WIB on the 6th and holds no 6 September rows — no sales had been rung yet — so
+`CUTOFF_DATE = "2026-09-06"` currently excludes nothing.
+
+Now loaded: 855 transactions (12 Apr -> 5 Sep), 902 sessions, 1734 order items,
+135 cash registers, 1016 journal entries, 139 ledger postings, 134 day-closes,
+six accounting months (April-September, all open). Zero rejections.
+
+**Regression gate passed:** `laporan-check.mts` for April-July is byte-identical
+to the pre-reload baseline. The extra September data moved nothing.
+
+The old system stays in use during the parallel run, so this WILL go stale.
+Repeating it means a fresh backup, raising `CUTOFF_DATE`, extending
+`LOAD_MONTHS`, then wipe + reload — the loader is a bulk `createMany` and
+cannot top up an existing database.
+
+Two things the reload does NOT supply:
+- **August and September pengeluaran.** `warungbooks-events.json` still stops at
+  July, so September currently reports Rp 1.672.000 income and ZERO expenses.
+  Hand entry from Warung Books.
+- **Attendance after 29 August.** The old export has none either, so this is a
+  gap in the old system, not a migration fault. Worth checking there.
+
+The old menu was imported **as-is** (54 items, 11 categories), including the
+"Bawa Pulang" category of 10 duplicate items Adi built in the old system. That
+overlaps with the new Take_Away price-override tab, and the prices are not a
+uniform discount (Sate Buntel 65.000 -> 37.000, but Tengkleng 30.000 -> 32.000),
+so they look like different portions. Consolidating the two is a post-deploy
+decision only Adi can make.
+
 ## Deploy checklist (Vercel) — set these before cutover
 
 Required env vars, beyond the Supabase and database ones already in use:

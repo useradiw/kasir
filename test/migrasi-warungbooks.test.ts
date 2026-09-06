@@ -3,7 +3,7 @@
  *
  * Loads Toko Kencana's real historical data into an in-process pglite database
  * two ways, via scripts/migrasi/loader.ts's runMigrasi():
- *   1. The operational backup export (backup-2026-09-03.json) — categories,
+ *   1. The operational backup export (backup-2026-09-06.json) — categories,
  *      menu, staff, table sessions, transactions, cash registers, online
  *      settlements, ... — exactly as production had them.
  *   2. The old Warung Books app's bookkeeping events (modal, transfer,
@@ -18,7 +18,7 @@
  * scripts/migrasi/perbandingan.md.
  *
  * Operational data is capped at 2026-08-31 inclusive (Adi asked for data
- * through the end of August only — backup-2026-09-03.json runs to 2026-09-03).
+ * through 2026-09-06 — backup-2026-09-06.json ends on 2026-09-05).
  * August is still loaded and still day-closed (decision 3/10 in
  * docs/migrasi-data.md) — Adi enters its books himself after migration — but
  * its report is neither generated for comparison nor printed here: only

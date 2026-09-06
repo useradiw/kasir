@@ -28,7 +28,7 @@ import { runMigrasi } from "./loader";
 // ---------------------------------------------------------------------------
 
 const EVENTS_PATH = new URL("./warungbooks-events.json", import.meta.url);
-const BACKUP_PATH = new URL("../../backup-2026-09-03.json", import.meta.url);
+const BACKUP_PATH = new URL("../../backup-2026-09-06.json", import.meta.url);
 
 interface WbEventsSummary {
   categories: unknown[];
