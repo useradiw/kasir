@@ -5,7 +5,7 @@ import { getInventoryData } from "@/app/actions/admin/queries";
 import { requireRole } from "@/lib/admin-auth";
 import InventoryClient from "./inventory-client";
 
-const VALID_TABS = ["categories", "items", "variants", "packages", "online"];
+const VALID_TABS = ["categories", "items", "variants", "packages", "online", "takeaway"];
 
 export default async function InventoryPage({
   searchParams,
@@ -14,8 +14,8 @@ export default async function InventoryPage({
 }) {
   const staff = await requireRole("OWNER", "MANAGER");
   const { tab } = await searchParams;
-  // The "recipes" tab was removed in the COGS strip; old bookmarks fall back
-  // to the first tab instead of rendering an empty page.
+  // Unknown or retired tabs (e.g. old bookmarks) fall back to the first tab
+  // instead of rendering an empty page.
   const activeTab = tab && VALID_TABS.includes(tab) ? tab : "categories";
   const data = await getInventoryData();
 
@@ -26,7 +26,7 @@ export default async function InventoryPage({
           <Link href="/admin" className="cursor-pointer text-[12.5px] font-bold text-muted-foreground">
             ← Admin
           </Link>
-          <h1 className="font-display mt-2 text-[17px] font-bold">Inventori Menu</h1>
+          <h1 className="font-display mt-2 text-[17px] font-bold">Menu Management</h1>
           <p className="text-[11.5px] font-semibold text-muted-foreground">
             {data.categories.length} kategori · {data.menuItems.length} menu
           </p>

@@ -44,9 +44,18 @@ const TABS = [
   { key: "variants", label: "Varian" },
   { key: "packages", label: "Paket" },
   { key: "online", label: "Harga Online" },
+  { key: "takeaway", label: "Bawa Pulang" },
 ];
 
-const SERVICES = ["GoFood", "ShopeeFood", "GrabFood"] as const;
+const ONLINE_SERVICES = ["GoFood", "ShopeeFood", "GrabFood"] as const;
+const TAKEAWAY_SERVICES = ["Take_Away"] as const;
+
+const SERVICE_LABELS: Record<string, string> = {
+  GoFood: "GoFood",
+  ShopeeFood: "ShopeeFood",
+  GrabFood: "GrabFood",
+  Take_Away: "Bawa Pulang",
+};
 
 export default function InventoryClient({ tab, categories, menuItems, variants, packages, packageItems, onlinePrices, isOwner }: Props) {
   const router = useRouter();
@@ -306,70 +315,30 @@ export default function InventoryClient({ tab, categories, menuItems, variants, 
         </BentoCard>
       )}
 
-      {/* ─── ONLINE PRICING ─── */}
+      {/* ─── SERVICE-SPECIFIC PRICING (online vendors + bawa pulang) ─── */}
       {tab === "online" && (
-        <BentoCard className="flex flex-col gap-4">
-          <div>
-            <CardTitle>Harga Online (GoFood, ShopeeFood, GrabFood)</CardTitle>
-            <p className="mt-1 text-[11.5px] font-semibold text-muted-foreground">
-              Atur harga khusus untuk vendor online. Jika tidak diatur, harga default menu yang digunakan.
-            </p>
-          </div>
-          {menuItems.filter((m) => !m.isHidden).map((m) => {
-            const itemVariants = variants.filter((v) => v.menuItemId === m.id);
-            const itemPrices = onlinePrices.filter((op) => op.menuItemId === m.id && !op.variantId);
-            return (
-              <div key={m.id} className="space-y-2 rounded-xl border border-border p-3">
-                <div>
-                  <p className="text-[13.5px] font-bold">{m.name}</p>
-                  <p className="text-[11.5px] text-muted-foreground tabular-nums">Harga dasar: {formatRupiah(m.price)}</p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {SERVICES.map((svc) => {
-                    const existing = itemPrices.find((p) => p.service === svc);
-                    return (
-                      <OnlinePriceInput
-                        key={svc}
-                        service={svc}
-                        menuItemId={m.id}
-                        variantId={null}
-                        currentPrice={existing?.price ?? null}
-                        priceId={existing?.id ?? null}
-                        isPending={isPending}
-                        run={run}
-                      />
-                    );
-                  })}
-                </div>
-                {itemVariants.map((v) => {
-                  const variantPrices = onlinePrices.filter((op) => op.menuItemId === m.id && op.variantId === v.id);
-                  return (
-                    <div key={v.id} className="ml-4 space-y-1 border-l-2 border-border pl-3">
-                      <p className="text-[11.5px] font-bold tabular-nums">{v.label} ({v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)})</p>
-                      <div className="flex flex-col gap-2">
-                        {SERVICES.map((svc) => {
-                          const existing = variantPrices.find((p) => p.service === svc);
-                          return (
-                            <OnlinePriceInput
-                              key={svc}
-                              service={svc}
-                              menuItemId={m.id}
-                              variantId={v.id}
-                              currentPrice={existing?.price ?? null}
-                              priceId={existing?.id ?? null}
-                              isPending={isPending}
-                              run={run}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </BentoCard>
+        <ServicePricingCard
+          title="Harga Online (GoFood, ShopeeFood, GrabFood)"
+          description="Atur harga khusus untuk vendor online. Jika tidak diatur, harga default menu yang digunakan."
+          services={ONLINE_SERVICES}
+          menuItems={menuItems}
+          variants={variants}
+          onlinePrices={onlinePrices}
+          isPending={isPending}
+          run={run}
+        />
+      )}
+      {tab === "takeaway" && (
+        <ServicePricingCard
+          title="Harga Bawa Pulang"
+          description="Atur harga khusus untuk pesanan bawa pulang. Jika tidak diatur, harga default menu yang digunakan."
+          services={TAKEAWAY_SERVICES}
+          menuItems={menuItems}
+          variants={variants}
+          onlinePrices={onlinePrices}
+          isPending={isPending}
+          run={run}
+        />
       )}
 
       {/* ─── PACKAGES ─── */}
@@ -474,6 +443,89 @@ function CardTitle({ children }: { children: React.ReactNode }) {
   return <h2 className="font-display text-[15px] font-bold">{children}</h2>;
 }
 
+function ServicePricingCard({
+  title,
+  description,
+  services,
+  menuItems,
+  variants,
+  onlinePrices,
+  isPending,
+  run,
+}: {
+  title: string;
+  description: string;
+  services: readonly string[];
+  menuItems: MenuItem[];
+  variants: Variant[];
+  onlinePrices: OnlinePrice[];
+  isPending: boolean;
+  run: (fn: () => Promise<void>, opts?: { successMessage?: string }) => void;
+}) {
+  return (
+    <BentoCard className="flex flex-col gap-4">
+      <div>
+        <CardTitle>{title}</CardTitle>
+        <p className="mt-1 text-[11.5px] font-semibold text-muted-foreground">{description}</p>
+      </div>
+      {menuItems.filter((m) => !m.isHidden).map((m) => {
+        const itemVariants = variants.filter((v) => v.menuItemId === m.id);
+        const itemPrices = onlinePrices.filter((op) => op.menuItemId === m.id && !op.variantId);
+        return (
+          <div key={m.id} className="space-y-2 rounded-xl border border-border p-3">
+            <div>
+              <p className="text-[13.5px] font-bold">{m.name}</p>
+              <p className="text-[11.5px] text-muted-foreground tabular-nums">Harga dasar: {formatRupiah(m.price)}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              {services.map((svc) => {
+                const existing = itemPrices.find((p) => p.service === svc);
+                return (
+                  <OnlinePriceInput
+                    key={svc}
+                    service={svc}
+                    menuItemId={m.id}
+                    variantId={null}
+                    currentPrice={existing?.price ?? null}
+                    priceId={existing?.id ?? null}
+                    isPending={isPending}
+                    run={run}
+                  />
+                );
+              })}
+            </div>
+            {itemVariants.map((v) => {
+              const variantPrices = onlinePrices.filter((op) => op.menuItemId === m.id && op.variantId === v.id);
+              return (
+                <div key={v.id} className="ml-4 space-y-1 border-l-2 border-border pl-3">
+                  <p className="text-[11.5px] font-bold tabular-nums">{v.label} ({v.priceModifier >= 0 ? "+" : ""}{formatRupiah(v.priceModifier)})</p>
+                  <div className="flex flex-col gap-2">
+                    {services.map((svc) => {
+                      const existing = variantPrices.find((p) => p.service === svc);
+                      return (
+                        <OnlinePriceInput
+                          key={svc}
+                          service={svc}
+                          menuItemId={m.id}
+                          variantId={v.id}
+                          currentPrice={existing?.price ?? null}
+                          priceId={existing?.id ?? null}
+                          isPending={isPending}
+                          run={run}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
+    </BentoCard>
+  );
+}
+
 function OnlinePriceInput({
   service,
   menuItemId,
@@ -496,7 +548,7 @@ function OnlinePriceInput({
 
   return (
     <div className="flex items-center gap-2">
-      <Label className="w-24 shrink-0 text-xs text-muted-foreground">{service}</Label>
+      <Label className="w-24 shrink-0 text-xs text-muted-foreground">{SERVICE_LABELS[service] ?? service}</Label>
       <Input
         type="number"
         min={0}

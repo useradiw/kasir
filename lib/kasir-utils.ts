@@ -10,14 +10,14 @@ export function calcSubtotal(items: OrderItem[]): number {
   return activeItems(items).reduce((sum, i) => sum + i.price * i.qty, 0);
 }
 
-/** Final item price: online override if available, otherwise base + variant modifier. */
+/** Final item price: service-specific override if available, otherwise base + variant modifier. */
 export function calcItemPrice(
   item: MenuItem,
   variant?: MenuVariant | null,
   service?: ServiceEnum | null,
   onlinePrices?: OnlinePrice[],
 ): number {
-  if (service && onlinePrices && (service === "GoFood" || service === "ShopeeFood" || service === "GrabFood")) {
+  if (service && onlinePrices) {
     const match = onlinePrices.find(
       (op) => op.menuItemId === item.id && op.variantId === (variant?.id ?? null) && op.service === service,
     );

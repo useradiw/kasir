@@ -1,7 +1,8 @@
 # kasir — Toko Kencana POS
 
-Point-of-sale + COGS/inventory app for Toko Kencana. Live in production at
-kasir.tokokencana.com (Vercel). Real business data — the DB is PRODUCTION Supabase.
+Point-of-sale + double-entry bookkeeping (Warung Books) app for Toko Kencana.
+Live in production at kasir.tokokencana.com (Vercel). Real business data — the DB
+is PRODUCTION Supabase.
 
 ## Stack
 
@@ -23,19 +24,15 @@ kasir.tokokencana.com (Vercel). Real business data — the DB is PRODUCTION Supa
 
 ## ☠ DATABASE LANDMINES — read before any DB command
 
-- **NEVER run `prisma migrate deploy` or `prisma db push` against prod.** Prod's
-  `_prisma_migrations` records only **3 of 7** migrations (verified 2026-07-27).
-  These 4 are unrecorded and would be treated as pending and re-applied:
-  `add_developer_role`, `add_ingredient_recipes`,
-  `add_unit_class_and_ingredient_extras`, `widen_costs_to_float`. Their changes are
-  already present (prod was evolved with `db push`; `init` is a stale snapshot that
-  does NOT reproduce the prod schema). Re-applying is at best an error — and
-  `widen_costs_to_float` ALTERs existing **cost columns**, so at worst it destroys
-  money data. Fixing this needs a column-by-column audit of prod first.
+- **NEVER run `prisma migrate deploy` or `prisma db push` against prod.** The
+  migration history was squashed (2026-09-02) to one `init` plus
+  `journal_number_unique`, and the database moved to Supabase project
+  `ktcaaasmrryoxinsutzt`. See HANDOFF.md's DATABASE section for the full
+  provenance before touching anything.
 - **How to apply DDL to prod:** additive only, via `prisma db execute` on a reviewed
   `.sql` file wrapped in `BEGIN; ... COMMIT;` (migration files ship unwrapped), then
   `prisma migrate resolve --applied <name>`.
-- **There is NO dev database.** `.env` = PRODUCTION (`oyvgyhuzvxepteldlghn`).
+- **There is NO dev database.** `.env` = PRODUCTION (`ktcaaasmrryoxinsutzt`).
   `.env.claude.local` (`ytuyawfpcdamtelwtrdw`) belongs to a **different project** —
   never point kasir's schema at it. **pglite** (in-process, `npm test`) is the only
   dev DB. No local Postgres, no Docker, no `pg_dump` on this machine.
@@ -60,13 +57,14 @@ kasir.tokokencana.com (Vercel). Real business data — the DB is PRODUCTION Supa
   there FIRST (it defines reading order) instead of exploring the codebase.
 - Hydration errors are a recurring failure mode here — check for them after any
   client-state change (Dexie/useSyncExternalStore patterns).
-- COGS design is deliberately simple: last-purchase cost + one free-text unit per
-  ingredient. Do NOT reintroduce UnitClass/pack-conversion/weighted-average
-  complexity — that design failed three times.
+- The COGS/ingredient-recipe system is fully retired (models, screens, backup
+  sections — gone in the Warung Books merge). HPP now comes from pengeluaran
+  posted to the `Expenses:HPP:*` bucket. Do NOT reintroduce per-item ingredient
+  recipes — that design failed three times.
 - User-facing docs: the "Petunjuk Penggunaan" pages must be updated when features
   change — written in very simple words, in Indonesian where the UI is Indonesian.
 
 ## Current state
 
-Mature, in daily production use. Work is incremental: bug fixes, COGS refinement,
-laporan improvements. Check HANDOFF.md for the live thread of work.
+Mature, in daily production use. Work is incremental: bug fixes, keuangan
+refinement, laporan improvements. Check HANDOFF.md for the live thread of work.
