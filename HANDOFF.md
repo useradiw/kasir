@@ -34,11 +34,35 @@ Required env vars, beyond the Supabase and database ones already in use:
 transaction-indexes.sql` is an UNAPPLIED additive index proposal — worth
 applying once the shop is live, by the db execute + migrate resolve procedure.
 
+## ⚠ The database is PRODUCTION now — do not wipe it
+
+Adi decided on 2026-09-06 that the **April-onward history STAYS**. kasir goes
+live carrying the migrated books; there is NO cutover wipe and no Saldo Awal
+restart. The 2026-09-05 permission to wipe this database is **revoked** — the
+rows in it are the bookkeeping he intends to keep. `UAT-RUN.md` and the UAT
+memory both used to say "wipe and re-seed before going live" and were corrected.
+
+Accepted knowingly: the books diverge from Warung Books by a cumulative
+Rp 73.993 on Neraca. Those are input differences (see `docs/migrasi-data.md`),
+not code defects, and keeping the history makes them permanent.
+
 ## Next step
 
-Adi does the merges. No work is in progress. If picking something up, the open
-threads are: Adi enters August's books by hand, then locks April-July with the
-button in `/buku/bulan`.
+Adi does the merges. No work is in progress. Open threads, all his:
+
+1. Set `NEXT_PUBLIC_APP_URL` and `STAFF_INVITE_CODE` in Vercel, deploy, log in
+   once on the deployed URL. Nothing here has ever run on Vercel.
+2. Rebuild the six staff accounts (`Adi`, `Dina`, `Hartanto`, `Kasir`,
+   `Manager`, `Yati` all have `supabaseUserId` null, so only `dev.*` can log
+   in). This needs `STAFF_INVITE_CODE` set FIRST or the invite links refuse
+   everyone.
+3. Set the real online commission rates — still needed for future settlements,
+   no longer tied to a wipe.
+4. Enter August's books by hand, then lock April-July in `/buku/bulan`
+   (all five months are currently open).
+
+Adi runs the old system in parallel for at least a week before cutover, so
+these are not all due at once.
 
 ## Gotchas that bite
 

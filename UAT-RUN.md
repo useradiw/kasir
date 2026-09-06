@@ -235,5 +235,20 @@ laporan-vs-`/kas` cross-check for the same period, and the locked-month register
 close showing "Belum tercatat ke buku besar". Both are in section 5's and
 section 3's notes above.
 
-Before cutover: set the real online commission rates, then wipe and re-seed so
-the books start clean at the cutover date via Saldo Awal.
+~~Before cutover: set the real online commission rates, then wipe and re-seed so
+the books start clean at the cutover date via Saldo Awal.~~
+
+**SUPERSEDED 2026-09-06 — DO NOT WIPE.** Adi decided the April-onward history
+STAYS in the database. kasir goes live carrying the migrated books rather than
+starting from a Saldo Awal at the cutover date, so there is no cutover wipe.
+
+Two consequences of that decision:
+- The known divergence from Warung Books (cumulative Rp 73.993 on Neraca, from
+  input differences documented in docs/migrasi-data.md, not code defects) is
+  ACCEPTED and stays in the books permanently.
+- August's bookkeeping still has to be entered by hand, because the history is
+  continuous. A clean start would have made that unnecessary; keeping the
+  history means it is still required.
+
+Setting the real online commission rates is still needed for future
+settlements. It is simply no longer tied to a wipe.
