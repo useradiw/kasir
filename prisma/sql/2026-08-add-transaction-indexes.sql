@@ -7,7 +7,8 @@
 -- HOW TO APPLY (never `prisma migrate deploy` on this database):
 --   1. Take a backup at /admin/backup first.
 --   2. prisma db execute --file prisma/sql/2026-08-add-transaction-indexes.sql
---      (verify the printed host is oyvgyhuzvxepteldlghn before running)
+--      (verify the printed host is ktcaaasmrryoxinsutzt before running —
+--       oyvgyhuzvxepteldlghn, named when this file was written, is RETIRED)
 --   3. prisma migrate resolve --applied 20260830000000_add_transaction_indexes
 --      after adding the matching migration dir, or simply record it in
 --      _prisma_migrations per the HANDOFF procedure.

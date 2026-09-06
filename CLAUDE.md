@@ -58,8 +58,10 @@ is PRODUCTION Supabase.
 - Hydration errors are a recurring failure mode here — check for them after any
   client-state change (Dexie/useSyncExternalStore patterns).
 - The COGS/ingredient-recipe system is fully retired (models, screens, backup
-  sections — gone in the Warung Books merge). HPP now comes from pengeluaran
-  posted to the `Expenses:HPP:*` bucket. Do NOT reintroduce per-item ingredient
+  sections — gone in the Warung Books merge). Pengeluaran Bahan Baku now comes
+  from pengeluaran posted to the `Expenses:BahanBaku:*` bucket (renamed from
+  HPP / `Expenses:HPP:*` on 2026-09-06, along with Biaya Operasional ->
+  Pengeluaran Operasional). Do NOT reintroduce per-item ingredient
   recipes — that design failed three times.
 - User-facing docs: the "Petunjuk Penggunaan" pages must be updated when features
   change — written in very simple words, in Indonesian where the UI is Indonesian.
