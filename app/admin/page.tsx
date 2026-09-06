@@ -24,7 +24,7 @@ const groupsBase: AdminGroup[] = [
   {
     title: "Menu",
     links: [
-      { href: "/admin/inventory", label: "Inventori Menu", detail: "Ketersediaan item menu" },
+      { href: "/admin/inventory", label: "Menu Management", detail: "Ketersediaan item menu" },
       { href: "/admin/menu-performance", label: "Performa Menu", detail: "Menu terlaris dan lambat", ownerOnly: true },
       { href: "/admin/suppliers", label: "Supplier", detail: "Data pemasok bahan baku" },
     ],

@@ -126,11 +126,14 @@ describe("calcItemPrice", () => {
     expect(calcItemPrice(menuItem(), variant(), "GoFood", prices)).toBe(23_000);
   });
 
-  it("ignores online prices for a non-online service even when one exists", () => {
-    // The override only applies to GoFood/ShopeeFood/GrabFood — a Take_Away
-    // price row must not be picked up.
+  it("uses a Take_Away (bawa pulang) override when the session service matches", () => {
     const prices = [onlinePrice({ service: "Take_Away", price: 99_000 })];
-    expect(calcItemPrice(menuItem(), null, "Take_Away", prices)).toBe(20_000);
+    expect(calcItemPrice(menuItem(), null, "Take_Away", prices)).toBe(99_000);
+  });
+
+  it("falls back to base price for a service with no override", () => {
+    const prices = [onlinePrice({ service: "Take_Away", price: 99_000 })];
+    expect(calcItemPrice(menuItem(), null, "Unknown", prices)).toBe(20_000);
   });
 
   it("does not match a null-variant online price for an item ordered WITH a variant", () => {

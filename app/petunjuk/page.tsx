@@ -79,7 +79,7 @@ export default async function PetunjukPage() {
             <a href="#pencairan-online" className="text-foreground hover:text-primary transition-colors py-0.5">Pencairan Online</a>
           )}
           {isAdmin && (
-            <a href="#admin-inventori" className="text-foreground hover:text-primary transition-colors py-0.5">Inventori Menu</a>
+            <a href="#admin-inventori" className="text-foreground hover:text-primary transition-colors py-0.5">Menu Management</a>
           )}
           {isAdmin && (
             <a href="#admin-supplier" className="text-foreground hover:text-primary transition-colors py-0.5">Supplier</a>
@@ -227,26 +227,26 @@ export default async function PetunjukPage() {
               Dashboard menampilkan ringkasan hari ini (pendapatan, jumlah transaksi, item terlaris) secara otomatis.
             </p>
 
-            {/* Inventori (menu only) */}
-            <SubHeading id="admin-inventori">Inventori Menu</SubHeading>
+            {/* Menu Management */}
+            <SubHeading id="admin-inventori">Menu Management</SubHeading>
             <p className="text-sm text-muted-foreground mb-2">
               Kelola kategori, menu, varian, paket, dan harga (regular &amp; online).
             </p>
 
             <p className="text-xs font-medium text-muted-foreground mt-3 mb-1">Menambah item menu baru</p>
             <Steps>
-              <li>Buka <Link href="/admin/inventory" className="cursor-pointer text-primary hover:underline">Inventori Menu</Link>.</li>
+              <li>Buka <Link href="/admin/inventory" className="cursor-pointer text-primary hover:underline">Menu Management</Link>.</li>
               <li>Pilih kategori atau buat kategori baru dengan tombol <strong>+ Kategori</strong>.</li>
               <li>Ketuk <strong>+ Item</strong>, isi nama dan harga dasar.</li>
               <li>Tambahkan varian harga jika ada (misal: Kecil / Besar).</li>
               <li>Aktifkan toggle <strong>Aktif</strong> agar item muncul di kasir, lalu simpan.</li>
             </Steps>
 
-            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Mengatur harga platform online</p>
+            <p className="text-xs font-medium text-muted-foreground mt-4 mb-1">Mengatur harga platform online &amp; bawa pulang</p>
             <Steps>
-              <li>Di halaman detail item, buka bagian <strong>Harga Online</strong>.</li>
-              <li>Masukkan harga khusus untuk GoFood, ShopeeFood, atau GrabFood (bisa berbeda dari harga reguler).</li>
-              <li>Simpan.</li>
+              <li>Buka <Link href="/admin/inventory" className="cursor-pointer text-primary hover:underline">Menu Management</Link>, lalu pilih tab <strong>Harga Online</strong> atau <strong>Bawa Pulang</strong>.</li>
+              <li>Masukkan harga khusus untuk GoFood, ShopeeFood, GrabFood, atau pesanan bawa pulang (bisa berbeda dari harga reguler).</li>
+              <li>Jika tidak diisi, harga reguler yang dipakai. Ketuk <strong>Simpan</strong>.</li>
             </Steps>
 
             {/* Supplier */}
@@ -446,7 +446,7 @@ export default async function PetunjukPage() {
                   ["Pencairan Online", true, true, true, false],
                   ["Profil Pengguna", true, true, true, true],
                   ["Panel Admin (Dashboard)", true, true, true, false],
-                  ["Inventori Menu", true, true, false, false],
+                  ["Menu Management", true, true, false, false],
                   ["Supplier", true, true, false, false],
                   ["Transaksi & Void", true, true, false, false],
                   ["Pencairan Online (admin)", true, true, false, false],

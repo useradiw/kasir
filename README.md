@@ -53,31 +53,19 @@ A local-first point-of-sale system for food & beverage businesses. The cashier o
 - Link staff accounts to Supabase Auth login credentials
 - Salary tracking per staff member
 
-#### Inventory / Menu
+#### Menu Management
 - Categories, menu items, and price variants
 - Package bundles (set meals) with item composition snapshots
-- Per-service online pricing overrides (GoFood, ShopeeFood, GrabFood)
+- Per-service pricing overrides (GoFood, ShopeeFood, GrabFood, Bawa Pulang)
 - Toggle active/inactive without deleting
-
-#### Ingredients / Stok Bahan (COGS)
-
-- Track ingredient stock linked to Expense Templates
-- Stock movement types: Purchase (auto on expense entry), Sale (auto on cashier transaction if recipe defined), Adjustment (manual), Waste (manual)
-- Low stock alerts with configurable minimum thresholds per ingredient
-- Backfill stock from historical purchase data (one-time setup action)
-- Latest purchase cost tracking per ingredient
-- Recipe integration: COGS (HPP) auto-calculated per menu item based on ingredient composition and latest costs
-- Gross margin per recipe shown in the Recipe tab under Inventory
-- Access: Owner, Manager
 
 #### Menu Performance
 
 - Sales analytics per menu item by period (daily, weekly, monthly, yearly)
-- Columns: Units Sold, Revenue, COGS/Portion, Total COGS, Gross Profit, Margin %
+- Columns: Units Sold, Revenue
 - Sortable columns and menu item search
 - Period navigation with date picker
-- Summary: Total Sales, Total COGS, Gross Profit, Gross Margin
-- Items without recipes still appear; COGS/Margin columns are blank
+- Summary: Total items sold, distinct menu items sold
 - Access: Owner only
 
 #### Transactions

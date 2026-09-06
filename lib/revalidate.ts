@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 
-/** Revalidate all pages that display inventory/recipe data. */
+/** Revalidate all pages that display menu catalog data. */
 export function revalidateInventory() {
   revalidatePath("/admin/inventory");
 }

@@ -223,7 +223,7 @@ export async function deletePackageItem(id: string) {
 const onlinePriceSchema = z.object({
   menuItemId: z.string().min(1),
   variantId: z.string().nullable().optional(),
-  service: z.enum(["GoFood", "ShopeeFood", "GrabFood"]),
+  service: z.enum(["GoFood", "ShopeeFood", "GrabFood", "Take_Away"]),
   price: z.coerce.number().int().min(0),
 });
 
