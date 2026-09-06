@@ -19,6 +19,21 @@ Last green: lint clean, tsc clean (raised heap), 373 passed + 1 skipped / 35 fil
 3. **Worktree + zcode merged and deleted** (d5c1760, 44448b8): Bawa Pulang
    pricing tab, "Menu Management" rename, an unapplied index proposal.
 
+## Deploy checklist (Vercel) — set these before cutover
+
+Required env vars, beyond the Supabase and database ones already in use:
+- `NEXT_PUBLIC_APP_URL` — absolute origin, no trailing slash. The signup
+  confirmation email builds its redirect from it; unset sends staff to
+  "undefined/auth/confirm".
+- `STAFF_INVITE_CODE` — long random string, DIFFERENT from the local one.
+  `/auth/daftar` is invite-only and **fails closed**: unset means nobody can
+  register. The owner copies the invite link (which carries the code) from
+  `/admin/staff`. Rotate it if a link leaks.
+
+`.env.example` lists every variable the app reads. `prisma/sql/2026-08-add-
+transaction-indexes.sql` is an UNAPPLIED additive index proposal — worth
+applying once the shop is live, by the db execute + migrate resolve procedure.
+
 ## Next step
 
 Adi does the merges. No work is in progress. If picking something up, the open
