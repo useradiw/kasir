@@ -178,6 +178,22 @@ model Setting {
   @@map("settings")
 }
 
+// --- PERMISSIONS ---
+
+// The Owner-editable overlay on the capability grid (lib/permissions.ts).
+// One row per (role, capability) toggle; a capability without a row falls back
+// to DEFAULT_GRID. OWNER and DEVELOPER rows are never stored — both are code
+// invariants, not grants the Owner can toggle.
+model RolePermission {
+  role       RoleEnum
+  capability String
+  allowed    Boolean
+  updatedAt  DateTime @updatedAt
+
+  @@id([role, capability])
+  @@map("role_permissions")
+}
+
 // --- STAFF & ATTENDANCE ---
 
 model Staff {

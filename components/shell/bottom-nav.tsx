@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { RoleEnum } from "@/generated/prisma";
-import { tabsForRole } from "@/components/shell/nav-items";
+import { type TabDef } from "@/components/shell/nav-items";
 
 const ICONS: Record<string, React.ReactNode> = {
   beranda: (
@@ -29,10 +28,9 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-export function BottomNav({ role, hidden }: { role: RoleEnum; hidden?: boolean }) {
+export function BottomNav({ tabs, hidden }: { tabs: TabDef[]; hidden?: boolean }) {
   const pathname = usePathname();
   if (hidden) return null;
-  const tabs = tabsForRole(role);
 
   return (
     <nav className="sticky bottom-0 z-30 flex border-t border-border bg-nav-bg pb-[env(safe-area-inset-bottom)]">

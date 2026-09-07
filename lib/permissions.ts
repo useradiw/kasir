@@ -72,6 +72,11 @@ export const CAPABILITIES = {
   "backup.export": { label: "Unduh backup database", group: "Laporan & Admin" },
   "backup.restore": { label: "Restore database", group: "Laporan & Admin" },
 
+  // Structural: gates the permission screen itself. Never rendered as a
+  // toggleable row — the write path additionally requires a real OWNER, so the
+  // screen cannot be granted away in the way an ordinary capability can.
+  "permissions.manage": { label: "Kelola izin peran", group: "Laporan & Admin" },
+
   // --- Buku (Keuangan) ---
   "buku.read": { label: "Buka layar Buku & jurnal", group: "Buku (Keuangan)" },
   "pengeluaran.write": { label: "Catat pengeluaran", group: "Buku (Keuangan)" },
@@ -126,6 +131,7 @@ export const DEFAULT_GRID: Record<Capability, RoleEnum[]> = {
   "notifications.delete": [],
   "backup.export": [],
   "backup.restore": [],
+  "permissions.manage": [],
   "buku.read": [],
   "pengeluaran.write": [],
   "pengeluaran.void": [],

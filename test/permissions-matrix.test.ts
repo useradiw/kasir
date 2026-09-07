@@ -97,6 +97,7 @@ const INVENTORY: Record<Capability, { shape: Shape; alsoStrict?: true }> = {
   "notifications.delete": { shape: "O-strict" }, // deleteNotification
   "backup.export": { shape: "O" }, // exportDatabase, /admin/backup
   "backup.restore": { shape: "O" }, // restoreDatabase
+  "permissions.manage": { shape: "O-strict" }, // /buku/izin — real OWNER only
   // Buku (Keuangan)
   "buku.read": { shape: "O" }, // /buku pages + keuangan queries
   "pengeluaran.write": { shape: "O" }, // recordPengeluaran (recordPengeluaranAsStaff stays requireAuth)

@@ -1,17 +1,23 @@
 # HANDOFF
 
-## State — 2026-09-07
+## State — 2026-09-07 (role-permissions worktree)
 
-`sept` at 05ad09b, tree clean, one worktree. The branches are exactly
-`master` -> `develop` -> `sept`, and each one fast-forwards to the next —
-`june` and `feat/warungbooks` are both gone. **Nothing is pushed:
-`origin/master` is at 1904f58, 62 commits behind `sept`,** so GitHub (and
-therefore Vercel) still carries the pre-Warung-Books app. Adi does every merge
-and every push himself.
+**Branch `feat/role-permissions` in worktree `D:/Website/adi/kasir-perms`, off
+`sept` (cf66e33) — NOT merged. Adi merges.** The capability layer is DONE:
+every gate in the app is now `requireCan`/`requireCanStrict` on a named
+capability; the role gates (requireRole/requireOwner) are deleted. Day-one
+behaviour is unchanged — the seeded grid mirrors the old hardcoded checks, and
+test/permissions-matrix.test.ts pins that. Last green: lint clean, `npm test`
+419 passed + 1 skipped / 37 files, `npm run build` succeeds.
 
-Last green (2026-09-07): `npm run lint` clean, `npm test` 373 passed +
-1 skipped / 35 files, `npm run build` succeeds. Every route builds dynamic
-except `/icon` and `/robots.txt`, so a Vercel build never reaches the database.
+Owner toggle screen: **/buku/izin** (real OWNER only, no DEVELOPER bypass).
+RolePermission table ships as `prisma/sql/2026-09-add-role-permissions.sql`
+(BEGIN/COMMIT + 96 seed rows) — **NOT applied to any database.** Adi applies
+by standard policy: backup at /admin/backup, verify printed host is
+`ktcaaasmrryoxinsutzt`, `prisma db execute --file ...`, then
+`prisma migrate resolve --applied 20260907000000_role_permissions`. The app
+runs fine BEFORE the DDL (missing table = defaults only) and after it.
+Until the DDL lands, the /buku/izin screen errors on save — expected.
 
 ## What landed in the 2026-09-07 session
 
@@ -46,12 +52,10 @@ earlier `npm run build`, so the globals.css edit appeared to do nothing.
 
 ## Handed to zcode — role permission toggle
 
-`docs/prompts/role-permissions-zcode.md` is a full task brief for a capability
-layer plus an Owner-facing permission toggle screen, to be built in a separate
-worktree off `sept`. Confirmed by searching every branch and the full history:
-this feature has **never** existed in this repo, on develop or anywhere else.
-Today's permissions are 154 calls across 68 files, but only seven distinct
-shapes. Not started.
+`docs/prompts/role-permissions-zcode.md` — the brief was executed on
+`feat/role-permissions` (see the State header). Previously this feature had
+never existed in this repo; today's 154 gate calls collapsed to seven shapes
+and are all migrated.
 
 ## What landed in the 2026-09-06 session
 

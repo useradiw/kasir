@@ -1,5 +1,6 @@
 import type { RoleEnum } from "@/generated/prisma";
-import { isAllowed, type Capability } from "@/lib/permissions";
+import { isAllowed, NO_OVERRIDES, type Capability, type GridOverride } from "@/lib/permissions";
+import { loadPermissionOverride } from "@/lib/permission-store";
 
 /**
  * The unified navigation model (docs/redesign/SPEC.md): every role shares one
@@ -36,6 +37,12 @@ export const TABS: TabDef[] = [
   { key: "akun", label: "Akun", href: "/akun", capability: null },
 ];
 
-export function tabsForRole(role: RoleEnum): TabDef[] {
-  return TABS.filter((t) => !t.capability || isAllowed(t.capability, role));
+// Sync, default-grid only — for pure contexts (tests, offline fallback).
+export function tabsForRole(role: RoleEnum, overrides: GridOverride = NO_OVERRIDES): TabDef[] {
+  return TABS.filter((t) => !t.capability || isAllowed(t.capability, role, overrides));
+}
+
+// The server path: same grid with the RolePermission overlay applied.
+export async function tabsForStaff(role: RoleEnum): Promise<TabDef[]> {
+  return tabsForRole(role, await loadPermissionOverride());
 }

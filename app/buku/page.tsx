@@ -132,6 +132,7 @@ export default async function BukuPage() {
             { href: "/buku/akun-penjualan", label: "Akun Penjualan", detail: "Petakan tunai, elektronik dan online" },
             { href: "/buku/kategori", label: "Kategori Pengeluaran", detail: "Kelompok biaya untuk tiap pengeluaran" },
             { href: "/buku/setup", label: "Setup Buku", detail: "Langkah awal pembukuan" },
+            { href: "/buku/izin", label: "Izin Peran", detail: "Atur apa yang bisa dilakukan tiap peran" },
           ].map((l) => (
             <Link
               key={l.href}

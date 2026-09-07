@@ -3,7 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
 import type { Staff } from "@/generated/prisma";
-import { isAllowed, type Capability } from "@/lib/permissions";
+import { type Capability } from "@/lib/permissions";
+import { canByGrid } from "@/lib/permission-store";
 
 // Resolves the authenticated, active Staff record, or redirects to /.
 async function resolveActiveStaff(): Promise<Staff> {
@@ -42,25 +43,25 @@ export async function requireAuth(): Promise<Staff> {
 
 // Returns the staff record if their role is granted the capability. OWNER is
 // always allowed and DEVELOPER passes as a superuser — the same two flavours
-// as requireRole / requireOwner. Redirects to / otherwise.
+// as the old requireRole / requireOwner. Redirects to / otherwise.
 export async function requireCan(capability: Capability): Promise<Staff> {
   const staff = await resolveActiveStaff();
-  if (!isAllowed(capability, staff.role)) redirect("/");
+  if (!(await canByGrid(capability, staff.role))) redirect("/");
   return staff;
 }
 
 // Like requireCan, but with NO DEVELOPER bypass — used for hard deletes,
-// exactly like the requireRoleStrict / requireOwnerStrict it replaces.
+// exactly like the requireRoleStrict / requireOwnerStrict it replaced.
 // DEVELOPER is not in DEFAULT_GRID, so a strict check never admits it.
 export async function requireCanStrict(capability: Capability): Promise<Staff> {
   const staff = await resolveActiveStaff();
-  if (!isAllowed(capability, staff.role, undefined, { strict: true })) redirect("/");
+  if (!(await canByGrid(capability, staff.role, { strict: true }))) redirect("/");
   return staff;
 }
 
 // Non-redirect variants for UI decisions (navigation, links). Same grid.
 export async function canStaff(staff: Pick<Staff, "role">, capability: Capability): Promise<boolean> {
-  return isAllowed(capability, staff.role);
+  return canByGrid(capability, staff.role);
 }
 
 // Returns minimal staff identity (id, name, role) for the authenticated user.

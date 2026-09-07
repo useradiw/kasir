@@ -91,7 +91,10 @@ export default async function PetunjukPage() {
             <a href="#admin-buku-kas" className="text-foreground hover:text-primary transition-colors py-0.5">Buku Kas &amp; Cek Saldo</a>
           )}
           {isOwner && (
-            <a href="#admin-tutup-buku" className="text-foreground hover:text-primary transition-colors py-0.5">Tutup Buku</a>
+            <>
+              <a href="#admin-tutup-buku" className="text-foreground hover:text-primary transition-colors py-0.5">Tutup Buku</a>
+              <a href="#admin-izin-peran" className="text-foreground hover:text-primary transition-colors py-0.5">Izin Peran</a>
+            </>
           )}
           {isOwner && (
             <a href="#admin-akun-penjualan" className="text-foreground hover:text-primary transition-colors py-0.5">Akun Penjualan</a>
@@ -342,6 +345,27 @@ export default async function PetunjukPage() {
                   (Buka Kembali), lalu menekan tombol pemulihan pada tanda di Kas Harian agar
                   catatan hari itu masuk ke buku besar.
                 </p>
+
+                <SubHeading id="admin-izin-peran">Izin Peran</SubHeading>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Izin Peran mengatur apa yang boleh dilakukan tiap peran — tanpa perlu membuat
+                  perubahan di kode aplikasi. Owner selalu boleh semuanya, jadi baris Owner tidak
+                  ada di layar ini. Developer juga diatur di dalam aplikasi: bisa semuanya kecuali
+                  menghapus permanen.
+                </p>
+                <Steps>
+                  <li>Buka <Link href="/buku/izin" className="cursor-pointer text-primary hover:underline">Izin Peran</Link> dari halaman Buku.</li>
+                  <li>Pilih peran di bagian atas: <strong>Manager</strong>, <strong>Kasir</strong>, atau <strong>Staf</strong>.</li>
+                  <li>Nyalakan atau matikan saklar pada kemampuan yang ingin diubah. Perubahan langsung tersimpan.</li>
+                  <li>
+                    Untuk mengembalikan semuanya seperti awal, ketuk{" "}
+                    <strong>Kembalikan ke bawaan</strong> di bawah.
+                  </li>
+                </Steps>
+                <Tips>
+                  <li>Kemampuan yang mati membuat menu atau tombolnya tidak terlihat untuk peran itu.</li>
+                  <li>Hati-hati mematikan kemampuan untuk diri sendiri? Tidak bisa — Owner tidak bisa dimatikan.</li>
+                </Tips>
 
                 <SubHeading id="admin-kas-pak-har">Kas Pak Har</SubHeading>
                 <p className="text-sm text-muted-foreground mb-2">
