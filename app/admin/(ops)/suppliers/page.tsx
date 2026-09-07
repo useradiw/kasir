@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import SuppliersClient from "./suppliers-client";
 
@@ -18,7 +18,7 @@ import SuppliersClient from "./suppliers-client";
  * docs/redesign/plan-open-items.md section 5.
  */
 export default async function SuppliersPage() {
-  const staff = await requireRole("OWNER", "MANAGER");
+  const staff = await requireCan("suppliers.write");
 
   const suppliers = await prisma.supplier.findMany({
     where:   { isActive: true },

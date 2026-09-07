@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
 import { getInventoryData } from "@/app/actions/admin/queries";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import InventoryClient from "./inventory-client";
 
 const VALID_TABS = ["categories", "items", "variants", "packages", "online", "takeaway"];
@@ -12,7 +12,7 @@ export default async function InventoryPage({
 }: {
   searchParams: Promise<{ tab?: string }>;
 }) {
-  const staff = await requireRole("OWNER", "MANAGER");
+  const staff = await requireCan("menu.read");
   const { tab } = await searchParams;
   // Unknown or retired tabs (e.g. old bookmarks) fall back to the first tab
   // instead of rendering an empty page.

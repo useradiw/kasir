@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getDateRange } from "./_shared";
 
 export interface MenuPerformanceRow {
@@ -17,7 +17,7 @@ export async function getMenuPerformanceData(opts: {
   period: "daily" | "weekly" | "monthly" | "yearly";
   date:   string;
 }) {
-  await requireOwner();
+  await requireCan("menu.performance");
 
   const { start, end } = getDateRange(opts.period, opts.date);
 

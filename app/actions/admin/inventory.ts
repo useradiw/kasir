@@ -2,7 +2,7 @@
 
 import { revalidateInventory } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireOwnerStrict, requireRole, requireRoleStrict } from "@/lib/admin-auth";
+import { requireCan, requireCanStrict } from "@/lib/admin-auth";
 import { z } from "zod";
 import { ServiceEnum } from "@/generated/prisma";
 import { ActionError, runAction } from "@/lib/action-error";
@@ -16,7 +16,7 @@ const categorySchema = z.object({
 
 export async function addCategory(formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const data = categorySchema.parse({
       name: formData.get("name"),
       sortOrder: formData.get("sortOrder") || 0,
@@ -28,7 +28,7 @@ export async function addCategory(formData: FormData) {
 
 export async function updateCategory(id: string, formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const data = categorySchema.parse({
       name: formData.get("name"),
       sortOrder: formData.get("sortOrder") || 0,
@@ -40,7 +40,7 @@ export async function updateCategory(id: string, formData: FormData) {
 
 export async function deleteCategory(id: string) {
   return runAction(async () => {
-    await requireOwnerStrict();
+    await requireCanStrict("menu.delete");
     await prisma.category.delete({ where: { id } });
     revalidateInventory();
   });
@@ -57,7 +57,7 @@ const menuItemSchema = z.object({
 
 export async function addMenuItem(formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const data = menuItemSchema.parse({
       name: formData.get("name"),
       categoryId: formData.get("categoryId"),
@@ -71,7 +71,7 @@ export async function addMenuItem(formData: FormData) {
 
 export async function updateMenuItem(id: string, formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const data = menuItemSchema.parse({
       name: formData.get("name"),
       categoryId: formData.get("categoryId"),
@@ -85,7 +85,7 @@ export async function updateMenuItem(id: string, formData: FormData) {
 
 export async function deleteMenuItem(id: string) {
   return runAction(async () => {
-    await requireOwnerStrict();
+    await requireCanStrict("menu.delete");
     await prisma.menuItem.delete({ where: { id } });
     revalidateInventory();
   });
@@ -93,7 +93,7 @@ export async function deleteMenuItem(id: string) {
 
 export async function toggleMenuItemVisibility(id: string, current: boolean) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     await prisma.menuItem.update({ where: { id }, data: { isHidden: !current } });
     revalidateInventory();
   });
@@ -109,7 +109,7 @@ const variantSchema = z.object({
 
 export async function addVariant(formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const data = variantSchema.parse({
       menuItemId: formData.get("menuItemId"),
       label: formData.get("label"),
@@ -122,7 +122,7 @@ export async function addVariant(formData: FormData) {
 
 export async function updateVariant(id: string, formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const data = variantSchema.parse({
       menuItemId: formData.get("menuItemId"),
       label: formData.get("label"),
@@ -135,7 +135,7 @@ export async function updateVariant(id: string, formData: FormData) {
 
 export async function deleteVariant(id: string) {
   return runAction(async () => {
-    await requireOwnerStrict();
+    await requireCanStrict("menu.delete");
     await prisma.menuVariant.delete({ where: { id } });
     revalidateInventory();
   });
@@ -150,7 +150,7 @@ const packageSchema = z.object({
 
 export async function addPackage(formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const data = packageSchema.parse({
       name: formData.get("name"),
       bundlePrice: formData.get("bundlePrice"),
@@ -162,7 +162,7 @@ export async function addPackage(formData: FormData) {
 
 export async function updatePackage(id: string, formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const data = packageSchema.parse({
       name: formData.get("name"),
       bundlePrice: formData.get("bundlePrice"),
@@ -174,7 +174,7 @@ export async function updatePackage(id: string, formData: FormData) {
 
 export async function deletePackage(id: string) {
   return runAction(async () => {
-    await requireOwnerStrict();
+    await requireCanStrict("menu.delete");
     await prisma.package.delete({ where: { id } });
     revalidateInventory();
   });
@@ -182,7 +182,7 @@ export async function deletePackage(id: string) {
 
 export async function addPackageItem(formData: FormData) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const packageId = formData.get("packageId") as string;
     const menuItemId = formData.get("menuItemId") as string;
     const variantId = (formData.get("variantId") as string) || null;
@@ -212,7 +212,7 @@ export async function addPackageItem(formData: FormData) {
 
 export async function deletePackageItem(id: string) {
   return runAction(async () => {
-    await requireOwnerStrict();
+    await requireCanStrict("menu.delete");
     await prisma.packageItem.delete({ where: { id } });
     revalidateInventory();
   });
@@ -234,7 +234,7 @@ export async function setOnlinePrice(data: {
   price: number;
 }) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("menu.write");
     const parsed = onlinePriceSchema.parse(data);
     const { menuItemId, service, price } = parsed;
     const variantId = parsed.variantId ?? null;
@@ -259,7 +259,7 @@ export async function setOnlinePrice(data: {
 
 export async function deleteOnlinePrice(id: string) {
   return runAction(async () => {
-    await requireRoleStrict("OWNER", "MANAGER");
+    await requireCanStrict("menu.write");
     await prisma.menuItemOnlinePrice.delete({ where: { id } });
     revalidateInventory();
   });

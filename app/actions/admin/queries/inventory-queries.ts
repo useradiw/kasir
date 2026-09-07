@@ -1,10 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 
 export async function getInventoryData() {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("menu.read");
 
   const [categories, menuItems, variants, packages, packageItems, onlinePrices] = await Promise.all([
     prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),

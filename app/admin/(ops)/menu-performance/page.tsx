@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getMenuPerformanceData } from "@/app/actions/admin/queries";
 import { MenuPerformanceClient } from "./menu-performance-client";
 
@@ -10,7 +10,7 @@ export default async function MenuPerformancePage({
 }: {
   searchParams: Promise<{ period?: string; date?: string }>;
 }) {
-  const staff = await requireOwner();
+  const staff = await requireCan("menu.performance");
   const params = await searchParams;
 
   const period = (["daily", "weekly", "monthly", "yearly"].includes(params.period ?? "")
