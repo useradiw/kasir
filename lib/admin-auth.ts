@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
 import { prisma } from "@/lib/prisma";
-import type { Staff, RoleEnum } from "@/generated/prisma";
+import type { Staff } from "@/generated/prisma";
 import { isAllowed, type Capability } from "@/lib/permissions";
 
 // Resolves the authenticated, active Staff record, or redirects to /.

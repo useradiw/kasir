@@ -22,7 +22,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import {
   CAPABILITIES,
@@ -177,7 +177,6 @@ describe("permission matrix — seeded grid vs today's behaviour", () => {
 
 describe("no hardcoded role gates remain", () => {
   function walk(dir: string): string[] {
-    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
     const out: string[] = [];
     for (const name of readdirSync(dir)) {
       const full = join(dir, name);
