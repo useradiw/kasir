@@ -1,14 +1,19 @@
 # HANDOFF
 
-## State — 2026-09-06
+## State — 2026-09-07
 
-`feat/warungbooks` at 95c1e3e, tree clean, one worktree, branches are exactly
-`master` -> `develop` -> `june` -> `feat/warungbooks`. Nothing pushed.
-**Adi merges warungbooks -> june -> develop himself.**
+`sept` at a1558e7, tree clean, one worktree. The branches are exactly
+`master` -> `develop` -> `sept`, and each one fast-forwards to the next —
+`june` and `feat/warungbooks` are both gone. **Nothing is pushed:
+`origin/master` is at 1904f58, 62 commits behind `sept`,** so GitHub (and
+therefore Vercel) still carries the pre-Warung-Books app. Adi does every merge
+and every push himself.
 
-Last green: lint clean, tsc clean (raised heap), 373 passed + 1 skipped / 35 files.
+Last green (2026-09-07): `npm run lint` clean, `npm test` 373 passed +
+1 skipped / 35 files, `npm run build` succeeds. Every route builds dynamic
+except `/icon` and `/robots.txt`, so a Vercel build never reaches the database.
 
-## What landed this session
+## What landed in the 2026-09-06 session
 
 1. **Laba Rugi buckets renamed** (fcc8586): HPP -> Pengeluaran Bahan Baku,
    Biaya Operasional -> Pengeluaran Operasional. All four layers — Prisma enum
@@ -64,9 +69,63 @@ Required env vars, beyond the Supabase and database ones already in use:
   register. The owner copies the invite link (which carries the code) from
   `/admin/staff`. Rotate it if a link leaks.
 
-`.env.example` lists every variable the app reads. `prisma/sql/2026-08-add-
-transaction-indexes.sql` is an UNAPPLIED additive index proposal — worth
-applying once the shop is live, by the db execute + migrate resolve procedure.
+SEVEN variables must be set in Vercel. Six are read at runtime (grepped
+2026-09-07 across `app`, `lib`, `utils`, `components`, `hooks`, `proxy.ts`,
+`next.config.ts`): the four above plus `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`.
+
+The seventh is **`DIRECT_URL`, required at BUILD time only** — see the gotcha
+below. Nothing at runtime reads it; `lib/prisma.ts` builds its pool from
+`DATABASE_URL`. `DEV_SEED_PASSWORD` and `MIGRASI_DATABASE_URL` stay
+scripts-only, and the `NEXT_PUBLIC_SUPABASE_ANON_KEY` sitting in `.env.local`
+is dead. `.env.example` documents all of them.
+
+**Do not assume the Supabase variables already in Vercel are correct.** The
+project moved on 2026-09-02 from `oyvgyhuzvxepteldlghn` to
+`ktcaaasmrryoxinsutzt`, and the auth users moved with it, so whatever Vercel
+holds was set for the RETIRED project. `DATABASE_URL` must be the 6543 pooled
+URL there; `lib/prisma.ts` is already correct for serverless (global singleton,
+`max: 5`, `attachDatabasePool`).
+
+## Unapplied DDL — the transaction indexes
+
+`prisma/sql/2026-08-add-transaction-indexes.sql` is written, reviewed, and NOT
+applied to any database. `transactions` carries no indexes at all while every
+report filters and sorts on `paidAt`, and the FK columns used in those filters
+are unindexed too. The file is five additive `CREATE INDEX IF NOT EXISTS`
+statements already wrapped in `BEGIN; ... COMMIT;`.
+
+At today's 855 transactions nothing feels slow, so this is a post-cutover job
+rather than a pre-deploy one — but it is cheap, invisible, and easy to forget,
+which is why it has its own section. Apply it by the standard policy: back up
+at `/admin/backup`, `prisma db execute --file <path>`, then record it in
+`_prisma_migrations`. **The file's own header names `oyvgyhuzvxepteldlghn` in
+its warning line; that project is RETIRED.** The live one is
+`ktcaaasmrryoxinsutzt` — verify the printed host before running.
+
+## Supplier table — where inventory management starts
+
+`Supplier` is a STANDALONE table: `id`, `name`, `phone`, `notes`, `isActive`,
+and the two timestamps. It has no relation to any other model, and `supplierId`
+appears nowhere in the schema or anywhere in the code. `/admin/suppliers` is a
+complete CRUD screen — `app/actions/admin/suppliers.ts` gives get, add, update
+and a soft delete that only flips `isActive` to false — and the table is
+covered by both backup and restore. Nothing else reads any of it.
+
+It is unwired **on purpose**, and `app/admin/(ops)/suppliers/page.tsx` carries a
+comment saying so, so that audits stop re-flagging it as dead code. It was the
+counterparty on the retired `IngredientPurchase` model; Adi decided on
+2026-09-01 to keep the screen because this is the starting point for the
+purchasing and inventory work planned after the first deploy. It sits under
+Menu in the admin index rather than Keuangan, because it no longer touches the
+ledger.
+
+When that work starts, two constraints carry over. New models hang off
+`Supplier.id`, and the pengeluaran already posted to `Expenses:BahanBaku:*` is
+the existing money record — extend it, never build a second spend ledger beside
+it, and read `project_expense_buckets.md` before touching the buckets. Per-item
+ingredient recipes are NOT coming back; that design failed three times and the
+whole COGS system was deleted in the Warung Books merge.
 
 ## ⚠ The database is PRODUCTION now — do not wipe it
 
@@ -84,8 +143,14 @@ not code defects, and keeping the history makes them permanent.
 
 Adi does the merges. No work is in progress. Open threads, all his:
 
-1. Set `NEXT_PUBLIC_APP_URL` and `STAFF_INVITE_CODE` in Vercel, deploy, log in
-   once on the deployed URL. Nothing here has ever run on Vercel.
+1. **Deploy `sept` to a staging subdomain, leaving `master` alone.** Adi decided
+   on 2026-09-07 not to retire the old version until the new one is proven, so
+   the first deploy is a SECOND Vercel project on the same repo with its
+   Production Branch set to `sept` — not a merge into `master`. Making `sept`
+   that project's production branch keeps the subdomain publicly reachable;
+   a branch domain on the existing project would sit in Preview and Vercel's
+   default Standard Protection would put a Vercel login wall in front of the
+   staff. Full procedure below under "Parallel deploy".
 2. Rebuild the six staff accounts (`Adi`, `Dina`, `Hartanto`, `Kasir`,
    `Manager`, `Yati` all have `supabaseUserId` null, so only `dev.*` can log
    in). This needs `STAFF_INVITE_CODE` set FIRST or the invite links refuse
@@ -97,6 +162,36 @@ Adi does the merges. No work is in progress. Open threads, all his:
 Adi runs the old system in parallel for at least a week before cutover, so
 these are not all due at once.
 
+## Parallel deploy — `sept` on a staging subdomain
+
+The goal is to run the new app beside the old one without touching `master`.
+Everything below is Adi's to do: the git-guard hook refuses `git push` in this
+repo, and the Vercel CLI is not installed on this machine.
+
+1. Push the branch only: `git push -u origin sept`. `master` and `develop` stay
+   where they are, so the current production deployment does not move.
+2. Create a SECOND Vercel project against `useradiw/kasir`. In its Settings ->
+   Git, set **Production Branch** to `sept`. This is what keeps the subdomain
+   public — see the note in "Next step" about Standard Protection.
+3. In the same Git settings, set the **Ignored Build Step** so the staging
+   project ignores every other branch:
+   `if [ "$VERCEL_GIT_COMMIT_REF" = "sept" ]; then exit 1; else exit 0; fi`.
+   Exit 1 BUILDS and exit 0 SKIPS — the codes read backwards, which is correct.
+4. Add the subdomain under Settings -> Domains, connected to **Production**.
+5. Set all seven env vars in that project's Production scope, per the deploy
+   checklist above — `DIRECT_URL` included, or the build dies in
+   `prisma generate`. Two of them must DIFFER from the eventual live values:
+   `NEXT_PUBLIC_APP_URL` is the staging origin, and `STAFF_INVITE_CODE` is its
+   own random string so a staging invite link never opens the real site.
+6. In Supabase (`ktcaaasmrryoxinsutzt`) -> Authentication -> URL Configuration,
+   add the staging origin to **Redirect URLs**. Without it `emailRedirectTo`
+   falls back to the Site URL and confirmation links land on the wrong host.
+
+**The staging site writes to the real books.** There is no second database, so
+every test sale, pengeluaran and day-close on that subdomain becomes a real row
+in the production ledger. Correct test entries by VOIDING them — the ledger is
+append-only — and do not lock a month while testing is still running.
+
 ## Gotchas that bite
 
 - **Never `prisma migrate deploy` or `db push`.** Apply DDL as a reviewed
@@ -105,6 +200,16 @@ these are not all due at once.
   ALTER even if you are wiping.
 - **Bulk loads need port 5432** (`DIRECT_URL`). The 6543 pooler breaks the
   repositories' interactive transactions.
+- **`DIRECT_URL` is required for EVERY Prisma CLI command, `generate`
+  included** — so a deploy without it fails. `prisma.config.ts` sets
+  `datasource.url` to `env("DIRECT_URL")`, and that `env()` helper throws
+  `PrismaConfigEnvError` while the config module is still loading, before the
+  command runs and regardless of whether it needs a datasource. `npm run build`
+  starts with `prisma generate`, so the Vercel build dies there. Confirmed on
+  2026-09-07 by a real failed Vercel build, reproduced locally with
+  `DIRECT_URL= npx prisma generate`. Reading `schema.prisma` alone will NOT
+  reveal this: its datasource block has no `directUrl` and mentions only
+  `DATABASE_URL`. Empty counts as missing — `env()` rejects `!value`.
 - **Stop the dev server** before `prisma generate` / `next build`, or the client
   half-writes and the pglite suite OOMs looking like a code bug.
 - Plain `npx tsc` OOMs. Use
