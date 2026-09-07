@@ -153,8 +153,8 @@ describe("getCashAccountBalances", () => {
 
 // ---------------------------------------------------------------------------
 // Guard: app/buku/belanja/page.tsx is the ONLY /buku page gated with
-// requireAuth() instead of requireOwner(). This must fail if someone "fixes"
-// the gate back to requireOwner, or adds a new ungated /buku page.
+// requireAuth() instead of a buku capability. This must fail if someone "fixes"
+// the gate to requireCan("buku.read"), or adds a new ungated /buku page.
 // ---------------------------------------------------------------------------
 
 describe("buku page auth-gate guard", () => {
@@ -176,10 +176,10 @@ describe("buku page auth-gate guard", () => {
   // Match the actual call (`await requireX(`), not prose mentioning the other
   // gate by name — the why-comment on this page deliberately says
   // "requireOwner()" in the text explaining what NOT to do.
-  it("app/buku/belanja/page.tsx calls requireAuth(), not requireOwner()", () => {
+  it("app/buku/belanja/page.tsx calls requireAuth(), not the buku capability", () => {
     const source = readFileSync(path.join(APP_BUKU_DIR, "belanja/page.tsx"), "utf8");
     expect(source).toMatch(/await requireAuth\(/);
-    expect(source).not.toMatch(/await requireOwner\(/);
+    expect(source).not.toMatch(/await requireCan\(/);
   });
 
   // The requireAuth() gate above is worthless on its own: the page also has to
@@ -189,19 +189,21 @@ describe("buku page auth-gate guard", () => {
   // the page was unreachable for the only role it exists for. The gate test
   // above passed the whole time — it checked a proxy, not the thing that
   // failed. Found in UAT 2026-09-03. Read the lib repositories directly here.
-  it("app/buku/belanja/page.tsx does not read through the requireOwner() query wrappers", () => {
+  it("app/buku/belanja/page.tsx does not read through the requireCan query wrappers", () => {
     const source = readFileSync(path.join(APP_BUKU_DIR, "belanja/page.tsx"), "utf8");
     expect(source).not.toMatch(/from\s+["']@\/app\/actions\/admin\/queries/);
   });
 
-  it("every other app/buku/**/page.tsx calls requireOwner()", () => {
+  it("every other app/buku/**/page.tsx calls requireCan(\"buku.read\")", () => {
     const pages = findPageFiles(APP_BUKU_DIR).filter(
       (p) => path.relative(APP_BUKU_DIR, p) !== path.join("belanja", "page.tsx"),
     );
     expect(pages.length).toBeGreaterThan(0);
     for (const file of pages) {
       const source = readFileSync(file, "utf8");
-      expect(source, `${file} must call requireOwner()`).toMatch(/await requireOwner\(/);
+      expect(source, `${file} must call requireCan("buku.read")`).toMatch(
+        /await requireCan\("buku\.read"\)/,
+      );
     }
   });
 });
