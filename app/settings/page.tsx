@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/settings";
 import SettingsClient from "./settings-client";
 
 export default async function SettingsPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("settings.write");
   const settings = await getSettings();
 
   return (

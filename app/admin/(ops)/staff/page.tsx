@@ -2,11 +2,11 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
 import { getStaffWithEmails } from "@/app/actions/admin/queries";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import StaffClient from "./staff-client";
 
 export default async function StaffPage() {
-  const staff = await requireRole("OWNER", "MANAGER");
+  const staff = await requireCan("staff.read");
   const staffList = await getStaffWithEmails();
   const activeCount = staffList.filter((s) => s.isActive).length;
 

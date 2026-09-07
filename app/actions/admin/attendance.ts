@@ -2,7 +2,7 @@
 
 import { revalidateAttendance } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { z } from "zod";
 import { runAction } from "@/lib/action-error";
 
@@ -10,7 +10,7 @@ const statusEnum = z.enum(["PRESENT", "ABSENT"]);
 
 export async function markAttendance(staffId: string, date: string, status: "PRESENT" | "ABSENT") {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("attendance.manage");
     statusEnum.parse(status);
     // Parse YYYY-MM-DD as local date (not UTC)
     const [y, m, d] = date.split("-").map(Number);
@@ -30,7 +30,7 @@ export async function bulkMarkAttendance(
   entries: Array<{ staffId: string; status: "PRESENT" | "ABSENT" }>
 ) {
   return runAction(async () => {
-    await requireRole("OWNER", "MANAGER");
+    await requireCan("attendance.manage");
     // Parse YYYY-MM-DD as local date (not UTC)
     const [y, m, d] = date.split("-").map(Number);
     const parsedDate = new Date(y, m - 1, d);

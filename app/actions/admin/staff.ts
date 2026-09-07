@@ -3,7 +3,7 @@
 import { revalidateStaff } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { requireOwner, requireOwnerStrict } from "@/lib/admin-auth";
+import { requireCan, requireCanStrict } from "@/lib/admin-auth";
 import { z } from "zod";
 import type { RoleEnum, Staff } from "@/generated/prisma";
 import { ActionError, runAction } from "@/lib/action-error";
@@ -20,7 +20,7 @@ const staffSchema = z.object({
  * OWNER and DEVELOPER are the two privileged roles, and only a real OWNER may
  * grant or revoke either one.
  *
- * Every action in this file gates on requireOwner(), which deliberately lets a
+ * Every action in this file gates on requireCan("staff.write"), which lets a
  * DEVELOPER through as a superuser. That bypass exists for support work, not
  * for handing out ownership of the business, so a change that touches a
  * privileged role is checked again here against the actor's real role.
@@ -63,7 +63,7 @@ function assertMayChangePrivilegedRole(
 
 export async function addStaff(formData: FormData) {
   return runAction(async () => {
-    const actor = await requireOwner();
+    const actor = await requireCan("staff.write");
     const salaryRaw = formData.get("salary");
     const data = staffSchema.parse({
       username: formData.get("username"),
@@ -81,7 +81,7 @@ export async function addStaff(formData: FormData) {
 
 export async function updateStaff(id: string, formData: FormData) {
   return runAction(async () => {
-    const actor = await requireOwner();
+    const actor = await requireCan("staff.write");
     const salaryRaw = formData.get("salary");
     const data = staffSchema.parse({
       username: formData.get("username"),
@@ -103,7 +103,7 @@ export async function updateStaff(id: string, formData: FormData) {
 
 export async function deleteStaff(id: string) {
   return runAction(async () => {
-    const owner = await requireOwnerStrict();
+    const owner = await requireCanStrict("staff.delete");
 
     if (owner.id === id) throw new ActionError("Tidak dapat menghapus akun sendiri.");
 
@@ -141,7 +141,7 @@ export async function deleteStaff(id: string) {
 
 export async function toggleStaffActive(id: string, current: boolean) {
   return runAction(async () => {
-    const actor = await requireOwner();
+    const actor = await requireCan("staff.write");
     if (actor.id === id) {
       throw new ActionError("Tidak dapat menonaktifkan akun sendiri.");
     }
@@ -163,7 +163,7 @@ export async function toggleStaffActive(id: string, current: boolean) {
 
 export async function linkSupabaseUser(staffId: string, email: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("staff.write");
 
     const supabase = createAdminClient();
     const { data: listData, error } = await supabase.auth.admin.listUsers({ perPage: 1000 });
@@ -194,7 +194,7 @@ export async function linkSupabaseUser(staffId: string, email: string) {
 
 export async function unlinkSupabaseUser(staffId: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("staff.write");
     await prisma.staff.update({
       where: { id: staffId },
       data: { supabaseUserId: null },

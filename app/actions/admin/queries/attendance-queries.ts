@@ -1,10 +1,10 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 
 export async function getAttendanceData(opts: { date: string }) {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("attendance.manage");
 
   let targetDate: Date;
   if (opts.date) {

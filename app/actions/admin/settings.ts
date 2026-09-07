@@ -2,18 +2,18 @@
 
 import { revalidateSettings } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getSettings, SETTING_DEFAULTS } from "@/lib/settings";
 import { ActionError, runAction } from "@/lib/action-error";
 
 export async function fetchSettings() {
-  await requireOwner();
+  await requireCan("settings.write");
   return getSettings();
 }
 
 export async function updateSettings(formData: FormData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("settings.write");
 
     const updates: { key: string; value: string }[] = [];
     for (const key of Object.keys(SETTING_DEFAULTS)) {

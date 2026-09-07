@@ -1,11 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 export async function getStaffWithEmails() {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("staff.read");
 
   const staffList = await prisma.staff.findMany({ orderBy: { createdAt: "asc" } });
 
@@ -37,7 +37,7 @@ export async function getStaffWithEmails() {
 }
 
 export async function getSessionsData() {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("staff.read");
 
   const supabase = createAdminClient();
   const [{ data, error }, staff] = await Promise.all([

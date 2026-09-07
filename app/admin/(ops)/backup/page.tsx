@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import BackupTabsClient from "./backup-tabs-client";
 
 export default async function BackupPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("backup.export");
 
   return (
     <AppShell role={staff.role}>

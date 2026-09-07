@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { prisma } from "@/lib/prisma";
 import NotificationsClient from "./notifications-client";
 
@@ -13,7 +13,7 @@ export default async function NotificationsAdminPage({
 }: {
   searchParams: Promise<{ type?: string; read?: string; recipient?: string }>;
 }) {
-  const staff = await requireOwner();
+  const staff = await requireCan("notifications.admin");
   const params = await searchParams;
 
   const typeFilter: TypeFilter =

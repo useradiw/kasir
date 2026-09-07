@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 
 // NOTE: this list and IMPORT_ORDER in ./restore.ts must ALWAYS be updated
 // together — a table exported but not restorable makes the backup a dead end.
@@ -43,7 +43,7 @@ const ALL_TABLES = [
 export type BackupTableKey = (typeof ALL_TABLES)[number];
 
 export async function exportDatabase(tables: string[]) {
-  await requireOwner();
+  await requireCan("backup.export");
 
   const selected = tables.length > 0
     ? tables.filter((t): t is BackupTableKey => (ALL_TABLES as readonly string[]).includes(t))

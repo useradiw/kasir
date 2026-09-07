@@ -3,7 +3,7 @@
 import { revalidateNotifications } from "@/lib/revalidate";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireOwner, requireOwnerStrict } from "@/lib/admin-auth";
+import { requireCan, requireCanStrict } from "@/lib/admin-auth";
 import { ActionError, runAction } from "@/lib/action-error";
 import { createVoidNotification, notifyStaff } from "@/lib/notifications";
 import type { NotificationType } from "@/generated/prisma";
@@ -17,7 +17,7 @@ const testSchema = z.object({
 
 export async function createTestNotification(formData: FormData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("notifications.admin");
     const data = testSchema.parse({
       type: formData.get("type"),
       title: formData.get("title"),
@@ -45,7 +45,7 @@ export async function createTestNotification(formData: FormData) {
 
 export async function triggerSampleVoidNotification() {
   return runAction(async () => {
-    const owner = await requireOwner();
+    const owner = await requireCan("notifications.admin");
     await createVoidNotification({
       type: "TRANSACTION_VOIDED",
       actorName: owner.name,
@@ -60,7 +60,7 @@ export async function triggerSampleVoidNotification() {
 
 export async function markAllNotificationsReadGlobal() {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("notifications.admin");
     await prisma.notification.updateMany({
       where: { readAt: null },
       data: { readAt: new Date() },
@@ -71,7 +71,7 @@ export async function markAllNotificationsReadGlobal() {
 
 export async function deleteNotification(id: string) {
   return runAction(async () => {
-    await requireOwnerStrict();
+    await requireCanStrict("notifications.delete");
     await prisma.notification.delete({ where: { id } });
     revalidateNotifications();
   });

@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { reconcileJournalSequence } from "@/lib/accounting/reconcileJournalSequence";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 
 export interface BackupData {
   version?: number;
@@ -51,7 +51,7 @@ export async function restoreDatabase(
   data: BackupData,
   selectedTables: string[],
 ): Promise<{ imported: Record<string, number>; errors: string[] }> {
-  await requireOwner();
+  await requireCan("backup.restore");
 
   const imported: Record<string, number> = {};
   const errors: string[] = [];
