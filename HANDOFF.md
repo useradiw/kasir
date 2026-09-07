@@ -8,16 +8,33 @@ every gate in the app is now `requireCan`/`requireCanStrict` on a named
 capability; the role gates (requireRole/requireOwner) are deleted. Day-one
 behaviour is unchanged — the seeded grid mirrors the old hardcoded checks, and
 test/permissions-matrix.test.ts pins that. Last green: lint clean, `npm test`
-419 passed + 1 skipped / 37 files, `npm run build` succeeds.
+420 passed + 1 skipped / 37 files, `npm run build` succeeds.
 
-Owner toggle screen: **/buku/izin** (real OWNER only, no DEVELOPER bypass).
-RolePermission table ships as `prisma/sql/2026-09-add-role-permissions.sql`
-(BEGIN/COMMIT + 96 seed rows) — **NOT applied to any database.** Adi applies
-by standard policy: backup at /admin/backup, verify printed host is
-`ktcaaasmrryoxinsutzt`, `prisma db execute --file ...`, then
-`prisma migrate resolve --applied 20260907000000_role_permissions`. The app
-runs fine BEFORE the DDL (missing table = defaults only) and after it.
-Until the DDL lands, the /buku/izin screen errors on save — expected.
+Owner toggle screen: **/admin/izin** (real OWNER only, no DEVELOPER bypass).
+It sits next to /admin/staff, where roles are assigned. It was briefly at
+/buku/izin; moved 2026-09-07 at Adi's direction, before anything shipped.
+**The DDL IS APPLIED to production** (2026-09-07, by Claude at Adi's explicit
+instruction). `role_permissions` exists on `ktcaaasmrryoxinsutzt`, empty, PK
+`(role, capability)`; migration `20260907000000_role_permissions` is recorded
+and `prisma migrate status` reports no drift. No backup was taken first — the
+script only creates a new table inside BEGIN/COMMIT and touches no existing
+row. The app runs fine both before and after the DDL (missing table =
+defaults only), so a deploy in either order is safe.
+
+**The table ships EMPTY on purpose — do not add a seed.** It is an override
+layer: a pair with no row falls back to DEFAULT_GRID, so an empty table
+already IS day-one behaviour, and setPermission() deletes a row whenever its
+value returns to the default. The first version seeded all 96 pairs, which
+(a) would not run at all — `updatedAt` is NOT NULL with no database default,
+because Prisma's @updatedAt is client-side and never becomes DDL, so a raw
+INSERT omitting it is rejected — and (b) would have put stale rows on top of
+the code, so a later edit to DEFAULT_GRID would silently do nothing.
+
+Review pass on 2026-09-07 (Opus) also fixed: the missing-table guard now sits
+on the shared read path in lib/permission-store.ts rather than only the cached
+one, so the safety no longer depends on which client the caller passes;
+/buku/izin catches P2021 like the store instead of crashing before the DDL;
+and the screen gained the "← Buku" back link every other /buku page has.
 
 ## What landed in the 2026-09-07 session
 

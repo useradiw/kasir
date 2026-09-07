@@ -346,27 +346,6 @@ export default async function PetunjukPage() {
                   catatan hari itu masuk ke buku besar.
                 </p>
 
-                <SubHeading id="admin-izin-peran">Izin Peran</SubHeading>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Izin Peran mengatur apa yang boleh dilakukan tiap peran — tanpa perlu membuat
-                  perubahan di kode aplikasi. Owner selalu boleh semuanya, jadi baris Owner tidak
-                  ada di layar ini. Developer juga diatur di dalam aplikasi: bisa semuanya kecuali
-                  menghapus permanen.
-                </p>
-                <Steps>
-                  <li>Buka <Link href="/buku/izin" className="cursor-pointer text-primary hover:underline">Izin Peran</Link> dari halaman Buku.</li>
-                  <li>Pilih peran di bagian atas: <strong>Manager</strong>, <strong>Kasir</strong>, atau <strong>Staf</strong>.</li>
-                  <li>Nyalakan atau matikan saklar pada kemampuan yang ingin diubah. Perubahan langsung tersimpan.</li>
-                  <li>
-                    Untuk mengembalikan semuanya seperti awal, ketuk{" "}
-                    <strong>Kembalikan ke bawaan</strong> di bawah.
-                  </li>
-                </Steps>
-                <Tips>
-                  <li>Kemampuan yang mati membuat menu atau tombolnya tidak terlihat untuk peran itu.</li>
-                  <li>Hati-hati mematikan kemampuan untuk diri sendiri? Tidak bisa — Owner tidak bisa dimatikan.</li>
-                </Tips>
-
                 <SubHeading id="admin-kas-pak-har">Kas Pak Har</SubHeading>
                 <p className="text-sm text-muted-foreground mb-2">
                   Halaman Kas Pak Har yang terpisah sudah tidak ada lagi. Uang
@@ -419,6 +398,27 @@ export default async function PetunjukPage() {
                   <li>Sistem akan membuat akun login. Staff menggunakan email tersebut untuk masuk.</li>
                   <li>Untuk menonaktifkan staff, buka detail staff dan matikan toggle <strong>Aktif</strong>.</li>
                 </Steps>
+
+                <SubHeading id="admin-izin-peran">Izin Peran</SubHeading>
+                <p className="text-sm text-muted-foreground mb-2">
+                  Izin Peran mengatur apa yang boleh dilakukan tiap peran — tanpa perlu membuat
+                  perubahan di kode aplikasi. Owner selalu boleh semuanya, jadi baris Owner tidak
+                  ada di layar ini. Developer juga diatur di dalam aplikasi: bisa semuanya kecuali
+                  menghapus permanen.
+                </p>
+                <Steps>
+                  <li>Buka <Link href="/admin/izin" className="cursor-pointer text-primary hover:underline">Izin Peran</Link> dari halaman Admin, di bagian Staff.</li>
+                  <li>Pilih peran di bagian atas: <strong>Manager</strong>, <strong>Kasir</strong>, atau <strong>Staf</strong>.</li>
+                  <li>Nyalakan atau matikan saklar pada kemampuan yang ingin diubah. Perubahan langsung tersimpan.</li>
+                  <li>
+                    Untuk mengembalikan semuanya seperti awal, ketuk{" "}
+                    <strong>Kembalikan ke bawaan</strong> di bawah.
+                  </li>
+                </Steps>
+                <Tips>
+                  <li>Kemampuan yang mati membuat menu atau tombolnya tidak terlihat untuk peran itu.</li>
+                  <li>Anda tidak bisa mengunci diri sendiri. Baris Owner tidak ada di layar ini, jadi izin Owner tidak bisa dimatikan.</li>
+                </Tips>
 
                 <SubHeading id="admin-backup">Backup &amp; Restore</SubHeading>
                 <Steps>

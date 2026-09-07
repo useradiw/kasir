@@ -58,7 +58,7 @@ export function revalidateSuppliers() {
 
 /** Revalidate all pages under the Keuangan (Warung Books) section. */
 export function revalidatePermissions() {
-  revalidatePath("/buku/izin");
+  revalidatePath("/admin/izin");
 }
 
 export function revalidateKeuangan() {

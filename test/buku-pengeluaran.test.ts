@@ -195,12 +195,11 @@ describe("buku page auth-gate guard", () => {
   });
 
   it("every other app/buku/**/page.tsx calls requireCan(\"buku.read\")", () => {
-    // belanja is requireAuth()-gated on purpose (guarded above); izin is
-    // gated STRICTER than buku.read — requireCanStrict("permissions.manage"),
-    // real OWNER only (guarded in test/permissions-matrix.test.ts).
-    const EXCEPTIONS = [path.join("belanja", "page.tsx"), path.join("izin", "page.tsx")];
+    // belanja is requireAuth()-gated on purpose (guarded above) and is the
+    // ONLY exception. The permission screen briefly lived here too; it moved
+    // to /admin/izin on 2026-09-07, which put this rule back to one exception.
     const pages = findPageFiles(APP_BUKU_DIR).filter(
-      (p) => !EXCEPTIONS.includes(path.relative(APP_BUKU_DIR, p)),
+      (p) => path.relative(APP_BUKU_DIR, p) !== path.join("belanja", "page.tsx"),
     );
     expect(pages.length).toBeGreaterThan(0);
     for (const file of pages) {

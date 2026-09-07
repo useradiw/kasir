@@ -14,7 +14,7 @@ import {
 import type { RoleEnum } from "@/generated/prisma";
 
 /**
- * /buku/izin actions — the Owner's permission toggle screen.
+ * /admin/izin actions — the Owner's permission toggle screen.
  *
  * Guard rails (not negotiable, see docs/prompts/role-permissions-zcode.md):
  * - Every write is real-OWNER only, with NO DEVELOPER bypass. The gate is

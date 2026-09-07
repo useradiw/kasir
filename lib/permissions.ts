@@ -72,7 +72,7 @@ export const CAPABILITIES = {
   "backup.export": { label: "Unduh backup database", group: "Laporan & Admin" },
   "backup.restore": { label: "Restore database", group: "Laporan & Admin" },
 
-  // Structural: gates the permission screen itself. Never rendered as a
+  // Structural: gates the permission screen itself (/admin/izin). Never rendered as a
   // toggleable row — the write path additionally requires a real OWNER, so the
   // screen cannot be granted away in the way an ordinary capability can.
   "permissions.manage": { label: "Kelola izin peran", group: "Laporan & Admin" },

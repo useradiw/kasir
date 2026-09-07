@@ -4,9 +4,18 @@
 --   prisma migrate resolve --applied 20260907000000_role_permissions
 -- Take a backup at /admin/backup first. Verify the printed host is
 -- ktcaaasmrryoxinsutzt (the retired project was oyvgyhuzvxepteldlghn).
--- The seed inserts one row per (toggleable role, capability), mirroring
--- DEFAULT_GRID exactly, so day-one behaviour is unchanged; the code-side
--- default grid remains the fallback for capabilities with no row.
+--
+-- The table ships EMPTY, on purpose. It is an override layer, not a copy of
+-- the grid: a (role, capability) pair with no row falls back to DEFAULT_GRID
+-- in lib/permissions.ts, so an empty table already reproduces day-one
+-- behaviour exactly. setPermission() deletes a row whenever its value returns
+-- to the default, which keeps the table that way.
+--
+-- Do NOT add a seed here. Seeding every pair would put stale rows on top of
+-- the code and win over it, so a later change to DEFAULT_GRID would silently
+-- do nothing. It also would not run: "updatedAt" is NOT NULL with no database
+-- default, because Prisma's @updatedAt is applied client-side and never
+-- becomes DDL, so a raw INSERT that omits the column is rejected.
 
 BEGIN;
 
@@ -18,103 +27,5 @@ CREATE TABLE "role_permissions" (
 
     CONSTRAINT "role_permissions_pkey" PRIMARY KEY ("role", "capability")
 );
-
-INSERT INTO "role_permissions" ("role", "capability", "allowed") VALUES
-('MANAGER', 'kasir.access', true),
-('CASHIER', 'kasir.access', true),
-('STAFF', 'kasir.access', false),
-('MANAGER', 'kas.access', true),
-('CASHIER', 'kas.access', true),
-('STAFF', 'kas.access', false),
-('MANAGER', 'settlement.use', true),
-('CASHIER', 'settlement.use', true),
-('STAFF', 'settlement.use', false),
-('MANAGER', 'settlement.delete', false),
-('CASHIER', 'settlement.delete', false),
-('STAFF', 'settlement.delete', false),
-('MANAGER', 'transaksi.write', false),
-('CASHIER', 'transaksi.write', false),
-('STAFF', 'transaksi.write', false),
-('MANAGER', 'transactions.read', true),
-('CASHIER', 'transactions.read', false),
-('STAFF', 'transactions.read', false),
-('MANAGER', 'cashregister.read', true),
-('CASHIER', 'cashregister.read', false),
-('STAFF', 'cashregister.read', false),
-('MANAGER', 'cashregister.write', false),
-('CASHIER', 'cashregister.write', false),
-('STAFF', 'cashregister.write', false),
-('MANAGER', 'cashregister.delete', false),
-('CASHIER', 'cashregister.delete', false),
-('STAFF', 'cashregister.delete', false),
-('MANAGER', 'dayclose.repost', false),
-('CASHIER', 'dayclose.repost', false),
-('STAFF', 'dayclose.repost', false),
-('MANAGER', 'menu.read', true),
-('CASHIER', 'menu.read', false),
-('STAFF', 'menu.read', false),
-('MANAGER', 'menu.write', true),
-('CASHIER', 'menu.write', false),
-('STAFF', 'menu.write', false),
-('MANAGER', 'menu.delete', false),
-('CASHIER', 'menu.delete', false),
-('STAFF', 'menu.delete', false),
-('MANAGER', 'menu.performance', false),
-('CASHIER', 'menu.performance', false),
-('STAFF', 'menu.performance', false),
-('MANAGER', 'suppliers.write', true),
-('CASHIER', 'suppliers.write', false),
-('STAFF', 'suppliers.write', false),
-('MANAGER', 'reports.read', true),
-('CASHIER', 'reports.read', false),
-('STAFF', 'reports.read', false),
-('MANAGER', 'admin.ops', true),
-('CASHIER', 'admin.ops', false),
-('STAFF', 'admin.ops', false),
-('MANAGER', 'attendance.manage', true),
-('CASHIER', 'attendance.manage', false),
-('STAFF', 'attendance.manage', false),
-('MANAGER', 'staff.read', true),
-('CASHIER', 'staff.read', false),
-('STAFF', 'staff.read', false),
-('MANAGER', 'staff.write', false),
-('CASHIER', 'staff.write', false),
-('STAFF', 'staff.write', false),
-('MANAGER', 'staff.delete', false),
-('CASHIER', 'staff.delete', false),
-('STAFF', 'staff.delete', false),
-('MANAGER', 'settings.write', false),
-('CASHIER', 'settings.write', false),
-('STAFF', 'settings.write', false),
-('MANAGER', 'notifications.admin', false),
-('CASHIER', 'notifications.admin', false),
-('STAFF', 'notifications.admin', false),
-('MANAGER', 'notifications.delete', false),
-('CASHIER', 'notifications.delete', false),
-('STAFF', 'notifications.delete', false),
-('MANAGER', 'backup.export', false),
-('CASHIER', 'backup.export', false),
-('STAFF', 'backup.export', false),
-('MANAGER', 'backup.restore', false),
-('CASHIER', 'backup.restore', false),
-('STAFF', 'backup.restore', false),
-('MANAGER', 'buku.read', false),
-('CASHIER', 'buku.read', false),
-('STAFF', 'buku.read', false),
-('MANAGER', 'pengeluaran.write', false),
-('CASHIER', 'pengeluaran.write', false),
-('STAFF', 'pengeluaran.write', false),
-('MANAGER', 'pengeluaran.void', false),
-('CASHIER', 'pengeluaran.void', false),
-('STAFF', 'pengeluaran.void', false),
-('MANAGER', 'buku.akun.write', false),
-('CASHIER', 'buku.akun.write', false),
-('STAFF', 'buku.akun.write', false),
-('MANAGER', 'buku.kas.write', false),
-('CASHIER', 'buku.kas.write', false),
-('STAFF', 'buku.kas.write', false),
-('MANAGER', 'buku.bulan.write', false),
-('CASHIER', 'buku.bulan.write', false),
-('STAFF', 'buku.bulan.write', false);
 
 COMMIT;

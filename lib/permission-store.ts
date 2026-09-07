@@ -12,7 +12,7 @@ import {
  *
  * The grid is read on nearly every request, so the rows live in an in-process
  * cache and every gate resolves from memory. Writes go through
- * invalidatePermissionCache() (called by the /buku/izin actions), never by
+ * invalidatePermissionCache() (called by the /admin/izin actions), never by
  * mutating the cache in place.
  *
  * Deploy-order safety: until the DDL lands the table does not exist, and every
@@ -40,25 +40,43 @@ function rowsToOverride(rows: { role: RoleEnum; capability: string; allowed: boo
   return (capability: Capability, role: RoleEnum) => map.get(`${role}:${capability}`) ?? null;
 }
 
+function isMissingTable(e: unknown): boolean {
+  return (
+    !!e &&
+    typeof e === "object" &&
+    "code" in e &&
+    (e as { code?: string }).code === "P2021" // table does not exist
+  );
+}
+
+/**
+ * Read the stored rows for one client, degrading to NO_OVERRIDES when the
+ * table is absent. This sits on the shared path deliberately: the missing-table
+ * safety must not depend on which client the caller passed, or the guarantee
+ * would hold for production and vanish for every other caller.
+ */
+async function readOverride(
+  db: Pick<typeof prisma, "rolePermission">,
+): Promise<GridOverride | null> {
+  try {
+    return rowsToOverride(await db.rolePermission.findMany());
+  } catch (e) {
+    if (isMissingTable(e)) return null;
+    throw e;
+  }
+}
+
 /** The GridOverride for the stored rows, or NO_OVERRIDES if the table is missing. */
 export async function loadPermissionOverride(): Promise<GridOverride> {
   if (cached) return cached;
   if (Date.now() < missingTableUntil) return NO_OVERRIDES;
-  try {
-    cached = rowsToOverride(await prisma.rolePermission.findMany());
-    return cached;
-  } catch (e) {
-    if (
-      e &&
-      typeof e === "object" &&
-      "code" in e &&
-      (e as { code?: string }).code === "P2021" // table does not exist
-    ) {
-      missingTableUntil = Date.now() + MISSING_TABLE_TTL_MS;
-      return NO_OVERRIDES;
-    }
-    throw e;
+  const override = await readOverride(prisma);
+  if (override === null) {
+    missingTableUntil = Date.now() + MISSING_TABLE_TTL_MS;
+    return NO_OVERRIDES;
   }
+  cached = override;
+  return cached;
 }
 
 /**
@@ -74,6 +92,6 @@ export async function canByGrid(
   // A caller-supplied client (the pglite tests) bypasses the process cache
   // deliberately — the cache is only ever fed from the production client.
   const override =
-    db === prisma ? await loadPermissionOverride() : rowsToOverride(await db.rolePermission.findMany());
+    db === prisma ? await loadPermissionOverride() : ((await readOverride(db)) ?? NO_OVERRIDES);
   return isAllowed(capability, role, override, options);
 }

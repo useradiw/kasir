@@ -9,7 +9,16 @@ import { RoleEnum } from "@/generated/prisma";
  * and the layout dropdown (deleted: dead end for a MANAGER on a phone).
  */
 
-type AdminLink = { href: string; label: string; detail: string; ownerOnly?: boolean };
+/** `ownerOnly` also admits DEVELOPER (the superuser). `realOwnerOnly` does
+ *  not: it marks a page whose own gate is strict, so showing the link to a
+ *  DEVELOPER would only offer a redirect. */
+type AdminLink = {
+  href: string;
+  label: string;
+  detail: string;
+  ownerOnly?: boolean;
+  realOwnerOnly?: boolean;
+};
 type AdminGroup = { title: string; links: AdminLink[] };
 
 const groupsBase: AdminGroup[] = [
@@ -19,6 +28,12 @@ const groupsBase: AdminGroup[] = [
       { href: "/admin/staff", label: "Kelola Staff", detail: "Tambah, edit, nonaktifkan staff" },
       { href: "/admin/sessions", label: "Sesi Login", detail: "Sesi aktif dan riwayat login" },
       { href: "/admin/attendance", label: "Absensi", detail: "Jam masuk dan pulang staff" },
+      {
+        href: "/admin/izin",
+        label: "Izin Peran",
+        detail: "Atur apa yang bisa dilakukan tiap peran",
+        realOwnerOnly: true,
+      },
     ],
   },
   {
@@ -50,11 +65,14 @@ const groupsBase: AdminGroup[] = [
 export default async function AdminPage() {
   const staff = await requireCan("admin.ops");
   const isOwner = staff.role === "OWNER" || (staff.role as RoleEnum) === "DEVELOPER";
+  const isRealOwner = staff.role === "OWNER";
 
   const groups = groupsBase
     .map((group) => ({
       ...group,
-      links: group.links.filter((l) => !l.ownerOnly || isOwner),
+      links: group.links.filter(
+        (l) => (!l.ownerOnly || isOwner) && (!l.realOwnerOnly || isRealOwner),
+      ),
     }))
     .filter((group) => group.links.length > 0);
 
