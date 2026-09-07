@@ -29,6 +29,7 @@ export default async function StaffPage() {
         <StaffClient
           staffList={staffList}
           isOwner={staff.role === "OWNER" || staff.role === "DEVELOPER"}
+          canGrantPrivileged={staff.role === "OWNER"}
           inviteCode={process.env.STAFF_INVITE_CODE ?? ""}
         />
       </div>

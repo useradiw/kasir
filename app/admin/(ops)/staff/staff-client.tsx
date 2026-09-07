@@ -36,7 +36,31 @@ type StaffRow = {
 
 const ROLES = ["OWNER", "MANAGER", "CASHIER", "STAFF", "DEVELOPER"] as const;
 
-export default function StaffClient({ staffList, isOwner, inviteCode }: { staffList: StaffRow[]; isOwner: boolean; inviteCode: string }) {
+/** Mirrors PRIVILEGED_ROLES in app/actions/admin/staff.ts, which is the gate
+ *  that actually enforces this. Only a real OWNER may grant Owner or
+ *  Developer, so nobody else is offered the choice. */
+const PRIVILEGED_ROLES: readonly string[] = ["OWNER", "DEVELOPER"];
+
+/** Options for one role select. A row's own current role is always included,
+ *  even when the viewer may not assign it, so editing a Developer's name never
+ *  silently rewrites their role to whatever happened to be first in the list. */
+function roleOptions(canGrantPrivileged: boolean, currentRole?: string) {
+  return ROLES.filter(
+    (r) => canGrantPrivileged || !PRIVILEGED_ROLES.includes(r) || r === currentRole,
+  );
+}
+
+export default function StaffClient({
+  staffList,
+  isOwner,
+  canGrantPrivileged,
+  inviteCode,
+}: {
+  staffList: StaffRow[];
+  isOwner: boolean;
+  canGrantPrivileged: boolean;
+  inviteCode: string;
+}) {
   const { isPending, run, error, setError } = useAdminAction();
   const confirm = useConfirm();
   const [showAdd, setShowAdd] = useState(false);
@@ -107,7 +131,7 @@ export default function StaffClient({ staffList, isOwner, inviteCode }: { staffL
               <div className="grid gap-1">
                 <Label htmlFor="add-role">Role</Label>
                 <AdminSelect id="add-role" name="role" required className="border-border bg-card-2">
-                  {ROLES.map((r) => (
+                  {roleOptions(canGrantPrivileged).map((r) => (
                     <option key={r} value={r}>{r}</option>
                   ))}
                 </AdminSelect>
@@ -158,7 +182,7 @@ export default function StaffClient({ staffList, isOwner, inviteCode }: { staffL
                     <div className="grid gap-1">
                       <Label>Role</Label>
                       <AdminSelect name="role" defaultValue={s.role} className="border-border bg-card-2">
-                        {ROLES.map((r) => (
+                        {roleOptions(canGrantPrivileged, s.role).map((r) => (
                           <option key={r} value={r}>{r}</option>
                         ))}
                       </AdminSelect>
