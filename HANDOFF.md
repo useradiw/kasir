@@ -2,7 +2,7 @@
 
 ## State — 2026-09-07
 
-`sept` at a1558e7, tree clean, one worktree. The branches are exactly
+`sept` at 05ad09b, tree clean, one worktree. The branches are exactly
 `master` -> `develop` -> `sept`, and each one fast-forwards to the next —
 `june` and `feat/warungbooks` are both gone. **Nothing is pushed:
 `origin/master` is at 1904f58, 62 commits behind `sept`,** so GitHub (and
@@ -12,6 +12,46 @@ and every push himself.
 Last green (2026-09-07): `npm run lint` clean, `npm test` 373 passed +
 1 skipped / 35 files, `npm run build` succeeds. Every route builds dynamic
 except `/icon` and `/robots.txt`, so a Vercel build never reaches the database.
+
+## What landed in the 2026-09-07 session
+
+Three changes, committed on `sept` as a3fa65c, 0532fef and b3bd57d. All
+verified: lint clean, `npm test` 373 passed + 1 skipped / 35 files,
+`npm run build` succeeds, and both forms checked in the browser on the dev
+account. Not merged and not pushed — Adi does both.
+
+1. **Privileged-role guards** in `app/actions/admin/staff.ts`. Only a real
+   OWNER may grant or revoke OWNER or DEVELOPER, in both directions
+   (`assertMayChangePrivilegedRole`); nobody may change their own role or
+   deactivate their own account (`assertNotSelfLockout`); deactivating an
+   OWNER or DEVELOPER needs a real OWNER. The point is that `requireOwner()`
+   admits a DEVELOPER, so these compare the actor's REAL role — do not
+   refactor them into gate helpers. Also fixed a pre-existing bug: the role
+   dropdown offered DEVELOPER, which `staffSchema` had never accepted, so
+   editing the DEVELOPER staff row would have silently rewritten its role.
+2. **Bulk pengeluaran rewritten** in `app/buku/pengeluaran/entry-form.tsx`.
+   Only Tanggal and Akun kas are form-level now; kategori and nama moved into
+   each line, so one shopping trip can span categories. No server or schema
+   change — `pengeluaranSchema` was already per-record. Partial-failure
+   behaviour is unchanged. Petunjuk steps updated to match.
+3. **`color-scheme` declared** in `app/globals.css` (`light` on `:root`,
+   `dark` on `.dark`). It had never been set, so the browser painted native
+   controls light — the `<select>` popup came out black-on-grey over the dark
+   app. Affects every native control app-wide: select popups, the date picker,
+   number spinners, scrollbars.
+
+Gotcha found while verifying: `npm run dev` served a stale CSS chunk left by an
+earlier `npm run build`, so the globals.css edit appeared to do nothing.
+`rm -rf .next` before starting the dev server after a build.
+
+## Handed to zcode — role permission toggle
+
+`docs/prompts/role-permissions-zcode.md` is a full task brief for a capability
+layer plus an Owner-facing permission toggle screen, to be built in a separate
+worktree off `sept`. Confirmed by searching every branch and the full history:
+this feature has **never** existed in this repo, on develop or anywhere else.
+Today's permissions are 154 calls across 68 files, but only seven distinct
+shapes. Not started.
 
 ## What landed in the 2026-09-06 session
 
