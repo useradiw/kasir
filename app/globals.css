@@ -63,6 +63,13 @@
 }
 
 :root {
+  /* Tells the browser which way to paint the native controls it draws itself:
+     the <select> dropdown list, the <input type="date"> picker, number
+     spinners and scrollbars. Without it the browser assumes light and renders
+     a black-on-grey dropdown over the dark app, which is barely readable.
+     The .dark block below flips it. */
+  color-scheme: light;
+
   --background: oklch(1 0 0);
   --foreground: oklch(0.148 0.004 228.8);
   --card: oklch(1 0 0);
@@ -109,6 +116,8 @@
 
 .dark {
   /* Unified redesign palette (docs/redesign/SPEC.md) — dark terminal skin. */
+  color-scheme: dark;
+
   --background: #101214;
   --foreground: #f1f3f5;
   --card: #181b1f;
