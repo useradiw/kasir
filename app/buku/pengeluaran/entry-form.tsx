@@ -57,7 +57,11 @@ const SIMPLE_FIELDS: Record<Exclude<Jenis, "belanja">, SimpleFieldKey[]> = {
 
 type CashAccount = { name: string; label: string };
 type Category = { code: string; name: string; bucket: "BAHAN_BAKU" | "OPERASIONAL" };
-type Line = { qty: string; hargaSatuan: string };
+/** One belanja line. Kategori and nama live here, not on the form: a single
+ *  shopping trip pays one account on one date, but buys across categories —
+ *  daging (Bahan Baku) and sabun (Operasional) in the same run. Only Tanggal
+ *  and Akun kas are constant for the whole submission. */
+type Line = { kategoriCode: string; item: string; qty: string; hargaSatuan: string };
 
 export function EntryForm({
   jenis,
@@ -86,10 +90,11 @@ export function EntryForm({
   const [catatan, setCatatan] = useState("");
   const [notice, setNotice] = useState("");
 
-  // Belanja-only state: akun/kategori/item plus the multi-line qty x harga block.
-  const [kategoriCode, setKategoriCode] = useState(categories[0]?.code ?? "");
-  const [item, setItem] = useState("");
-  const [lines, setLines] = useState<Line[]>([{ qty: "1", hargaSatuan: "0" }]);
+  // Belanja-only state: the multi-line block. Akun kas stays on the form above.
+  const firstKategori = categories[0]?.code ?? "";
+  const [lines, setLines] = useState<Line[]>([
+    { kategoriCode: firstKategori, item: "", qty: "1", hargaSatuan: "0" },
+  ]);
   // DecimalInput keeps its own text state (seeded from defaultValue), so
   // bumping this key remounts every line's qty input after a successful save
   // — same remount trick as the old pengeluaran-form.tsx.
@@ -100,7 +105,17 @@ export function EntryForm({
   const needsSetup = noKas || noKategori;
 
   function addLine() {
-    setLines((prev) => [...prev, { qty: "1", hargaSatuan: "0" }]);
+    setLines((prev) => [
+      ...prev,
+      // Seed the category from the line above: a run of items from the same
+      // category is the common case, and a different one is one tap away.
+      {
+        kategoriCode: prev[prev.length - 1]?.kategoriCode ?? firstKategori,
+        item: "",
+        qty: "1",
+        hargaSatuan: "0",
+      },
+    ]);
   }
   function removeLine(i: number) {
     setLines((prev) => (prev.length <= 1 ? prev : prev.filter((_, idx) => idx !== i)));
@@ -124,7 +139,15 @@ export function EntryForm({
           const qty = Number(line.qty) || 0;
           const hargaSatuan = Number(line.hargaSatuan) || 0;
           const jml = computeLineJumlah(qty, hargaSatuan);
-          await action({ date, akun, item, qty, hargaSatuan, jumlah: jml, kategoriCode });
+          await action({
+            date,
+            akun,
+            item: line.item,
+            qty,
+            hargaSatuan,
+            jumlah: jml,
+            kategoriCode: line.kategoriCode,
+          });
           savedCount++;
         }
       } catch (err) {
@@ -147,8 +170,7 @@ export function EntryForm({
             "Perbaiki lalu masukkan sisanya.",
         );
       }
-      setItem("");
-      setLines([{ qty: "1", hargaSatuan: "0" }]);
+      setLines([{ kategoriCode: firstKategori, item: "", qty: "1", hargaSatuan: "0" }]);
       setFormKey((k) => k + 1);
       router.refresh();
     }, { successMessage: "Pengeluaran dicatat" });
@@ -207,23 +229,6 @@ export function EntryForm({
                 {cashAccounts.map((a) => <option key={a.name} value={a.name}>{a.label}</option>)}
               </AdminSelect>
             </Field>
-            <Field label="Kategori">
-              <AdminSelect className="w-full" value={kategoriCode} onChange={(e) => setKategoriCode(e.target.value)} required>
-                {categories.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.name} ({c.bucket === "BAHAN_BAKU" ? "Bahan Baku" : "Operasional"})
-                  </option>
-                ))}
-              </AdminSelect>
-            </Field>
-            <Field label="Nama / keterangan">
-              <Input
-                value={item}
-                onChange={(e) => { setItem(e.target.value); setError(null); }}
-                placeholder="Mis. Daging kambing — Pasar Katamso"
-                required
-              />
-            </Field>
 
             <div className="flex flex-col gap-2">
               {lines.map((line, i) => (
@@ -240,23 +245,43 @@ export function EntryForm({
                       </button>
                     )}
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {/* DecimalInput, not <Input type="number">: Indonesian users
-                        type "0,5" and a number input silently discards the
-                        comma, leaving the total at 0. */}
-                    <DecimalInput
-                      key={`${formKey}-${i}`}
-                      defaultValue={line.qty === "" ? null : Number(line.qty)}
-                      onValueChange={(v) => updateLine(i, "qty", v === null ? "" : String(v))}
-                      placeholder="Qty"
-                    />
+                  <div className="mt-2 flex flex-col gap-2">
+                    <AdminSelect
+                      className="w-full"
+                      value={line.kategoriCode}
+                      onChange={(e) => updateLine(i, "kategoriCode", e.target.value)}
+                      required
+                    >
+                      {categories.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name} ({c.bucket === "BAHAN_BAKU" ? "Bahan Baku" : "Operasional"})
+                        </option>
+                      ))}
+                    </AdminSelect>
                     <Input
-                      type="number"
-                      min={0}
-                      value={line.hargaSatuan}
-                      onChange={(e) => updateLine(i, "hargaSatuan", e.target.value)}
-                      placeholder="Harga satuan"
+                      value={line.item}
+                      onChange={(e) => { updateLine(i, "item", e.target.value); setError(null); }}
+                      placeholder="Nama barang — mis. Daging kambing"
+                      required
                     />
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* DecimalInput, not <Input type="number">: Indonesian users
+                          type "0,5" and a number input silently discards the
+                          comma, leaving the total at 0. */}
+                      <DecimalInput
+                        key={`${formKey}-${i}`}
+                        defaultValue={line.qty === "" ? null : Number(line.qty)}
+                        onValueChange={(v) => updateLine(i, "qty", v === null ? "" : String(v))}
+                        placeholder="Qty"
+                      />
+                      <Input
+                        type="number"
+                        min={0}
+                        value={line.hargaSatuan}
+                        onChange={(e) => updateLine(i, "hargaSatuan", e.target.value)}
+                        placeholder="Harga satuan"
+                      />
+                    </div>
                   </div>
                   <p className="mt-1.5 text-right text-[11.5px] font-bold tabular-nums text-muted-foreground">
                     {formatRupiah(computeLineJumlah(Number(line.qty) || 0, Number(line.hargaSatuan) || 0))}

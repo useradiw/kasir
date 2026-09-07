@@ -155,10 +155,11 @@ export default async function PetunjukPage() {
         </p>
         <Steps>
           <li>Buka <Link href="/buku/belanja" className="cursor-pointer text-primary hover:underline">Pengeluaran</Link> dari menu utama.</li>
-          <li>Pilih <strong>Akun kas</strong> — dari mana uangnya keluar (mis. Kas Laci, Kas Pak Har).</li>
-          <li>Pilih <strong>Kategori</strong> pengeluaran.</li>
-          <li>Isi nama item, <strong>Qty</strong>, dan <strong>Harga satuan</strong> — jumlah total terisi otomatis (boleh disunting).</li>
-          <li>Ketuk <strong>Simpan</strong>. Catatan langsung masuk ke buku besar.</li>
+          <li>Isi <strong>Tanggal</strong> dan pilih <strong>Akun kas</strong> — dari mana uangnya keluar (mis. Kas Laci, Kas Pak Har). Keduanya berlaku untuk semua item yang Anda catat sekaligus.</li>
+          <li>Untuk setiap barang, isi satu kotak <strong>Item</strong>: pilih <strong>Kategori</strong>, tulis <strong>Nama barang</strong>, lalu isi <strong>Qty</strong> dan <strong>Harga satuan</strong>. Jumlah per item dihitung otomatis.</li>
+          <li>Ketuk <strong>＋ Tambah item</strong> untuk barang berikutnya. Setiap item boleh beda kategori — misalnya daging (Bahan Baku) dan plastik (Operasional) dalam satu kali belanja.</li>
+          <li>Periksa <strong>Total keluar dari kas</strong> di bawah daftar item.</li>
+          <li>Ketuk <strong>Simpan Pengeluaran</strong>. Semua item langsung masuk ke buku besar.</li>
         </Steps>
       </section>
 
