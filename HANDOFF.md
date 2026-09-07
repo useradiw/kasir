@@ -1,14 +1,24 @@
 # HANDOFF
 
-## State — 2026-09-07 (role-permissions worktree)
+## State — 2026-09-07
 
-**Branch `feat/role-permissions` in worktree `D:/Website/adi/kasir-perms`, off
-`sept` (cf66e33) — NOT merged. Adi merges.** The capability layer is DONE:
-every gate in the app is now `requireCan`/`requireCanStrict` on a named
-capability; the role gates (requireRole/requireOwner) are deleted. Day-one
-behaviour is unchanged — the seeded grid mirrors the old hardcoded checks, and
-test/permissions-matrix.test.ts pins that. Last green: lint clean, `npm test`
-420 passed + 1 skipped / 37 files, `npm run build` succeeds.
+`sept` at 652181d, tree clean, **no worktrees** — `feat/role-permissions` was
+fast-forwarded into `sept` and deleted, and `D:/Website/adi/kasir-perms` is
+gone. Branches are `master` -> `develop` -> `sept`. **Nothing is pushed:
+`origin/master` is at 1904f58,** so GitHub and Vercel still carry the
+pre-Warung-Books app. Adi does every merge into develop/master and every push.
+
+The capability layer is DONE: every gate in the app is now `requireCan` /
+`requireCanStrict` on a named capability, and the role gates
+(requireRole/requireOwner) are deleted. Day-one behaviour is unchanged — the
+default grid mirrors the old hardcoded checks and test/permissions-matrix.test.ts
+pins that, transcribing the old gate per capability rather than describing the
+new code. Last green on `sept` after the merge: lint clean, `npm test` 420
+passed + 1 skipped / 37 files, `npm run build` succeeds.
+
+**NOT visually verified: the /admin/izin screen has never been rendered.** It
+needs a real OWNER login and Adi has not done one yet. Everything else on this
+branch was checked in the browser. Do this before trusting the screen.
 
 Owner toggle screen: **/admin/izin** (real OWNER only, no DEVELOPER bypass).
 It sits next to /admin/staff, where roles are assigned. It was briefly at
