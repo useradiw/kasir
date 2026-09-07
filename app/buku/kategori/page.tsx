@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { listCategories } from "@/app/actions/admin/queries";
 import { KategoriClient } from "./kategori-client";
 
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * page, the seed button is always shown, not only when the list is empty.
  */
 export default async function BukuKategoriPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("buku.read");
   const categories = await listCategories();
 
   return (

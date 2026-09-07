@@ -1,6 +1,6 @@
 "use server";
 
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getBukuKas as getBukuKasLib, getCekSaldo as getCekSaldoLib } from "@/lib/buku-kas";
 export type { BukuKasAccount, BukuKasMovement, CekSaldoRow } from "@/lib/buku-kas";
 
@@ -10,7 +10,7 @@ export type { BukuKasAccount, BukuKasMovement, CekSaldoRow } from "@/lib/buku-ka
  * session, same reasoning as getLaporanKeuangan.
  */
 export async function getBukuKas(month: string) {
-  await requireOwner();
+  await requireCan("buku.read");
   return getBukuKasLib(month);
 }
 
@@ -18,6 +18,6 @@ export async function getBukuKas(month: string) {
  * Owner-gated wrapper over getCekSaldo (lib/buku-kas.ts).
  */
 export async function getCekSaldo(month: string) {
-  await requireOwner();
+  await requireCan("buku.read");
   return getCekSaldoLib(month);
 }

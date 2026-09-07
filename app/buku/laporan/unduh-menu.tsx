@@ -27,7 +27,7 @@ export type MonthOption = { month: string; locked: boolean };
  *
  * The period on screen is exported straight from props with no round trip; the
  * others are fetched one at a time through getLaporanKeuangan, which carries
- * the same requireOwner() gate as every other query in that module.
+ * the same requireCan("buku.read") gate as every other query in that module.
  */
 export function UnduhMenu({
   laporan,

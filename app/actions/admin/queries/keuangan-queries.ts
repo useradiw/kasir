@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
 import { CatatRepository, type CatatSourceType } from "@/lib/accounting/catatRepository";
 import { CashAccountRepository } from "@/lib/accounting/cashAccountRepository";
@@ -26,7 +26,7 @@ export interface JurnalRow {
 
 /** Raw jurnal list (the Keuangan landing). Newest first; VOID hidden by default. */
 export async function listJurnal(opts: DateRange & { includeVoid?: boolean } = {}): Promise<JurnalRow[]> {
-  await requireOwner();
+  await requireCan("buku.read");
   const where: {
     state?: { in?: ("POSTED" | "VOID")[]; not?: "VOID" };
     date?: { gte?: string; lte?: string };
@@ -53,18 +53,18 @@ export async function listJurnal(opts: DateRange & { includeVoid?: boolean } = {
 }
 
 export async function listPengeluaran(range: DateRange = {}) {
-  await requireOwner();
+  await requireCan("buku.read");
   const rows = await new ExpenseRepository(prisma).listPengeluaran(range);
   return rows.map((r) => ({ ...r, hargaSatuan: n(r.hargaSatuan), jumlah: n(r.jumlah) }));
 }
 
 export async function listCategories() {
-  await requireOwner();
+  await requireCan("buku.read");
   return new ExpenseRepository(prisma).listCategories();
 }
 
 export async function listCatat(sourceType: CatatSourceType, range: DateRange = {}) {
-  await requireOwner();
+  await requireCan("buku.read");
   const rows = await new CatatRepository(prisma).listCatat(sourceType, range);
   return rows.map((r) => ({
     id: r.id,
@@ -78,18 +78,18 @@ export async function listCatat(sourceType: CatatSourceType, range: DateRange = 
 }
 
 export async function listCashAccounts(includeInactive = false) {
-  await requireOwner();
+  await requireCan("buku.read");
   return new CashAccountRepository(prisma).list(includeInactive);
 }
 
 export async function listMonths() {
-  await requireOwner();
+  await requireCan("buku.read");
   return new MonthRepository(prisma).list();
 }
 
 /** Every sales channel ("tunai"/"elektronik"/"online") -> mapped kas account,
  *  or null when unmapped. Backs the Akun Penjualan screen. */
 export async function listSalesChannelAccounts() {
-  await requireOwner();
+  await requireCan("buku.read");
   return new SalesChannelRepository(prisma).list();
 }

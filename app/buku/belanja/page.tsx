@@ -14,14 +14,14 @@ export const dynamic = "force-dynamic";
  * "Catat Pengeluaran" form): add-only, no list and no Void
  * (docs/redesign/plan-open-items.md section 1, build order 5).
  *
- * Gated with requireAuth(), NOT requireOwner() — the only page under /buku
+ * Gated with requireAuth(), NOT requireCan("buku.read") — the only page under /buku
  * that is. Adi authorised this explicitly on 2026-09-01, it mirrors the deliberate
  * requireAuth() gate on recordPengeluaranAsStaff (see the comment above that
  * action in app/actions/admin/keuangan.ts), and it must not be "fixed" to
- * requireOwner(). test/buku-pengeluaran.test.ts guards this.
+ * a capability gate. test/buku-pengeluaran.test.ts guards this.
  *
  * It therefore reads the two lists through the lib repositories DIRECTLY rather
- * than through app/actions/admin/queries, whose exports are thin requireOwner()
+ * than through app/actions/admin/queries, whose exports are thin requireCan("buku.read")
  * wrappers built for client callers. Routing this page through those wrappers
  * redirected every cashier to /beranda and made the page unreachable for the
  * only role it exists for (found in UAT 2026-09-03). This is a server

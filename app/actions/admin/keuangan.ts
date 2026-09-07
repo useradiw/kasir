@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireOwner } from "@/lib/admin-auth";
+import { requireAuth, requireCan } from "@/lib/admin-auth";
 import { runAction } from "@/lib/action-error";
 import { revalidateKeuangan } from "@/lib/revalidate";
 import { ExpenseRepository } from "@/lib/accounting/expenseRepository";
@@ -64,7 +64,7 @@ async function setSelectedMonthCookie(month: string) {
 
 export async function createCategory(data: CategoryData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.akun.write");
     const parsed = categorySchema.parse(data);
     const row = await expenses().createCategory(parsed);
     revalidateKeuangan();
@@ -74,7 +74,7 @@ export async function createCategory(data: CategoryData) {
 
 export async function updateCategory(input: { id: string; name?: string; active?: boolean }) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.akun.write");
     const { id, ...rest } = updateCategorySchema.parse(input);
     await expenses().updateCategory(id, rest);
     revalidateKeuangan();
@@ -83,7 +83,7 @@ export async function updateCategory(input: { id: string; name?: string; active?
 
 export async function seedDefaultCategories() {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.akun.write");
     await expenses().ensureDefaultCategories();
     revalidateKeuangan();
   });
@@ -91,7 +91,7 @@ export async function seedDefaultCategories() {
 
 export async function deleteCategory(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.akun.write");
     await expenses().deleteCategory(id);
     revalidateKeuangan();
   });
@@ -103,7 +103,7 @@ export async function deleteCategory(id: string) {
 
 export async function recordPengeluaran(data: PengeluaranData) {
   return runAction(async () => {
-    const staff = await requireOwner();
+    const staff = await requireCan("pengeluaran.write");
     const parsed = pengeluaranSchema.parse(data);
     const row = await expenses().recordPengeluaran({
       date: parsed.date,
@@ -121,10 +121,10 @@ export async function recordPengeluaran(data: PengeluaranData) {
 }
 
 // Cashier-facing Catat Pengeluaran (used by /expenses). Deliberately gated
-// with requireAuth(), NOT requireOwner(): the owner approved letting any
+// with requireAuth(), NOT requireCan("pengeluaran.write"): the owner approved letting any
 // authenticated staff (including CASHIER) write a pengeluaran ledger entry
 // through this action, mirroring what the old flat /expenses form allowed.
-// Do NOT "fix" this back to requireOwner().
+// Do NOT "fix" this back to requireCan("pengeluaran.write").
 export async function recordPengeluaranAsStaff(data: PengeluaranData) {
   return runAction(async () => {
     const staff = await requireAuth();
@@ -146,7 +146,7 @@ export async function recordPengeluaranAsStaff(data: PengeluaranData) {
 
 export async function voidPengeluaran(id: string) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("pengeluaran.void");
     await expenses().voidPengeluaran(id);
     revalidateKeuangan();
   });
@@ -158,7 +158,7 @@ export async function voidPengeluaran(id: string) {
 
 export async function recordTransfer(data: TransferData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.kas.write");
     const parsed = transferSchema.parse(data);
     const row = await catat().recordTransfer({
       date: parsed.date,
@@ -174,7 +174,7 @@ export async function recordTransfer(data: TransferData) {
 
 export async function recordModal(data: ModalData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.kas.write");
     const parsed = modalSchema.parse(data);
     const row = await catat().recordModal({
       date: parsed.date,
@@ -190,7 +190,7 @@ export async function recordModal(data: ModalData) {
 
 export async function recordPrive(data: PriveData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.kas.write");
     const parsed = priveSchema.parse(data);
     const row = await catat().recordPrive({
       date: parsed.date,
@@ -205,7 +205,7 @@ export async function recordPrive(data: PriveData) {
 
 export async function recordSaldoAwal(data: SaldoAwalData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.kas.write");
     const parsed = saldoAwalSchema.parse(data);
     const { row, hasPriorEntries } = await catat().recordSaldoAwal({
       date: parsed.date,
@@ -219,7 +219,7 @@ export async function recordSaldoAwal(data: SaldoAwalData) {
 
 export async function voidCatat(id: string, sourceType: CatatSourceType) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.kas.write");
     await catat().voidCatat(id, sourceType);
     revalidateKeuangan();
   });
@@ -231,7 +231,7 @@ export async function voidCatat(id: string, sourceType: CatatSourceType) {
 
 export async function createCashAccount(input: { label: string }) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.kas.write");
     const parsed = cashAccountSchema.parse(input);
     const row = await cash().create(parsed.label);
     revalidateKeuangan();
@@ -241,7 +241,7 @@ export async function createCashAccount(input: { label: string }) {
 
 export async function renameCashAccount(input: { id: string; label: string }) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.kas.write");
     const parsed = renameCashAccountSchema.parse(input);
     await cash().rename(parsed.id, parsed.label);
     revalidateKeuangan();
@@ -250,7 +250,7 @@ export async function renameCashAccount(input: { id: string; label: string }) {
 
 export async function setCashAccountActive(input: { id: string; active: boolean }) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.kas.write");
     const parsed = setCashAccountActiveSchema.parse(input);
     await cash().setActive(parsed.id, parsed.active);
     revalidateKeuangan();
@@ -263,7 +263,7 @@ export async function setCashAccountActive(input: { id: string; active: boolean 
 
 export async function setSalesChannelAccount(input: { channel: string; account: string }) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.akun.write");
     const parsed = salesChannelAccountSchema.parse(input);
     await salesChannels().set(parsed.channel, parsed.account);
     revalidateKeuangan();
@@ -274,7 +274,7 @@ export async function setSalesChannelAccount(input: { channel: string; account: 
  *  that the posting seams reference by name. Safe to click repeatedly. */
 export async function seedStructuralChart() {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.akun.write");
     await seedChartOfAccounts(prisma);
     revalidateKeuangan();
   });
@@ -286,7 +286,7 @@ export async function seedStructuralChart() {
 
 export async function createMonth(input: { month: string }) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.bulan.write");
     const { month } = monthSchema.parse(input);
     await months().create(month);
     await setSelectedMonthCookie(month);
@@ -296,7 +296,7 @@ export async function createMonth(input: { month: string }) {
 
 export async function setSelectedMonth(input: { month: string }) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.bulan.write");
     const { month } = monthSchema.parse(input);
     await setSelectedMonthCookie(month);
     revalidateKeuangan();
@@ -309,7 +309,7 @@ export async function setSelectedMonth(input: { month: string }) {
 
 export async function saveCalkNote(data: CalkNoteData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.akun.write");
     const parsed = calkNoteSchema.parse(data);
     await calkNotes().upsert(parsed.month, parsed.sectionKey, parsed.note);
     revalidateKeuangan();
@@ -322,7 +322,7 @@ export async function saveCalkNote(data: CalkNoteData) {
 
 export async function recordBalanceAssertion(data: CekSaldoData) {
   return runAction(async () => {
-    const staff = await requireOwner();
+    const staff = await requireCan("buku.kas.write");
     const parsed = cekSaldoSchema.parse(data);
     const row = await balanceAssertions().record({
       account: parsed.account,
@@ -351,7 +351,7 @@ export async function recordBalanceAssertion(data: CekSaldoData) {
 
 export async function lockMonth(data: LockMonthData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.bulan.write");
     const { month, force } = lockMonthSchema.parse(data);
     if (!force) {
       const laporan = await buildLaporanKeuangan(month);
@@ -372,7 +372,7 @@ export async function lockMonth(data: LockMonthData) {
 
 export async function unlockMonth(data: UnlockMonthData) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("buku.bulan.write");
     const { month } = unlockMonthSchema.parse(data);
     const row = await months().unlock(month);
     revalidateKeuangan();

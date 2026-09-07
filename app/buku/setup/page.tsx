@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { SetupStep } from "@/components/shell/setup-step";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getBukuSetupStatus, setupSteps } from "@/lib/shell-queries";
 
 /**
@@ -10,7 +10,7 @@ import { getBukuSetupStatus, setupSteps } from "@/lib/shell-queries";
  * its inline action or onward link. Shown first from /buku while incomplete.
  */
 export default async function BukuSetupPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("buku.read");
   const status = await getBukuSetupStatus();
   const steps = setupSteps(status);
 

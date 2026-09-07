@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { listJurnal } from "@/app/actions/admin/queries";
 import { getSelectedMonth, monthRange } from "@/lib/keuangan-month";
 import { JurnalClient } from "./jurnal-client";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
  * build order 6). Reuses listJurnal unchanged.
  */
 export default async function BukuJurnalPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("buku.read");
   const { dateFrom, dateTo, month } = monthRange(await getSelectedMonth());
 
   // includeVoid: true — the ONE deliberate behaviour change from the old

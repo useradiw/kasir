@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { listMonths } from "@/app/actions/admin/queries";
 import { getSelectedMonth } from "@/lib/keuangan-month";
 import { BulanClient } from "./bulan-client";
@@ -24,7 +24,7 @@ export const dynamic = "force-dynamic";
  * otherwise nothing under /buku could change the period those screens read.
  */
 export default async function BukuBulanPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("buku.read");
   const [months, selected] = await Promise.all([listMonths(), getSelectedMonth()]);
 
   return (

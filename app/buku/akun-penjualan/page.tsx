@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { listCashAccounts, listSalesChannelAccounts } from "@/app/actions/admin/queries";
 import { AkunPenjualanClient } from "./akun-penjualan-client";
 
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
  * (docs/redesign/plan-open-items.md section 1, build order 2).
  */
 export default async function BukuAkunPenjualanPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("buku.read");
   const [cashAccounts, channels] = await Promise.all([
     listCashAccounts(),
     listSalesChannelAccounts(),

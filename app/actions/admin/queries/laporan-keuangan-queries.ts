@@ -1,6 +1,6 @@
 "use server";
 
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { buildLaporanKeuangan } from "@/lib/laporan-keuangan";
 export type { LaporanKeuangan } from "@/lib/laporan-keuangan";
 
@@ -11,6 +11,6 @@ export type { LaporanKeuangan } from "@/lib/laporan-keuangan";
  * buildLaporanKeuangan's own doc comment for what it computes.
  */
 export async function getLaporanKeuangan(month: string) {
-  await requireOwner();
+  await requireCan("buku.read");
   return buildLaporanKeuangan(month);
 }

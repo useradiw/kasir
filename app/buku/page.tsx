@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { AlertRow, BentoCard, CardLabel, Tag } from "@/components/shell/ui";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getSelectedMonth } from "@/lib/keuangan-month";
 import { buildLaporanKeuangan } from "@/lib/laporan-keuangan";
 import {
@@ -16,7 +16,7 @@ import {
  * instead of buried one level deep.
  */
 export default async function BukuPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("buku.read");
   const month = await getSelectedMonth();
 
   const [laporan, setup, unposted] = await Promise.all([

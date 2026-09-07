@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getBukuKas, getCekSaldo, listCashAccounts } from "@/app/actions/admin/queries";
 import { getSelectedMonth } from "@/lib/keuangan-month";
 import { getBukuSetupStatus, isBukuSetupComplete } from "@/lib/shell-queries";
@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
  * route — this page never touches /kas, /cashregister or /admin/cash-register.
  */
 export default async function BukuKasPage() {
-  const staff = await requireOwner();
+  const staff = await requireCan("buku.read");
   const month = await getSelectedMonth();
   const [accounts, cekSaldo, cashAccounts, setupStatus] = await Promise.all([
     getBukuKas(month),

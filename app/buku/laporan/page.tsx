@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getLaporanKeuangan } from "@/app/actions/admin/queries/laporan-keuangan-queries";
 import { listMonths } from "@/app/actions/admin/queries";
 import { getSelectedMonth } from "@/lib/keuangan-month";
@@ -35,7 +35,7 @@ export default async function BukuLaporanPage({
 }: {
   searchParams: Promise<{ periode?: string }>;
 }) {
-  const staff = await requireOwner();
+  const staff = await requireCan("buku.read");
   const [{ periode }, activeMonth] = await Promise.all([searchParams, getSelectedMonth()]);
   const periodKey = periodKeyFromParam(periode, activeMonth);
   const period = resolvePeriod(periodKey);
