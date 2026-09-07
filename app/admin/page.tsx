@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { RoleEnum } from "@/generated/prisma";
 
 /**
@@ -48,7 +48,7 @@ const groupsBase: AdminGroup[] = [
 ];
 
 export default async function AdminPage() {
-  const staff = await requireRole("OWNER", "MANAGER");
+  const staff = await requireCan("admin.ops");
   const isOwner = staff.role === "OWNER" || (staff.role as RoleEnum) === "DEVELOPER";
 
   const groups = groupsBase

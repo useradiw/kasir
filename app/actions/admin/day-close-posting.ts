@@ -9,13 +9,13 @@
  * ledger entries for any register.
  */
 
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { postDayCloseForRegister } from "@/lib/day-close-posting";
 
 export async function repostDayCloseForRegister(
   cashRegisterId: string,
   opts?: { repost?: boolean },
 ): Promise<{ posted: boolean; reason?: string }> {
-  await requireOwner();
+  await requireCan("dayclose.repost");
   return postDayCloseForRegister(cashRegisterId, opts);
 }

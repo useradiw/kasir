@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
 import { getTransactionsData } from "@/app/actions/admin/queries";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import TransactionsClient from "./transactions-client";
 
 export default async function TransactionsPage({
@@ -16,7 +16,7 @@ export default async function TransactionsPage({
     to?: string;
   }>;
 }) {
-  const staff = await requireRole("OWNER", "MANAGER");
+  const staff = await requireCan("transactions.read");
   const params = await searchParams;
   const page = Math.max(1, parseInt(params.page ?? "1", 10));
   const method = params.method ?? "";

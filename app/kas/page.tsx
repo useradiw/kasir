@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/shell/app-shell";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getCashRegisterDataForStaff } from "@/app/actions/cashregister";
 import { getCashRegisterData } from "@/app/actions/admin/queries";
 import { KasOwner } from "@/components/kas/kas-owner";
@@ -18,7 +18,7 @@ export default async function KasPage({
   searchParams: Promise<{ from?: string; to?: string }>;
 }) {
   // STAFF excluded — same register-access boundary the old /cashregister had.
-  const staff = await requireRole("OWNER", "MANAGER", "CASHIER");
+  const staff = await requireCan("kas.access");
   const params = await searchParams;
   const from = params.from ?? "";
   const to = params.to ?? "";

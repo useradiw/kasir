@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { runAction, ActionError } from "@/lib/action-error";
 import { revalidateSettlement } from "@/lib/revalidate";
 import { localDateKey } from "@/lib/format";
@@ -28,7 +28,7 @@ const createSettlementSchema = z.object({
 
 export async function createSettlement(input: z.infer<typeof createSettlementSchema>) {
   return runAction(async () => {
-    const staff = await requireRole("OWNER", "MANAGER", "CASHIER");
+    const staff = await requireCan("settlement.use");
     const data = createSettlementSchema.parse(input);
 
     const transactions = await prisma.transaction.findMany({
@@ -123,7 +123,7 @@ export async function createSettlement(input: z.infer<typeof createSettlementSch
 
 export async function deleteSettlement(settlementId: string) {
   return runAction(async () => {
-    await requireRole("OWNER");
+    await requireCan("settlement.delete");
 
     const settlement = await prisma.onlineSettlement.findUnique({
       where: { id: settlementId },

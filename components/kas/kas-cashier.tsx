@@ -309,7 +309,7 @@ export function KasCashier({
         ) : null}
 
         {/* No "Lihat di Buku Kas" link here, unlike kas-owner.tsx: /buku/kas is
-            requireOwner()-gated, and this component only ever renders for a
+            requireCan("buku.read")-gated, and this component only ever renders for a
             CASHIER. Linking there would trade a 404 for a permission error. */}
         <div className="flex gap-2">
           <Button variant="outline" size="sm" className="flex-1" onClick={() => downloadDayCsv(r)}>

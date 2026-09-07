@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { revalidateTransactions } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireOwner } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { ActionError, runAction } from "@/lib/action-error";
 import { createVoidNotification } from "@/lib/notifications";
 import { formatRupiah } from "@/lib/format";
@@ -12,7 +12,7 @@ import { SalesPostingRepository } from "@/lib/accounting/salesPostingRepository"
 
 export async function voidTransaction(transactionId: string, reason: string) {
   return runAction(async () => {
-    const staff = await requireOwner();
+    const staff = await requireCan("transaksi.write");
 
     if (!reason.trim()) throw new ActionError("Alasan void wajib diisi.");
 
@@ -85,7 +85,7 @@ export async function updateTransaction(
   input: UpdateTransactionInput
 ) {
   return runAction(async () => {
-    await requireOwner();
+    await requireCan("transaksi.write");
 
     const tx = await prisma.transaction.findUnique({
       where: { id: transactionId },

@@ -4,13 +4,13 @@ import { Row, Tag } from "@/components/shell/ui";
 import { RoleBadge } from "@/components/shared/badge";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
 import { getSessionsData } from "@/app/actions/admin/queries";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { formatDateTime } from "@/lib/format";
 
 const ACTIVE_THRESHOLD_MINUTES = 30;
 
 export default async function SessionsPage() {
-  const staff = await requireRole("OWNER", "MANAGER");
+  const staff = await requireCan("staff.read");
   const { users, error } = await getSessionsData();
 
   // Server component renders once per request — Date.now() is intentional.

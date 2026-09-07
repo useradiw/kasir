@@ -12,7 +12,7 @@ import { getStaffSalesToday, getTodayOverview, getUnpostedDayCloses } from "@/li
 export default async function BerandaPage() {
   const staff = await requireAuth();
   const isOwner = staff.role === "OWNER" || staff.role === "MANAGER" || staff.role === "DEVELOPER";
-  // Narrower than isOwner above: Buku is requireOwner()-gated server-side
+  // Narrower than isOwner above: Buku is requireCan("buku.read")-gated server-side
   // (OWNER + DEVELOPER only), so the beranda link that leads there must not
   // show for MANAGER even though MANAGER sees the rest of the owner branch.
   const canOpenBuku = staff.role === "OWNER" || staff.role === "DEVELOPER";

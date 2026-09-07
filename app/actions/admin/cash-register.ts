@@ -2,7 +2,7 @@
 
 import { revalidateCashRegister } from "@/lib/revalidate";
 import { prisma } from "@/lib/prisma";
-import { requireOwner, requireOwnerStrict } from "@/lib/admin-auth";
+import { requireCan, requireCanStrict } from "@/lib/admin-auth";
 import { z } from "zod";
 import { ActionError, runAction } from "@/lib/action-error";
 import { postDayCloseForRegister } from "@/lib/day-close-posting";
@@ -18,7 +18,7 @@ const closeSchema = z.object({
 
 export async function openRegister(formData: FormData) {
   return runAction(async () => {
-    const staff = await requireOwner();
+    const staff = await requireCan("cashregister.write");
     const { openingCash } = openSchema.parse({ openingCash: formData.get("openingCash") });
 
     const now = new Date();
@@ -36,7 +36,7 @@ export async function openRegister(formData: FormData) {
 
 export async function closeRegister(formData: FormData) {
   return runAction(async () => {
-    const staff = await requireOwner();
+    const staff = await requireCan("cashregister.write");
     const { closingCash } = closeSchema.parse({ closingCash: formData.get("closingCash") });
 
     const now = new Date();
@@ -65,7 +65,7 @@ const editSchema = z.object({
 
 export async function editRegister(id: string, formData: FormData) {
   return runAction(async () => {
-    const staff = await requireOwner();
+    const staff = await requireCan("cashregister.write");
     const raw: Record<string, unknown> = { openingCash: formData.get("openingCash") };
     const closingVal = formData.get("closingCash");
     if (closingVal !== null && closingVal !== "") raw.closingCash = closingVal;
@@ -97,7 +97,7 @@ export async function editRegister(id: string, formData: FormData) {
 
 export async function deleteRegister(id: string) {
   return runAction(async () => {
-    await requireOwnerStrict();
+    await requireCanStrict("cashregister.delete");
 
     const sales = new SalesPostingRepository(prisma);
     const existingPosting = await sales.getPostingFor(id);

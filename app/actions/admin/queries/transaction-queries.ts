@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 
 export async function getTransactionsData(opts: {
   page: number;
@@ -10,7 +10,7 @@ export async function getTransactionsData(opts: {
   from: string;
   to: string;
 }) {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("transactions.read");
 
   const PAGE_SIZE = 20;
   const where: {
@@ -89,7 +89,7 @@ export async function getTransactionsData(opts: {
 }
 
 export async function getTransactionDetail(transactionId: string) {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("transactions.read");
 
   const tx = await prisma.transaction.findUnique({
     where: { id: transactionId },

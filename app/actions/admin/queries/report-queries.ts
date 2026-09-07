@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { isOnlineService } from "@/lib/day-close";
 import { disbursedTotal, offlineSalesTotal, recognisedRevenue } from "@/lib/revenue";
 import { localDateKey } from "@/lib/format";
@@ -15,7 +15,7 @@ export async function getReportData(opts: {
   date: string;
   isOwner?: boolean;
 }) {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("reports.read");
 
   const { start, end } = getDateRange(opts.period, opts.date);
 

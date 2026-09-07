@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 
 /**
  * Layout for the admin ops children (sessions, attendance, suppliers, …).
@@ -6,13 +6,13 @@ import { requireRole } from "@/lib/admin-auth";
  * now owns its own AppShell (dark scope + bottom nav) and header, matching
  * the rest of the redesign (docs/redesign/design.md section 3.1). This
  * layout keeps the shared auth gate only; every child already re-checks
- * `requireRole` itself, so this is defense in depth, not the only gate.
+ * `requireCan("admin.ops")` itself, so this is defense in depth, not the only gate.
  */
 export default async function AdminOpsLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("admin.ops");
   return <>{children}</>;
 }

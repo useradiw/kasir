@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getSettings } from "@/lib/settings";
 
 export interface SettlementData {
@@ -51,7 +51,7 @@ const ONLINE_SERVICES = ["GoFood", "ShopeeFood", "GrabFood"] as const;
 export async function getSettlementData(opts?: {
   service?: string;
 }): Promise<SettlementData> {
-  await requireRole("OWNER", "MANAGER", "CASHIER");
+  await requireCan("settlement.use");
 
   const serviceFilter = opts?.service && ONLINE_SERVICES.includes(opts.service as typeof ONLINE_SERVICES[number])
     ? [opts.service as typeof ONLINE_SERVICES[number]]

@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getSettlementData } from "@/app/actions/admin/queries";
 import { SettlementClient } from "./settlement-client";
 
 export default async function SettlementPage() {
-  const staff = await requireRole("OWNER", "MANAGER", "CASHIER");
+  const staff = await requireCan("settlement.use");
   const data = await getSettlementData();
 
   return (

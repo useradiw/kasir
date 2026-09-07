@@ -2,7 +2,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/shell/app-shell";
 import { NotificationBellServer } from "@/components/shared/notification-bell-server";
 import { getReportData } from "@/app/actions/admin/queries";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { ReportClient } from "./report-client";
 
 export default async function ReportsPage({
@@ -10,7 +10,7 @@ export default async function ReportsPage({
 }: {
   searchParams: Promise<{ period?: string; date?: string }>;
 }) {
-  const staff = await requireRole("OWNER", "MANAGER");
+  const staff = await requireCan("reports.read");
   const isOwner = staff.role === "OWNER" || staff.role === "DEVELOPER";
   const params = await searchParams;
   const period = (["daily", "weekly", "monthly", "yearly"].includes(params.period ?? "")

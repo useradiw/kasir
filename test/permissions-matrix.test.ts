@@ -169,6 +169,44 @@ describe("permission matrix — seeded grid vs today's behaviour", () => {
 });
 
 // ---------------------------------------------------------------------------
+// No strays: the hardcoded role gates are GONE. Every gate in app/ must be a
+// capability. If this fails, someone reintroduced requireOwner/requireRole or
+// added a new gate helper beside the capability layer — the grid stops being
+// the source of truth the moment that happens.
+// ---------------------------------------------------------------------------
+
+describe("no hardcoded role gates remain", () => {
+  function walk(dir: string): string[] {
+    const { readdirSync, statSync } = require("node:fs") as typeof import("node:fs");
+    const out: string[] = [];
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) out.push(...walk(full));
+      else out.push(full);
+    }
+    return out;
+  }
+
+  it("app/, lib/, components/, hooks/ and utils/ gate only through capabilities", () => {
+    const dirs = ["app", "lib", "components", "hooks", "utils"].map((d) => join(ROOT, d));
+    const offenders: string[] = [];
+    for (const dir of dirs) {
+      for (const file of walk(dir)) {
+        if (!/\.(ts|tsx)$/.test(file)) continue;
+        const source = readFileSync(file, "utf8");
+        if (/require(Owner|Role)Strict?\(/.test(source)) offenders.push(file);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
+  it("admin-auth.ts no longer exports the legacy role gates", () => {
+    const source = readFileSync(join(ROOT, "lib/admin-auth.ts"), "utf8");
+    expect(source).not.toMatch(/export async function require(Owner|Role)/);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // The privileged-role invariants in app/actions/admin/staff.ts must stay
 // DIRECT role comparisons. If someone refactors them into capability checks,
 // they become grants the Owner could toggle — which is precisely the failure
@@ -181,7 +219,12 @@ describe("staff.ts privileged-role invariants", () => {
   it("keeps the guards as real-role comparisons, not capability checks", () => {
     expect(source).toContain('const PRIVILEGED_ROLES: RoleEnum[] = ["OWNER", "DEVELOPER"]');
     expect(source).toContain('if (actor.role !== "OWNER")');
-    expect(source).not.toContain("requireCan");
+    const guardBody = source.slice(
+      source.indexOf("function assertMayChangePrivilegedRole"),
+      source.indexOf("function assertNotSelfLockout"),
+    );
+    expect(guardBody).not.toContain("requireCan");
+    expect(guardBody).not.toContain("isAllowed");
   });
 
   it("still calls assertMayChangePrivilegedRole and assertNotSelfLockout from updateStaff", () => {
@@ -190,9 +233,9 @@ describe("staff.ts privileged-role invariants", () => {
     expect(updateStaff).toContain("assertMayChangePrivilegedRole(actor");
   });
 
-  it("still guards deleteStaff with a real-OWNER strict gate", () => {
+  it("still guards deleteStaff with the strict staff.delete gate", () => {
     const deleteStaff = source.slice(source.indexOf("export async function deleteStaff"), source.indexOf("export async function toggleStaffActive"));
-    expect(deleteStaff).toContain("requireOwnerStrict()");
+    expect(deleteStaff).toContain('requireCanStrict("staff.delete")');
   });
 
   it("still blocks self-deactivation and unguarded OWNER/DEVELOPER deactivation in toggleStaffActive", () => {

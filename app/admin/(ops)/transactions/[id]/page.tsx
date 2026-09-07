@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/shell/app-shell";
 import { getTransactionDetail } from "@/app/actions/admin/queries";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { getStoreInfo } from "@/lib/settings";
 import TransactionDetailClient from "./transaction-detail-client";
 
@@ -11,7 +11,7 @@ export default async function TransactionDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const [staff, storeInfo] = await Promise.all([
-    requireRole("OWNER", "MANAGER"),
+    requireCan("transactions.read"),
     getStoreInfo(),
   ]);
   const { id } = await params;

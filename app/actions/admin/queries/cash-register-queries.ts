@@ -1,7 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
-import { requireRole } from "@/lib/admin-auth";
+import { requireCan } from "@/lib/admin-auth";
 import { SalesChannelRepository } from "@/lib/accounting/salesChannelRepository";
 import { reconcileCashDates, reconcileRegisterDay, resolveRegisterPostings } from "./_shared";
 
@@ -25,7 +25,7 @@ async function resolveCashAccountLabel(): Promise<string | null> {
 }
 
 export async function getCashRegisterData(opts: { from: string; to: string }) {
-  await requireRole("OWNER", "MANAGER");
+  await requireCan("cashregister.read");
 
   const now = new Date();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());

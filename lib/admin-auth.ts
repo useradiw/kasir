@@ -23,39 +23,6 @@ async function resolveActiveStaff(): Promise<Staff> {
   return staff;
 }
 
-// Returns the authenticated Staff record if they have one of the given roles.
-// DEVELOPER is a superuser and passes every role check (it is blocked only from
-// hard-delete actions, which use requireRoleStrict / requireOwnerStrict instead).
-// Redirects to / otherwise.
-export async function requireRole(...roles: RoleEnum[]): Promise<Staff> {
-  const staff = await resolveActiveStaff();
-
-  if (staff.role !== "DEVELOPER" && !roles.includes(staff.role)) redirect("/");
-
-  return staff;
-}
-
-// Like requireRole, but with NO DEVELOPER bypass — only the listed roles pass.
-// Use this for hard-delete actions, which DEVELOPER must not be able to perform.
-export async function requireRoleStrict(...roles: RoleEnum[]): Promise<Staff> {
-  const staff = await resolveActiveStaff();
-
-  if (!roles.includes(staff.role)) redirect("/");
-
-  return staff;
-}
-
-// Convenience: require OWNER role specifically. DEVELOPER also passes.
-export async function requireOwner(): Promise<Staff> {
-  return requireRole("OWNER");
-}
-
-// Convenience: require OWNER specifically with NO DEVELOPER bypass.
-// Use for OWNER-only hard-delete actions.
-export async function requireOwnerStrict(): Promise<Staff> {
-  return requireRoleStrict("OWNER");
-}
-
 // Any active authenticated staff member passes — no role check.
 export async function requireAuth(): Promise<Staff> {
   return resolveActiveStaff();
@@ -64,12 +31,13 @@ export async function requireAuth(): Promise<Staff> {
 // ---------------------------------------------------------------------------
 // Capability gates.
 //
-// requireCan(cap) / requireCanStrict(cap) replace the role gates above. The
-// role -> capability grid lives in lib/permissions.ts (DEFAULT_GRID) and, from
-// phase 3, the RolePermission table overlays it. requireRole/requireOwner stay
-// ONLY for the three privileged-role invariants in app/actions/admin/staff.ts,
-// which are deliberately direct role comparisons — a capability is a grant the
-// Owner can toggle, and those must not be toggleable.
+// The old role gates (requireRole / requireOwner and their Strict variants)
+// are gone: every gate in the app is a capability now. The role -> capability
+// grid lives in lib/permissions.ts (DEFAULT_GRID) and, since the RolePermission
+// table exists, overlays it. The three privileged-role invariants in
+// app/actions/admin/staff.ts are deliberately DIRECT actor.role comparisons —
+// a capability is a grant the Owner can toggle, and those invariants must not
+// be toggleable. test/permissions-matrix.test.ts pins both.
 // ---------------------------------------------------------------------------
 
 // Returns the staff record if their role is granted the capability. OWNER is
