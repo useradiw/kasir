@@ -16,9 +16,18 @@ pins that, transcribing the old gate per capability rather than describing the
 new code. Last green on `sept` after the merge: lint clean, `npm test` 420
 passed + 1 skipped / 37 files, `npm run build` succeeds.
 
-**NOT visually verified: the /admin/izin screen has never been rendered.** It
-needs a real OWNER login and Adi has not done one yet. Everything else on this
-branch was checked in the browser. Do this before trusting the screen.
+**/admin/izin is verified end to end** (2026-09-07, dev.owner against the
+production database). All three tabs match DEFAULT_GRID exactly — Manager 12
+on, Kasir 3, Staf 0 — and each shows 32 switches, the 33 capabilities minus
+the hidden permissions.manage. A live toggle wrote one row, survived a full
+page reload, and toggling it back DELETED the row rather than storing false,
+which is the minimal-overlay behaviour the whole design rests on. The table is
+back to zero rows.
+
+Adi's own OWNER account was unlinked until 2026-09-07 — `dev.owner` was the
+only Owner that could actually sign in. Now both are linked. This matters
+because only a real OWNER can grant the OWNER role (a3fa65c), so a working
+Owner login is the only route back if one is ever lost.
 
 Owner toggle screen: **/admin/izin** (real OWNER only, no DEVELOPER bypass).
 It sits next to /admin/staff, where roles are assigned. It was briefly at
